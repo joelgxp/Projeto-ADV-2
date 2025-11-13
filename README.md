@@ -1,16 +1,9 @@
 
-![MapOS](https://raw.githubusercontent.com/RamonSilva20/mapos/master/assets/img/logo.png)
+# MapOS - Sistema de Controle de Ordens de Serviço
 
 ![version](https://img.shields.io/badge/version-4.52.0-blue.svg?longCache=true&style=flat-square)
 ![license](https://img.shields.io/badge/license-Apache-green.svg?longCache=true&style=flat-square)
 ![theme](https://img.shields.io/badge/theme-Matrix--Admin-lightgrey.svg?longCache=true&style=flat-square)
-![issues](https://img.shields.io/github/issues/RamonSilva20/mapos.svg?longCache=true&style=flat-square)
-![contributors](https://img.shields.io/github/contributors/RamonSilva20/mapos.svg?longCache=true&style=flat-square)
-
-### Contato: contato@mapos.com.br
-### [Feedback](https://github.com/RamonSilva20/mapos/discussions) - Vote ou sugira melhorias
-
-![Map-OS](https://raw.githubusercontent.com/RamonSilva20/mapos/master/docs/dashboard.png)
 
 ### [Instalação](Instalacao_xampp_windows.md)
 
@@ -54,16 +47,15 @@ URL: http://localhost:8000/
     ##### Obs2: O PhpMyAdmin também e instalado e pode ser acessado em `http://localhost:8080/`.
 
 ### Instalação Automatizada
-Tutorial Instalação: [https://youtu.be/NgXzzBB_2bM?si=FS_R2xq_W0Jnfn33](https://www.youtube.com/watch?v=aZE-LW_YOE4)
 #### Windows 10/11
 1. Execute o Prompt de Comando ou PowerShell como Administrador;
-2. Execute o comando: `PowerShell -command "& { iwr https://raw.githubusercontent.com/RamonSilva20/mapos/master/install.bat -OutFile MapOS_Install.bat }; .\MapOS_Install.bat"`
-3. Siga as instrunções na tela.
+2. Execute o arquivo `install.bat` que está na raiz do projeto;
+3. Siga as instruções na tela.
 
 #### Linux (Ubuntu/Debian)
 1. Abra o Terminal ou acesse seu servidor via SSH;
 2. Eleve o privilégio aplicando `sudo su` (Recomendado);
-3. Execute o comando: `curl -o MapOS_Install.sh -L https://raw.githubusercontent.com/RamonSilva20/mapos/master/install.sh && chmod +x MapOS_Install.sh && ./MapOS_Install.sh`
+3. Execute o arquivo `install.sh` que está na raiz do projeto: `chmod +x install.sh && ./install.sh`
 4. Siga as instruções na tela.
 
 ### Atualização
@@ -103,11 +95,6 @@ Tutorial Instalação: [https://youtu.be/NgXzzBB_2bM?si=FS_R2xq_W0Jnfn33](https:
 
 Para listar todos os comandos de terminal disponíveis, basta executar o comando `php index.php tools` a partir da raiz do projeto, após feita todo o processo de instalação.
 
-### Hospedagem Parceira
-Em parceria com o Projeto Map-OS a SysGO oferece hospedagem de qualidade e suporte personalizado para usuários dos Map-OS com custo justo e confiabilidade.
-Solicite sua hospedagem agora [Clique Aqui!](https://sysgo.com.br/mapos)
-
-<p><img src="https://sysgo.com.br/img-externo/mapos-github.jpg" alt="SysGO - MAP-OS Cloud Hosting" style="width:50%;"></p>
 
 ### Frameworks/Bibliotecas
 * [bcit-ci/CodeIgniter](https://github.com/bcit-ci/CodeIgniter)
@@ -123,19 +110,3 @@ Solicite sua hospedagem agora [Clique Aqui!](https://sysgo.com.br/mapos)
 * MySQL >= 5.7 ou >= 8.0
 * Composer >= 2
 
-### Doações
-Gosta do mapos e gostaria de contribuir com seu desenvolvimento?
-
-Doações podem ser realizadas nos links:
-* [catarse/mapos](https://www.catarse.me/mapos) - Mensal
-* [kofi/mapos](https://ko-fi.com/mapos) - Exporádica
-
-### Estrelas
-[![Estrelas](https://api.star-history.com/svg?repos=RamonSilva20/mapos&type=Date)](https://star-history.com/#RamonSilva20/mapos&Date)
-
-### Contribuidores
-[![Contribuidores](https://contrib.rocks/image?repo=RamonSilva20/mapos)](https://github.com/RamonSilva20/mapos/graphs/contributors)
-
-## Autor
-| [<img src="https://avatars.githubusercontent.com/RamonSilva20?s=115"><br><sub>Ramon Silva</sub>](https://github.com/RamonSilva20) |
-| :---: |

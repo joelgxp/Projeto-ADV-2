@@ -1,0 +1,38 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ssh-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH with password
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Git pull on server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSPHRASE }}" ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.SSH_DIRECTORY }} && \
+            if [ ! -d .git ]; then \
+              echo 'Erro: Diretório não é um repositório Git. Verifique o caminho em SSH_DIRECTORY.'; \
+              echo 'Diretório atual:' && pwd && ls -la; \
+              exit 1; \
+            fi && \
+            git fetch origin && \
+            git merge --abort 2>/dev/null || true && \
+            git reset --hard HEAD && \
+            git clean -fd && \
+            git reset --hard origin/main && \
+            git pull origin main && \
+            echo 'Deploy concluído com sucesso!' && \
+            ls -la"

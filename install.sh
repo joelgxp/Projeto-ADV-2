@@ -143,13 +143,18 @@ fi
     then
         echo "* Map-OS presente no sistema."
     else
-        echo "* Baixando a ultima versao do projeto."
-
-        if [ "$downMapos" = "release" ]; then
-            wget --quiet --show-progress -O $dirDefault/MapOS.zip $(curl -s https://api.github.com/repos/RamonSilva20/mapos/releases/latest | grep "zipball_url" | awk -F\" '{print $4}')
-        elif [ "$downMapos" = "master" ]; then
-            wget --quiet --show-progress -O $dirDefault/MapOS.zip https://github.com/RamonSilva20/mapos/archive/refs/heads/master.zip
+        echo "* Usando arquivos locais do projeto."
+        
+        # ============================================
+        # ATENÇÃO: Download do GitHub foi removido
+        # O instalador agora usa os arquivos locais do projeto
+        # ============================================
+        if [ ! -f "$dirDefault/MapOS.zip" ]; then
+            echo "Erro: Arquivo MapOS.zip não encontrado em $dirDefault"
+            echo "Por favor, copie os arquivos do projeto manualmente ou configure um servidor de download"
+            exit 1
         fi
+    fi
         echo
         echo "* Extraindo projeto."
         unzip -q $dirDefault/MapOS.zip -d $dirHtdocs/

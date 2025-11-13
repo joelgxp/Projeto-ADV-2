@@ -157,15 +157,16 @@ ECHO - Verificando Xampp
 IF not EXIST "%dirDefault%\xampp.exe" %dirDefault%\wget --quiet --show-progress %urlXampp% -O %dirDefault%\xampp.exe
 ECHO - Verificando Composer
 IF not EXIST "%dirDefault%\composer.exe" PowerShell -command "& { iwr %urlComposer% -OutFile %dirDefault%\composer.exe }" >NUL 2>&1
-ECHO - Verificando MapOS GitHUB
+REM ============================================
+REM ATENÇÃO: Download do GitHub foi removido
+REM O instalador agora usa os arquivos locais do projeto
+REM ============================================
+ECHO - Usando arquivos locais do projeto
 IF EXIST "%dirDefault%\MapOS.zip" GOTO etapa0
-IF %downMapos%==master (
-    ECHO - Baixando a versao MASTER
-    PowerShell -command "& { iwr https://github.com/RamonSilva20/mapos/archive/refs/heads/master.zip -OutFile %dirDefault%\MapOS.zip }"
-) ELSE (
-    ECHO - Baixando a versao RELEASE
-    FOR /F "eol= tokens=2 delims=, " %%A IN (' cURL -s https://api.github.com/repos/RamonSilva20/mapos/releases/latest ^| findstr /I /C:"zipball_url" ') DO PowerShell -command "& { iwr %%A -OutFile %dirDefault%\MapOS.zip }"
-)
+ECHO Erro: Arquivo MapOS.zip nao encontrado em %dirDefault%
+ECHO Por favor, copie os arquivos do projeto manualmente ou configure um servidor de download
+PAUSE
+EXIT /B 1
 GOTO etapa0
 :: <=== Fim Download de Dependências ===>
 

@@ -6,18 +6,20 @@ if (! defined('BASEPATH')) {
 
 /**
  * The user name of the git hub user who owns the repo
+ * ATENÇÃO: Configure com seu usuário/repositório ou desabilite o atualizador automático
  */
-$config['github_user'] = 'RamonSilva20';
+$config['github_user'] = '';
 
 /**
  * The repo on GitHub we will be updating from
+ * ATENÇÃO: Configure com seu repositório ou desabilite o atualizador automático
  */
-$config['github_repo'] = 'mapos';
+$config['github_repo'] = '';
 
 /**
  * The branch to update from
  */
-$config['github_branch'] = 'master';
+$config['github_branch'] = 'main';
 
 /**
  * The current commit the files are on.
