@@ -82,7 +82,75 @@ if (! empty($_POST)) {
     // database created
 
     $env_file_path = '..' . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . '.env.example';
-    $env_file = file_get_contents($env_file_path);
+    
+    if (! file_exists($env_file_path)) {
+        // Se .env.example não existir, criar um template básico
+        $env_file = "# Ambiente\n";
+        $env_file .= "APP_ENVIRONMENT=pre_installation\n\n";
+        $env_file .= "# Aplicação\n";
+        $env_file .= "APP_NAME=Map-OS\n";
+        $env_file .= "APP_SUBNAME=Sistema de Controle de Ordens de Serviço\n";
+        $env_file .= "APP_BASEURL=enter_baseurl\n";
+        $env_file .= "APP_TIMEZONE=America/Sao_Paulo\n";
+        $env_file .= "APP_CHARSET=UTF-8\n\n";
+        $env_file .= "# Banco de Dados\n";
+        $env_file .= "DB_DSN=\n";
+        $env_file .= "DB_HOSTNAME=enter_db_hostname\n";
+        $env_file .= "DB_USERNAME=enter_db_username\n";
+        $env_file .= "DB_PASSWORD=enter_db_password\n";
+        $env_file .= "DB_DATABASE=enter_db_name\n";
+        $env_file .= "DB_DRIVER=mysqli\n";
+        $env_file .= "DB_PREFIX=\n";
+        $env_file .= "DB_CHARSET=utf8\n";
+        $env_file .= "DB_COLLATION=utf8_general_ci\n\n";
+        $env_file .= "# Criptografia\n";
+        $env_file .= "APP_ENCRYPTION_KEY=enter_encryption_key\n\n";
+        $env_file .= "# API\n";
+        $env_file .= "API_ENABLED=enter_api_enabled\n";
+        $env_file .= "API_JWT_KEY=enter_jwt_key\n";
+        $env_file .= "API_TOKEN_EXPIRE_TIME=enter_token_expire_time\n\n";
+        $env_file .= "# Sessão\n";
+        $env_file .= "APP_SESS_DRIVER=database\n";
+        $env_file .= "APP_SESS_COOKIE_NAME=app_session\n";
+        $env_file .= "APP_SESS_EXPIRATION=7200\n";
+        $env_file .= "APP_SESS_SAVE_PATH=ci_sessions\n";
+        $env_file .= "APP_SESS_MATCH_IP=false\n";
+        $env_file .= "APP_SESS_TIME_TO_UPDATE=300\n";
+        $env_file .= "APP_SESS_REGENERATE_DESTROY=false\n\n";
+        $env_file .= "# Cookies\n";
+        $env_file .= "APP_COOKIE_PREFIX=\n";
+        $env_file .= "APP_COOKIE_DOMAIN=\n";
+        $env_file .= "APP_COOKIE_PATH=/\n";
+        $env_file .= "APP_COOKIE_SECURE=false\n";
+        $env_file .= "APP_COOKIE_HTTPONLY=false\n\n";
+        $env_file .= "# Segurança\n";
+        $env_file .= "APP_CSRF_PROTECTION=true\n";
+        $env_file .= "APP_CSRF_TOKEN_NAME=MAPOS_TOKEN\n";
+        $env_file .= "APP_CSRF_COOKIE_NAME=MAPOS_COOKIE\n";
+        $env_file .= "APP_CSRF_EXPIRE=7200\n";
+        $env_file .= "APP_CSRF_REGENERATE=true\n";
+        $env_file .= "GLOBAL_XSS_FILTERING=true\n\n";
+        $env_file .= "# Outros\n";
+        $env_file .= "APP_COMPRESS_OUTPUT=false\n";
+        $env_file .= "APP_PROXY_IPS=\n";
+        $env_file .= "WHOOPS_ERROR_PAGE_ENABLED=false\n\n";
+        $env_file .= "# Email\n";
+        $env_file .= "EMAIL_PROTOCOL=smtp\n";
+        $env_file .= "EMAIL_SMTP_HOST=smtp.gmail.com\n";
+        $env_file .= "EMAIL_SMTP_CRYPTO=tls\n";
+        $env_file .= "EMAIL_SMTP_PORT=587\n";
+        $env_file .= "EMAIL_SMTP_USER=seuemail@gmail.com\n";
+        $env_file .= "EMAIL_SMTP_PASS=senhadoemail\n";
+        $env_file .= "EMAIL_VALIDATE=true\n";
+        $env_file .= "EMAIL_MAILTYPE=html\n";
+        $env_file .= "EMAIL_CHARSET=utf-8\n";
+        $env_file .= "EMAIL_NEWLINE=\\r\\n\n";
+        $env_file .= "EMAIL_BCC_BATCH_MODE=false\n";
+        $env_file .= "EMAIL_WORDWRAP=false\n";
+        $env_file .= "EMAIL_PRIORITY=3\n";
+    } else {
+        $env_file = file_get_contents($env_file_path);
+    }
 
     // set the database config file
     $env_file = str_replace('enter_db_hostname', $host, $env_file);
