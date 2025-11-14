@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `lancamentos` (
   `categorias_id` INT NULL,
   `contas_id` INT NULL,
   `vendas_id` INT NULL,
-  `usuarios_id` INT NOT NULL,
+  `usuarios_id` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`idLancamentos`),
   INDEX `fk_lancamentos_clientes1` (`clientes_id` ASC),
   INDEX `fk_lancamentos_categorias1_idx` (`categorias_id` ASC),
