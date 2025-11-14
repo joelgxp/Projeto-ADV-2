@@ -153,4 +153,23 @@ class Tools extends CI_Controller
 
         echo "$path seeder has successfully been created." . PHP_EOL;
     }
+
+    public function test_migration()
+    {
+        echo "=== Testando Migration ===\n\n";
+        
+        // Verificar se a coluna de teste existe
+        $columns = $this->db->list_fields('usuarios');
+        
+        if (in_array('teste_migration', $columns)) {
+            echo "✅ Coluna 'teste_migration' existe na tabela usuarios!\n\n";
+        } else {
+            echo "❌ Coluna 'teste_migration' NÃO foi encontrada!\n\n";
+        }
+        
+        echo "Colunas da tabela usuarios:\n";
+        foreach($columns as $col) {
+            echo "- $col\n";
+        }
+    }
 }
