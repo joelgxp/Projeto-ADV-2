@@ -25,8 +25,12 @@ class Tools extends CI_Controller
 
         $this->load->library('Seeder');
 
-        // initiate faker
-        $this->faker = Faker\Factory::create();
+        // initiate faker (opcional - só se estiver instalado)
+        if (class_exists('Faker\Factory')) {
+            $this->faker = Faker\Factory::create();
+        } else {
+            $this->faker = null;
+        }
 
         // initiate seeder
         $this->seeder = Seeder::create();

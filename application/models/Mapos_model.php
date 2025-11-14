@@ -440,7 +440,17 @@ class Mapos_model extends CI_Model
         $this->db->where('situacao', 1);
         $this->db->limit(1);
 
-        return $this->db->get('usuarios')->row();
+        $query = $this->db->get('usuarios');
+        
+        // Verificar se a query foi executada com sucesso
+        if ($query === false) {
+            // Log do erro do banco de dados
+            $error = $this->db->error();
+            log_message('error', 'Erro na query check_credentials: ' . ($error['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        
+        return $query->row();
     }
 
     /**
