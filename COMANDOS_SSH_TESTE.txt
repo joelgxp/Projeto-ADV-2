@@ -1,0 +1,50 @@
+==========================================
+COMANDOS PARA TESTAR NO SERVIDOR VIA SSH
+==========================================
+
+1. Conecte-se ao servidor:
+   ssh hotel631@hotelalphavilleguaxupe.com.br
+
+2. Navegue para o diretório do projeto:
+   cd /home2/hotel631/adv.joelsouza.com.br
+
+3. Verificar se os arquivos foram atualizados:
+   
+   # Verificar Tools.php
+   grep -n "class_exists('Faker" application/controllers/Tools.php
+   
+   # Verificar Mapos_model.php
+   grep -n "if (\$query === false)" application/models/Mapos_model.php
+
+4. Testar o comando tools:
+   php index.php tools help
+
+5. Verificar se a migration existe:
+   ls -la application/database/migrations/20251114182314_fix_check_credentials_error.php
+
+6. Executar as migrations:
+   php index.php tools migrate
+
+7. Verificar logs de erro (se houver):
+   tail -20 application/logs/log-$(date +%Y-%m-%d).php
+
+8. Testar se o login funciona (verificar se não há mais erro):
+   # Acesse o sistema pelo navegador e tente fazer login
+
+==========================================
+COMANDOS RÁPIDOS (copiar e colar tudo de uma vez)
+==========================================
+
+cd /home2/hotel631/adv.joelsouza.com.br && \
+echo "=== Verificando arquivos ===" && \
+grep -n "class_exists('Faker" application/controllers/Tools.php && \
+grep -n "if (\$query === false)" application/models/Mapos_model.php && \
+echo "" && \
+echo "=== Testando tools ===" && \
+php index.php tools help && \
+echo "" && \
+echo "=== Executando migrations ===" && \
+php index.php tools migrate
+
+==========================================
+
