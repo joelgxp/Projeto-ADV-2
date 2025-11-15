@@ -25,13 +25,30 @@ class Mapos_model extends CI_Model
 
     public function getById($id)
     {
+        // Detectar estrutura da tabela
+        $columns = $this->db->list_fields('usuarios');
+        $id_column = in_array('idUsuarios', $columns) ? 'idUsuarios' : (in_array('id', $columns) ? 'id' : 'idUsuarios');
+        
         $this->db->from('usuarios');
-        $this->db->select('usuarios.*, permissoes.nome as permissao');
-        $this->db->join('permissoes', 'permissoes.idPermissao = usuarios.permissoes_id', 'left');
-        $this->db->where('idUsuarios', $id);
+        $this->db->select('usuarios.*');
+        
+        // Tentar join com permissoes se a estrutura permitir
+        if (in_array('permissoes_id', $columns) && $this->db->table_exists('permissoes')) {
+            $this->db->select('permissoes.nome as permissao');
+            $this->db->join('permissoes', 'permissoes.idPermissao = usuarios.permissoes_id', 'left');
+        } elseif (in_array('nivel', $columns)) {
+            $this->db->select('usuarios.nivel as permissao');
+        }
+        
+        $this->db->where($id_column, $id);
         $this->db->limit(1);
 
-        return $this->db->get()->row();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getById: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        return $query->row();
     }
 
     public function alterarSenha($senha)
@@ -50,30 +67,35 @@ class Mapos_model extends CI_Model
     public function pesquisar($termo)
     {
         $data = [];
+        
         // buscando clientes
         $this->db->like('nomeCliente', $termo);
         $this->db->or_like('telefone', $termo);
         $this->db->or_like('celular', $termo);
         $this->db->or_like('documento', $termo);
         $this->db->limit(15);
-        $data['clientes'] = $this->db->get('clientes')->result();
+        $query = $this->db->get('clientes');
+        $data['clientes'] = ($query !== false) ? $query->result() : [];
 
         // buscando os
         $this->db->like('idOs', $termo);
         $this->db->or_like('descricaoProduto', $termo);
         $this->db->limit(15);
-        $data['os'] = $this->db->get('os')->result();
+        $query = $this->db->get('os');
+        $data['os'] = ($query !== false) ? $query->result() : [];
 
         // buscando produtos
         $this->db->like('codDeBarra', $termo);
         $this->db->or_like('descricao', $termo);
         $this->db->limit(50);
-        $data['produtos'] = $this->db->get('produtos')->result();
+        $query = $this->db->get('produtos');
+        $data['produtos'] = ($query !== false) ? $query->result() : [];
 
         //buscando serviços
         $this->db->like('nome', $termo);
         $this->db->limit(15);
-        $data['servicos'] = $this->db->get('servicos')->result();
+        $query = $this->db->get('servicos');
+        $data['servicos'] = ($query !== false) ? $query->result() : [];
 
         return $data;
     }
@@ -124,7 +146,12 @@ class Mapos_model extends CI_Model
         $this->db->where('os.status', 'Orçamento');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsOrcamentos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
     
     public function getOsAbertas()
@@ -135,7 +162,12 @@ class Mapos_model extends CI_Model
         $this->db->where('os.status', 'Aberto');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsAbertas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsFinalizadas()
@@ -147,7 +179,12 @@ class Mapos_model extends CI_Model
         $this->db->order_by('os.idOs', 'DESC');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsFinalizadas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsAprovadas()
@@ -158,7 +195,12 @@ class Mapos_model extends CI_Model
         $this->db->where('os.status', 'Aprovado');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsAprovadas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsAguardandoPecas()
@@ -169,7 +211,12 @@ class Mapos_model extends CI_Model
         $this->db->where('os.status', 'Aguardando Peças');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsAguardandoPecas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsAndamento()
@@ -180,7 +227,12 @@ class Mapos_model extends CI_Model
         $this->db->where('os.status', 'Em Andamento');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsAndamento: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsStatus($status)
@@ -192,7 +244,12 @@ class Mapos_model extends CI_Model
         $this->db->order_by('os.idOs', 'DESC');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsStatus: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
     
     public function getVendasStatus($vstatus)
@@ -204,7 +261,12 @@ class Mapos_model extends CI_Model
         $this->db->order_by('vendas.idVendas', 'DESC');
         $this->db->limit(10);
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getVendasStatus: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getLancamentos()
@@ -216,6 +278,10 @@ class Mapos_model extends CI_Model
         $this->db->limit(10);
 
         $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getLancamentos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
         return $query->result();
     }
 
@@ -239,21 +305,36 @@ class Mapos_model extends CI_Model
             $this->db->where('os.status', $status);
         }
 
-        return $this->db->get()->result();
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query calendario: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getProdutosMinimo()
     {
         $sql = 'SELECT * FROM produtos WHERE estoque <= estoqueMinimo AND estoqueMinimo > 0 LIMIT 10';
 
-        return $this->db->query($sql)->result();
+        $query = $this->db->query($sql);
+        if ($query === false) {
+            log_message('error', 'Erro na query getProdutosMinimo: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getOsEstatisticas()
     {
         $sql = 'SELECT status, COUNT(status) as total FROM os GROUP BY status ORDER BY status';
 
-        return $this->db->query($sql)->result();
+        $query = $this->db->query($sql);
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsEstatisticas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
     }
 
     public function getEstatisticasFinanceiro()
@@ -262,11 +343,13 @@ class Mapos_model extends CI_Model
                        SUM(CASE WHEN baixado = 1 AND tipo = 'despesa' THEN valor END) as total_despesa,
                        SUM(CASE WHEN baixado = 0 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) as total_receita_pendente,
                        SUM(CASE WHEN baixado = 0 AND tipo = 'despesa' THEN valor END) as total_despesa_pendente FROM lancamentos";
-        if ($this->db->query($sql) !== false) {
-            return $this->db->query($sql)->row();
+        
+        $query = $this->db->query($sql);
+        if ($query === false) {
+            log_message('error', 'Erro na query getEstatisticasFinanceiro: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
         }
-
-        return false;
+        return $query->row();
     }
 
     public function getEstatisticasFinanceiroMes($year)
@@ -306,11 +389,13 @@ class Mapos_model extends CI_Model
             FROM lancamentos
             WHERE EXTRACT(YEAR FROM data_pagamento) = ?
         ";
-        if ($this->db->query($sql, [intval($numbersOnly)]) !== false) {
-            return $this->db->query($sql, [intval($numbersOnly)])->row();
+        
+        $query = $this->db->query($sql, [intval($numbersOnly)]);
+        if ($query === false) {
+            log_message('error', 'Erro na query getEstatisticasFinanceiroMes: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
         }
-
-        return false;
+        return $query->row();
     }
 
     public function getEstatisticasFinanceiroDia($year)
@@ -326,11 +411,13 @@ class Mapos_model extends CI_Model
             FROM lancamentos
             WHERE EXTRACT(YEAR FROM data_pagamento) = ?
         ';
-        if ($this->db->query($sql, [intval($numbersOnly)]) !== false) {
-            return $this->db->query($sql, [intval($numbersOnly)])->row();
+        
+        $query = $this->db->query($sql, [intval($numbersOnly)]);
+        if ($query === false) {
+            log_message('error', 'Erro na query getEstatisticasFinanceiroDia: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
         }
-
-        return false;
+        return $query->row();
     }
 
     public function getEstatisticasFinanceiroMesInadimplencia($year)
@@ -370,16 +457,23 @@ class Mapos_model extends CI_Model
             FROM lancamentos
             WHERE EXTRACT(YEAR FROM data_pagamento) = ?
         ";
-        if ($this->db->query($sql, [intval($numbersOnly)]) !== false) {
-            return $this->db->query($sql, [intval($numbersOnly)])->row();
+        
+        $query = $this->db->query($sql, [intval($numbersOnly)]);
+        if ($query === false) {
+            log_message('error', 'Erro na query getEstatisticasFinanceiroMesInadimplencia: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
         }
-
-        return false;
+        return $query->row();
     }
 
     public function getEmitente()
     {
-        return $this->db->get('emitente')->row();
+        $query = $this->db->get('emitente');
+        if ($query === false) {
+            log_message('error', 'Erro na query getEmitente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        return $query->row();
     }
 
     public function addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo)
