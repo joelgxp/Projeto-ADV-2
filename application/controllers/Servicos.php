@@ -12,7 +12,7 @@ class Servicos extends MY_Controller
 
         $this->load->helper('form');
         $this->load->model('servicos_model');
-        $this->data['menuServicos'] = 'Serviços';
+        $this->data['menuServicos'] = 'Serviços Jurídicos';
     }
 
     public function index()
@@ -32,7 +32,7 @@ class Servicos extends MY_Controller
         $this->load->library('pagination');
 
         $this->data['configuration']['base_url'] = site_url('servicos/gerenciar/');
-        $this->data['configuration']['total_rows'] = $this->servicos_model->count('servicos');
+        $this->data['configuration']['total_rows'] = $this->servicos_model->count('servicos_juridicos');
         if($pesquisa) {
             $this->data['configuration']['suffix'] = "?pesquisa={$pesquisa}";
             $this->data['configuration']['first_url'] = base_url("index.php/servicos")."\?pesquisa={$pesquisa}";
@@ -40,7 +40,7 @@ class Servicos extends MY_Controller
 
         $this->pagination->initialize($this->data['configuration']);
 
-        $this->data['results'] = $this->servicos_model->get('servicos', '*', $pesquisa, $this->data['configuration']['per_page'], $this->uri->segment(3));
+        $this->data['results'] = $this->servicos_model->get('servicos_juridicos', '*', $pesquisa, $this->data['configuration']['per_page'], $this->uri->segment(3));
 
         $this->data['view'] = 'servicos/servicos';
 
@@ -67,9 +67,12 @@ class Servicos extends MY_Controller
                 'nome' => set_value('nome'),
                 'descricao' => set_value('descricao'),
                 'preco' => $preco,
+                'tipo_servico' => $this->input->post('tipo_servico'),
+                'valor_base' => $preco,
+                'tempo_estimado' => $this->input->post('tempo_estimado') ?: null,
             ];
 
-            if ($this->servicos_model->add('servicos', $data) == true) {
+            if ($this->servicos_model->add('servicos_juridicos', $data) == true) {
                 $this->session->set_flashdata('success', 'Serviço adicionado com sucesso!');
                 log_info('Adicionou um serviço');
                 redirect(site_url('servicos/adicionar/'));
@@ -105,9 +108,12 @@ class Servicos extends MY_Controller
                 'nome' => $this->input->post('nome'),
                 'descricao' => $this->input->post('descricao'),
                 'preco' => $preco,
+                'tipo_servico' => $this->input->post('tipo_servico'),
+                'valor_base' => $preco,
+                'tempo_estimado' => $this->input->post('tempo_estimado') ?: null,
             ];
 
-            if ($this->servicos_model->edit('servicos', $data, 'idServicos', $this->input->post('idServicos')) == true) {
+            if ($this->servicos_model->edit('servicos_juridicos', $data, 'idServicos', $this->input->post('idServicos')) == true) {
                 $this->session->set_flashdata('success', 'Serviço editado com sucesso!');
                 log_info('Alterou um serviço. ID: ' . $this->input->post('idServicos'));
                 redirect(site_url('servicos/editar/') . $this->input->post('idServicos'));
@@ -136,8 +142,7 @@ class Servicos extends MY_Controller
             redirect(site_url('servicos/gerenciar/'));
         }
 
-        $this->servicos_model->delete('servicos_os', 'servicos_id', $id);
-        $this->servicos_model->delete('servicos', 'idServicos', $id);
+        $this->servicos_model->delete('servicos_juridicos', 'idServicos', $id);
 
         log_info('Removeu um serviço. ID: ' . $id);
 

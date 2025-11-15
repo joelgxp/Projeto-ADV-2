@@ -144,6 +144,21 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="control-group">
+                            <label for="planos_id" class="control-label">Plano</label>
+                            <div class="controls">
+                                <select id="planos_id" name="planos_id">
+                                    <option value="">Selecione um plano...</option>
+                                    <?php
+                                    $this->load->model('planos_model');
+                                    $planos = $this->planos_model->getAtivos();
+                                    foreach ($planos as $plano) {
+                                        echo '<option value="' . $plano->idPlanos . '" ' . set_select('planos_id', $plano->idPlanos) . '>' . $plano->nome . ' - R$ ' . number_format($plano->valor_mensal, 2, ',', '.') . '</option>';
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="span6">

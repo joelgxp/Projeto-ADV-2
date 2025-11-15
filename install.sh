@@ -10,7 +10,7 @@ fi
 ##############################################################
 ## Script desenvolvido por Bruno Barreto e Leonardo Bernardi
 ## Versao Instalador: v2.7.20250303
-## Publicado na versao 4.52.0 do MapOS
+## Publicado na versao 4.52.0 do Adv
 ##############################################################
 
 # <=== Controle de STEPs ===>
@@ -20,12 +20,12 @@ fi
 # etapa2 - Selecao de Versao
 # etapa3 - Download de Dependências
 # etapa4 - Instalação XAMPP
-# etapa5 - Instalação MAP-OS
+# etapa5 - Instalação ADV
 # etapa6 - Instalação Composer
 # etapa7 - Configuração pelo Browser
 # etapa8 - Configuração de dados de E-mail
 # etapa9 - Auto Disparador de E-mail
-# etapa10 - Alterar Número da OS
+# etapa10 - Configurações adicionais
 # <=== Controle de STEPs ===>
 
 # <=== Inicio SET Diretorios ===>
@@ -46,7 +46,7 @@ fi
     echo "**                                              **"
     echo "**                                              **"
     echo "**           SCRIPT AUTO INSTALADOR             **"
-    echo "**    MAP-OS - SISTEMA DE ORDEM DE SERVICO      **"
+    echo "**    ADV - SISTEMA DE GESTAO JURIDICA          **"
     echo "**        LINUX (Debian / Ubuntu) x64           **"
     echo "**                                              **"
     echo "**                                              **"
@@ -58,7 +58,7 @@ fi
 
 # <=== Inicio Boas Vindas ===>
     echo "Ola, seja bem vindo."
-    echo "Esse script foi desenvolvido com o intuito de auxiliar na instalacao automatizada do Sistema MAP-OS e os componentes necessarios."
+    echo "Esse script foi desenvolvido com o intuito de auxiliar na instalacao automatizada do Sistema Adv (Sistema de Gestao Juridica) e os componentes necessarios."
     echo "Reforcamos que nao recomendamos a instalacao em localhost para uso em PRODUCAO, apenas para TESTE ou DESENVOLVIMENTO devido a riscos de perdas de dados e seguranca."
     echo
     echo "Video Tutorial: https://www.youtube.com/watch?v=3J9Q6J9Z9ZQ"
@@ -73,7 +73,7 @@ fi
 
 # <=== Inicio Boas Vindas ===>
     clear
-    echo "# DESEJA INSTALAR O MAP-OS RELEASE OU MASTER?"
+    echo "# DESEJA INSTALAR O ADV RELEASE OU MASTER?"
     echo "1- Release (Versao Estavel)"
     echo "2- Master (Versao Desenvolvimento)"
     echo "9 - Sair"
@@ -136,12 +136,12 @@ fi
     fi
 # <=== Fim Instalação XAMPP ===>
 
-#  <=== Inicio Instalação MAP-OS ===>
+#  <=== Inicio Instalação ADV ===>
     clear
-    echo "# INSTALACAO SISTEMA MAP-OS..."
+    echo "# INSTALACAO SISTEMA ADV..."
     if [ -d "$dirHtdocs/mapos" ]
     then
-        echo "* Map-OS presente no sistema."
+        echo "* Adv presente no sistema."
     else
         echo "* Usando arquivos locais do projeto."
         
@@ -171,9 +171,9 @@ fi
         sudo rm -f $dirHtdocs/mapos/.htaccess
         echo
         echo "* Criando banco de dados."
-        $dirMySQL -u root -e "CREATE DATABASE mapos;"
+        $dirMySQL -u root -e "CREATE DATABASE adv;"
     fi
-# <=== Fim Instalação MAP-OS ===>
+# <=== Fim Instalação ADV ===>
 
 # <=== Inicio Instalação Composer ===>
     clear
@@ -201,14 +201,14 @@ fi
 
 # <=== Inicio Configuração pelo Browser ===>
     clear
-    echo "# CONFIGURANDO MAPOS..."
-    echo "Acesse o Map-OS via navegador http://localhost/mapos/install"
+    echo "# CONFIGURANDO ADV..."
+    echo "Acesse o Adv via navegador http://localhost/mapos/install"
     echo "Clique me PROXIMO e insira os dados abaixo:"
     echo
     echo "Host: localhost"
     echo "Usuario: root"
     echo "Senha: \"Em Branco\""
-    echo "Banco de Dados: mapos"
+    echo "Banco de Dados: adv"
     echo
     echo Nome: "Digite seu Nome Completo"
     echo Email: "Informe seu E-mail para Login"
@@ -268,17 +268,10 @@ fi
         fi
     # <=== Fim Configuracao da Cron ===>
 
-    # <=== Inicio Configuracao da Cron ===>
+    # <=== Inicio Configurações Adicionais ===>
     echo
-    read -p "Gostaria de alterar o numero da primeira OS? (S/N): " resposta
-    if [ "$resposta" = "N" ] || [ "$resposta" = "n" ]; then
-            echo "* Nao alterado valor da primeira OS."
-    elif [ "$resposta" = "S" ] || [ "$resposta" = "s" ]; then
-        read -p "Informe o numero (Padrao: 1):" nOS
-        $dirMySQL -u root -e "USE mapos; ALTER TABLE os AUTO_INCREMENT=$nOS;"
-        echo "* Número da próxima OS alterado para $nOS"
-    fi
-    # <=== Fim Configuracao da Cron ===>
+    echo "* Configurações adicionais podem ser feitas após a instalação via interface web."
+    # <=== Fim Configurações Adicionais ===>
 # <=== Fim Configurações Personalizadas ===>
 
 # Mensagem de status

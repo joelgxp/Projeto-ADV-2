@@ -18,7 +18,7 @@
     </a>
     <!-- Start Pesquisar-->
     <li class="search-box">
-        <form style="display: flex" action="<?= site_url('mapos/pesquisar') ?>">
+        <form style="display: flex" action="<?= site_url('adv/pesquisar') ?>">
         <button style="background:transparent;border:transparent" type="submit" class="tip-bottom" title="">
                 <i class='bx bx-search iconX'></i></button>
                 <input style="background:transparent;<?= $configuration['app_theme'] == 'white' ? 'color:#313030;' : 'color:#fff;' ?>border:transparent" type="search" name="termo" placeholder="Pesquise aqui...">
@@ -45,19 +45,52 @@
                         echo 'active';
                     }; ?>">
                         <a class="tip-bottom" title="" href="<?= site_url('clientes') ?>"><i class='bx bx-user iconX'></i>
-                            <span class="title">Cliente / Fornecedor</span>
+                            <span class="title">Clientes</span>
                             <span class="title-tooltip">Clientes</span>
                         </a>
                     </li>
                 <?php } ?>
 
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vProduto')) { ?>
-                    <li class="<?php if (isset($menuProdutos)) {
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCliente')) { ?>
+                    <li class="<?php if (isset($menuPlanos)) {
                         echo 'active';
                     }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('produtos') ?>"><i class='bx bx-basket iconX'></i>
-                            <span class="title">Produtos</span>
-                            <span class="title-tooltip">Produtos</span>
+                        <a class="tip-bottom" title="" href="<?= site_url('planos') ?>"><i class='bx bx-tag iconX'></i>
+                            <span class="title">Planos</span>
+                            <span class="title-tooltip">Planos</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vProcesso')) { ?>
+                    <li class="<?php if (isset($menuProcessos)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('processos') ?>"><i class='bx bx-file-blank iconX'></i>
+                            <span class="title">Processos</span>
+                            <span class="title-tooltip">Processos</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vPrazo')) { ?>
+                    <li class="<?php if (isset($menuPrazos)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('prazos') ?>"><i class='bx bx-calendar-check iconX'></i>
+                            <span class="title">Prazos</span>
+                            <span class="title-tooltip">Prazos Processuais</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vAudiencia')) { ?>
+                    <li class="<?php if (isset($menuAudiencias)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('audiencias') ?>"><i class='bx bx-calendar-event iconX'></i>
+                            <span class="title">Audiências</span>
+                            <span class="title-tooltip">Audiências</span>
                         </a>
                     </li>
                 <?php } ?>
@@ -67,41 +100,8 @@
                         echo 'active';
                     }; ?>">
                         <a class="tip-bottom" title="" href="<?= site_url('servicos') ?>"><i class='bx bx-wrench iconX'></i>
-                            <span class="title">Serviços</span>
+                            <span class="title">Serviços Jurídicos</span>
                             <span class="title-tooltip">Serviços</span>
-                        </a>
-                    </li>
-                <?php } ?>
-
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vVenda')) { ?>
-                    <li class="<?php if (isset($menuVendas)) {
-                        echo 'active';
-                    }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('vendas') ?>"><i class='bx bx-cart-alt iconX'></i></span>
-                            <span class="title">Vendas</span>
-                            <span class="title-tooltip">Vendas</span>
-                        </a>
-                    </li>
-                <?php } ?>
-
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vOs')) { ?>
-                    <li class="<?php if (isset($menuOs)) {
-                        echo 'active';
-                    }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('os') ?>"><i class='bx bx-file iconX'></i>
-                            <span class="title">Ordens de Serviço</span>
-                            <span class="title-tooltip">Ordens</span>
-                        </a>
-                    </li>
-                <?php } ?>
-
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vGarantia')) { ?>
-                    <li class="<?php if (isset($menuGarantia)) {
-                        echo 'active';
-                    }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('garantias') ?>"><i class='bx bx-receipt iconX'></i>
-                            <span class="title">Termos de Garantias</span>
-                            <span class="title-tooltip">Garantias</span>
                         </a>
                     </li>
                 <?php } ?>
@@ -137,10 +137,39 @@
                         </a>
                     </li>
                 <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vRelatorio')) { ?>
+                    <li class="<?php if (isset($menuRelatorios)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('relatorios') ?>"><i class='bx bx-pie-chart-alt-2 iconX'></i>
+                            <span class="title">Relatórios</span>
+                            <span class="title-tooltip">Relatórios</span>
+                        </a>
+                    </li>
+                <?php } ?>
             </ul>
         </div>
 
         <div class="botton-content">
+            <li class="<?php if (isset($menuPerfil)) {
+                echo 'active';
+            }; ?>">
+                <a class="tip-bottom" title="" href="<?= site_url('adv/minhaConta'); ?>">
+                    <i class='bx bx-user-circle iconX'></i>
+                    <span class="title">Perfil</span>
+                    <span class="title-tooltip">Meu Perfil</span>
+                </a>
+            </li>
+            <li class="<?php if (isset($menuConfiguracoes)) {
+                echo 'active';
+            }; ?>">
+                <a class="tip-bottom" title="" href="<?= site_url('adv/configurar'); ?>">
+                    <i class='bx bx-cog iconX'></i>
+                    <span class="title">Configuração</span>
+                    <span class="title-tooltip">Configurações</span>
+                </a>
+            </li>
             <li class="">
                 <a class="tip-bottom" title="" href="<?= site_url('login/sair'); ?>">
                     <i class='bx bx-log-out-circle iconX'></i>

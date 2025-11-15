@@ -5,7 +5,7 @@
                 <span class="icon">
                     <i class="fas fa-wrench"></i>
                 </span>
-                <h5>Cadastro de Serviço</h5>
+                <h5>Cadastro de Serviço Jurídico</h5>
             </div>
             <div class="widget-content nopadding tab-content">
                 <?php echo $custom_error; ?>
@@ -23,9 +23,30 @@
                         </div>
                     </div>
                     <div class="control-group">
+                        <label for="tipo_servico" class="control-label">Tipo de Serviço</label>
+                        <div class="controls">
+                            <select id="tipo_servico" name="tipo_servico">
+                                <option value="">Selecione...</option>
+                                <option value="Consultoria" <?= set_value('tipo_servico') == 'Consultoria' ? 'selected' : '' ?>>Consultoria</option>
+                                <option value="Petição" <?= set_value('tipo_servico') == 'Petição' ? 'selected' : '' ?>>Petição</option>
+                                <option value="Contestação" <?= set_value('tipo_servico') == 'Contestação' ? 'selected' : '' ?>>Contestação</option>
+                                <option value="Recurso" <?= set_value('tipo_servico') == 'Recurso' ? 'selected' : '' ?>>Recurso</option>
+                                <option value="Audiência" <?= set_value('tipo_servico') == 'Audiência' ? 'selected' : '' ?>>Audiência</option>
+                                <option value="Análise" <?= set_value('tipo_servico') == 'Análise' ? 'selected' : '' ?>>Análise Jurídica</option>
+                                <option value="Outros" <?= set_value('tipo_servico') == 'Outros' ? 'selected' : '' ?>>Outros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="tempo_estimado" class="control-label">Tempo Estimado (horas)</label>
+                        <div class="controls">
+                            <input id="tempo_estimado" type="number" name="tempo_estimado" min="0" step="0.5" value="<?php echo set_value('tempo_estimado'); ?>" placeholder="Ex: 2.5" />
+                        </div>
+                    </div>
+                    <div class="control-group">
                         <label for="descricao" class="control-label">Descrição</label>
                         <div class="controls">
-                            <input id="descricao" type="text" name="descricao" value="<?php echo set_value('descricao'); ?>" />
+                            <textarea id="descricao" name="descricao" rows="3"><?php echo set_value('descricao'); ?></textarea>
                         </div>
                     </div>
                     <div class="form-actions">

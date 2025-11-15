@@ -453,4 +453,36 @@ $config = [
             'rules' => 'required|trim',
         ],
     ],
+    'planos' => [
+        [
+            'field' => 'nome',
+            'label' => 'Nome',
+            'rules' => 'required|trim',
+        ],
+        [
+            'field' => 'valor_mensal',
+            'label' => 'Valor Mensal',
+            'rules' => 'trim|numeric',
+        ],
+        [
+            'field' => 'limite_processos',
+            'label' => 'Limite de Processos',
+            'rules' => 'trim|integer|greater_than_equal_to[0]',
+        ],
+        [
+            'field' => 'limite_prazos',
+            'label' => 'Limite de Prazos',
+            'rules' => 'trim|integer|greater_than_equal_to[0]',
+        ],
+        [
+            'field' => 'limite_audiencias',
+            'label' => 'Limite de Audiências',
+            'rules' => 'trim|integer|greater_than_equal_to[0]',
+        ],
+        [
+            'field' => 'limite_documentos',
+            'label' => 'Limite de Documentos',
+            'rules' => 'trim|integer|greater_than_equal_to[0]',
+        ],
+    ],
 ];

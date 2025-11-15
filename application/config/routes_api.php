@@ -14,37 +14,33 @@ $route['api/v1/reGenToken'] = 'api/v1/UsuariosController/reGenToken';
 $route['api/v1/conta'] = 'api/v1/UsuariosController/conta';
 $route['api/v1/clientes'] = 'api/v1/ClientesController/index';
 $route['api/v1/clientes/(:num)'] = 'api/v1/ClientesController/index/$1';
-$route['api/v1/produtos'] = 'api/v1/ProdutosController/index';
-$route['api/v1/produtos/(:num)'] = 'api/v1/ProdutosController/index/$1';
 $route['api/v1/servicos'] = 'api/v1/ServicosController/index';
 $route['api/v1/servicos/(:num)'] = 'api/v1/ServicosController/index/$1';
 $route['api/v1/usuarios'] = 'api/v1/UsuariosController/index';
 $route['api/v1/usuarios/(:num)'] = 'api/v1/UsuariosController/index/$1';
-$route['api/v1/os'] = 'api/v1/OsController/index';
-$route['api/v1/os/(:num)'] = 'api/v1/OsController/index/$1';
-$route['api/v1/os/(:num)/produtos'] = 'api/v1/OsController/produtos/$1';
-$route['api/v1/os/(:num)/produtos/(:num)'] = 'api/v1/OsController/produtos/$1/$2';
-$route['api/v1/os/(:num)/servicos'] = 'api/v1/OsController/servicos/$1';
-$route['api/v1/os/(:num)/servicos/(:num)'] = 'api/v1/OsController/servicos/$1/$2';
-$route['api/v1/os/(:num)/anotacoes'] = 'api/v1/OsController/anotacoes/$1';
-$route['api/v1/os/(:num)/anotacoes/(:num)'] = 'api/v1/OsController/anotacoes/$1/$2';
-$route['api/v1/os/(:num)/anexos'] = 'api/v1/OsController/anexos/$1';
-$route['api/v1/os/(:num)/anexos/(:num)'] = 'api/v1/OsController/anexos/$1/$2';
-$route['api/v1/os/(:num)/desconto'] = 'api/v1/OsController/desconto/$1';
+$route['api/v1/processos'] = 'api/v1/ProcessosController/index';
+$route['api/v1/processos/(:num)'] = 'api/v1/ProcessosController/index/$1';
+$route['api/v1/prazos'] = 'api/v1/PrazosController/index';
+$route['api/v1/prazos/(:num)'] = 'api/v1/PrazosController/index/$1';
+$route['api/v1/audiencias'] = 'api/v1/AudienciasController/index';
+$route['api/v1/audiencias/(:num)'] = 'api/v1/AudienciasController/index/$1';
 
 /*
 Routes for clients API
 Rotas Para API area do cliente.
 */
 
-$route['api/v1/client'] = 'api/v1/client/ClientOsController/index';
+$route['api/v1/client'] = 'api/v1/client/ClientProcessosController/index';
 $route['api/v1/client/auth'] = 'api/v1/client/ClientLoginController/login';
 
-$route['api/v1/client/os'] = 'api/v1/client/ClientOsController/os';
-$route['api/v1/client/os/(:num)'] = 'api/v1/client/ClientOsController/os/$1';
+$route['api/v1/client/processos'] = 'api/v1/client/ClientProcessosController/processos';
+$route['api/v1/client/processos/(:num)'] = 'api/v1/client/ClientProcessosController/processos/$1';
 
-$route['api/v1/client/compras'] = 'api/v1/client/ClientComprasController/index';
-$route['api/v1/client/compras/(:num)'] = 'api/v1/client/ClientComprasController/index/$1';
+$route['api/v1/client/prazos'] = 'api/v1/client/ClientPrazosController/index';
+$route['api/v1/client/prazos/(:num)'] = 'api/v1/client/ClientPrazosController/index/$1';
+
+$route['api/v1/client/audiencias'] = 'api/v1/client/ClientAudienciasController/index';
+$route['api/v1/client/audiencias/(:num)'] = 'api/v1/client/ClientAudienciasController/index/$1';
 
 $route['api/v1/client/cobrancas'] = 'api/v1/client/ClientCobrancasController/index';
 

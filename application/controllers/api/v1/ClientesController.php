@@ -47,7 +47,8 @@ class ClientesController extends REST_Controller
             $cliente = $this->clientes_model->getById($id);
 
             if ($cliente) {
-                $cliente->ordensServicos = $this->clientes_model->getOsByCliente($id);
+                $this->load->model('processos_model');
+                $cliente->processos = $this->processos_model->getProcessosByCliente($id);
                 $this->response([
                     'status' => true,
                     'message' => 'Detalhes do Cliente',
@@ -197,14 +198,14 @@ class ClientesController extends REST_Controller
             ], REST_Controller::HTTP_BAD_REQUEST);
         }
 
-        $os = $this->clientes_model->getAllOsByClient($id);
-        if ($os != null) {
-            $this->clientes_model->removeClientOs($os);
-        }
-
-        $vendas = $this->clientes_model->getAllVendasByClient($id);
-        if ($vendas != null) {
-            $this->clientes_model->removeClientVendas($vendas);
+        // Verificar se há processos associados ao cliente
+        $this->load->model('processos_model');
+        $processos = $this->processos_model->get('processos', '*', "clientes_id = {$id}", 0, 0);
+        if ($processos && count($processos) > 0) {
+            $this->response([
+                'status' => false,
+                'message' => 'Não é possível excluir o cliente pois existem processos associados a ele.',
+            ], REST_Controller::HTTP_BAD_REQUEST);
         }
 
         if ($this->clientes_model->delete('clientes', 'idClientes', $id) == true) {

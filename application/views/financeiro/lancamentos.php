@@ -30,12 +30,12 @@ $periodo = $this->input->get('periodo');
                 <span class="icon">
                     <i class="fas fa-hand-holding-usd"></i>
                 </span>
-                <h5>Lançamentos Financeiros</h5>
+                <h5>Lançamentos Financeiros - Honorários e Custas</h5>
     </div>
     <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'aLancamento')) { ?>
         <div class="" style="display:flex">
             <a href="#modalReceita" data-toggle="modal" role="button" class="button btn btn-mini btn-success" style="width: 230px">
-                <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2" title="Cadastrar nova receita ou despesa"> Receita/Despesa</span></a>
+                <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2" title="Cadastrar novo lançamento"> Honorário/Custa/Despesa</span></a>
         </div>
     <?php } ?>
 
@@ -68,9 +68,13 @@ $periodo = $this->input->get('periodo');
                 <label>Tipo</label>
                 <select name="tipo" class="span12">
                     <option value="">Todos</option>
-                    <option value="receita" <?= $this->input->get('tipo') === 'receita' ? 'selected' : '' ?>>Receita
+                    <option value="honorario" <?= $this->input->get('tipo') === 'honorario' ? 'selected' : '' ?>>Honorário
+                    </option>
+                    <option value="custa" <?= $this->input->get('tipo') === 'custa' ? 'selected' : '' ?>>Custa
                     </option>
                     <option value="despesa" <?= $this->input->get('tipo') === 'despesa' ? 'selected' : '' ?>>Despesa
+                    </option>
+                    <option value="receita" <?= $this->input->get('tipo') === 'receita' ? 'selected' : '' ?>>Receita (Legado)
                     </option>
                 </select>
             </div>
@@ -107,7 +111,7 @@ $periodo = $this->input->get('periodo');
                         <tr>
                             <th>#</th>
                             <th>Tipo</th>
-                            <th>Cliente / Fornecedor</th>
+                            <th>Cliente</th>
                             <th>Descrição</th>
                             <th>Vencimento</th>
                             <th>Status</th>
@@ -135,8 +139,10 @@ $periodo = $this->input->get('periodo');
                             } else {
                                 $status = 'Pago';
                             };
-                            if ($r->tipo == 'receita') {
+                            if ($r->tipo == 'honorario' || $r->tipo == 'receita') {
                                 $label = 'success';
+                            } elseif ($r->tipo == 'custa') {
+                                $label = 'info';
                             } else {
                                 $label = 'important';
                             }
@@ -252,7 +258,7 @@ echo number_format($soma_descontos_pagos, 2, ',', '.')?></strong></td>
     <form id="formReceita" action="<?php echo base_url() ?>index.php/financeiro/adicionarReceita" method="post">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-            <h3 id="myModalLabel">Adicionar Receita/Despesa</h3>
+            <h3 id="myModalLabel">Adicionar Lançamento Financeiro</h3>
         </div>
         <div class="modal-body">
 
@@ -263,8 +269,10 @@ echo number_format($soma_descontos_pagos, 2, ',', '.')?></strong></td>
             <div class="span3" style="margin-left: 0">
 		    		<label for="tipo">Tipo</label>
 		    		<select name="tipo" id="tipo" class="span10">
-		    			<option value="receita">Receita</option>
-		    			<option value="despesa">Despesa</option>				
+		    			<option value="honorario">Honorário</option>
+		    			<option value="custa">Custa</option>
+		    			<option value="despesa">Despesa</option>
+		    			<option value="receita">Receita (Legado)</option>				
 		    		</select>
 	    	</div>
 
@@ -374,15 +382,17 @@ echo number_format($soma_descontos_pagos, 2, ',', '.')?></strong></td>
   <form id="formReceita_parc" action="<?php echo base_url() ?>index.php/financeiro/adicionarReceita_parc" method="post">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-    <h3 id="myModalLabel">Adicionar Receita/Despesa Parcelada</h3>
+    <h3 id="myModalLabel">Adicionar Lançamento Parcelado</h3>
   </div>
   <div class="modal-body">	
   		<div class="span12 alert alert-info" style="margin-left: 0"> Obrigatório o preenchimento dos campos com asterisco.</div>
           <div class="span3" style="margin-left: 0">
 		    		<label for="tipo_parc" style="margin-left: 0">Tipo</label>
 		    		<select name="tipo_parc" id="tipo_parc" class="span10">
-		    			<option value="receita">Receita</option>
-		    			<option value="despesa">Despesa</option>				
+		    			<option value="honorario">Honorário</option>
+		    			<option value="custa">Custa</option>
+		    			<option value="despesa">Despesa</option>
+		    			<option value="receita">Receita (Legado)</option>				
 		    		</select>
 	    	</div>
           <div class="span6" style="margin-left: 0"> 

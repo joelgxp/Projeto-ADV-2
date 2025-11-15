@@ -3,25 +3,26 @@
 <div class="quick-actions_homepage">
     <ul class="cardBox">
         <li class="card">
-            <a href="<?php echo base_url() ?>index.php/mine/os">
+            <a href="<?php echo base_url() ?>index.php/mine/processos">
                 <div class="lord-icon04">
-                    <i class='bx bx-file iconBx04'></i>
+                    <i class='bx bx-file-blank iconBx04'></i>
                 </div>
             </a>
-            <a href="<?php echo base_url() ?>index.php/mine/os">
-                <div style="font-size: 1.2em" class="numbers">Ordens de Serviço</div>
+            <a href="<?php echo base_url() ?>index.php/mine/processos">
+                <div style="font-size: 1.2em" class="numbers">Processos</div>
             </a>
         </li>
 
         <li class="card">
-            <a href="<?php echo base_url() ?>index.php/mine/compras">
+            <a href="<?php echo base_url() ?>index.php/mine/prazos">
                 <div class="lord-icon05">
-                    <i class='bx bx-cart-alt iconBx05'></i>
+                    <i class='bx bx-calendar-check iconBx05'></i>
                 </div>
             </a>
-            <a href="<?php echo base_url() ?>index.php/mine/compras">
-                <div style="font-size: 1.2em" class="numbers">Compras&nbsp;&nbsp;&nbsp;&nbsp;</div>
+            <a href="<?php echo base_url() ?>index.php/mine/prazos">
+                <div style="font-size: 1.2em" class="numbers">Prazos</div>
             </a>
+        </li>
         <li class="card">
             <a href="<?php echo base_url() ?>index.php/mine/cobrancas">
                 <div class="lord-icon05">
@@ -49,98 +50,53 @@
     <div class="widget-box">
         <div class="widget-title" style="margin: -20px 0 0">
             <span class="icon"><i class="fas fa-signal"></i></span>
-            <h5>Últimas Ordens de Serviço</h5>
+            <h5>Meus Processos</h5>
         </div>
         <div class="widget-content">
             <table id="tabela" class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Nº</th>
-                        <th>Responsável</th>
-                        <th>Data Inicial</th>
-                        <th>Data Final</th>
-                        <th>Venc. da Garantia</th>
+                        <th>Nº Processo</th>
+                        <th>Classe</th>
+                        <th>Assunto</th>
+                        <th>Advogado</th>
                         <th>Status</th>
-                        <th style="text-align:right">Visualizar / Imprimir</th>
+                        <th>Última Movimentação</th>
+                        <th style="text-align:right">Visualizar</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-                    if ($os != null) {
-                        foreach ($os as $o) {
-                            $vencGarantia = '';
-
-                            if ($o->garantia && is_numeric($o->garantia)) {
-                                $vencGarantia = dateInterval($o->dataFinal, $o->garantia);
-                            }
-                            $corGarantia = '';
-                            if (!empty($vencGarantia)) {
-                                $dataGarantia = explode('/', $vencGarantia);
-                                $dataGarantiaFormatada = $dataGarantia[2] . '-' . $dataGarantia[1] . '-' . $dataGarantia[0];
-                            if (strtotime($dataGarantiaFormatada) >= strtotime(date('d-m-Y'))) {
-                                    $corGarantia = '#4d9c79';
-                            } else {
-                                    $corGarantia = '#f24c6f';
-                            }
-                            } elseif ($o->garantia == "0") {
-                                $vencGarantia = 'Sem Garantia';
-                                $corGarantia = '';
-                            } else {
-                                $vencGarantia = '';
-                                $corGarantia = '';
-                            }
-
-                            switch ($o->status) {
-                                case 'Aberto':
-                                    $cor = '#00cd00';
-                                    break;
-                                case 'Em Andamento':
-                                    $cor = '#436eee';
-                                    break;
-                                case 'Orçamento':
-                                    $cor = '#CDB380';
-                                    break;
-                                case 'Negociação':
-                                    $cor = '#AEB404';
-                                    break;
-                                case 'Cancelado':
-                                    $cor = '#CD0000';
-                                    break;
-                                case 'Finalizado':
-                                    $cor = '#256';
-                                    break;
-                                case 'Faturado':
-                                    $cor = '#B266FF';
-                                    break;
-                                case 'Aguardando Peças':
-                                    $cor = '#FF7F00';
-                                    break;
-                                case 'Aprovado':
-                                    $cor = '#808080';
-                                    break;
-                                default:
-                                    $cor = '#E0E4CC';
-                                    break;
-                            }
+                    if (isset($processos) && $processos != null) {
+                        $this->load->model('processos_model');
+                        foreach ($processos as $p) {
+                            $numeroFormatado = $this->processos_model->formatarNumeroProcesso($p->numeroProcesso);
+                            
+                            $status_labels = [
+                                'em_andamento' => ['label' => 'Em Andamento', 'cor' => '#436eee'],
+                                'suspenso' => ['label' => 'Suspenso', 'cor' => '#FF7F00'],
+                                'arquivado' => ['label' => 'Arquivado', 'cor' => '#808080'],
+                                'finalizado' => ['label' => 'Finalizado', 'cor' => '#256'],
+                            ];
+                            $status = $p->status ?? 'em_andamento';
+                            $status_info = $status_labels[$status] ?? ['label' => ucfirst($status), 'cor' => '#E0E4CC'];
 
                             echo '<tr>';
-                            echo '<td>' . $o->idOs . '</td>';
-                            echo '<td>' . $o->nome . '</td>';
-                            echo '<td>' . date('d/m/Y', strtotime($o->dataInicial)) . '</td>';
-                            echo '<td>' . date('d/m/Y', strtotime($o->dataFinal)) . '</td>';
-                            echo '<td><span class="badge" style="background-color: ' . $corGarantia . '; border-color: ' . $corGarantia . '">' . $vencGarantia . '</span> </td>';
-                            echo '<td><span class="badge" style="background-color: ' . $cor . '; border-color: ' . $cor . '">' . $o->status . '</span> </td>';
+                            echo '<td><a href="' . base_url() . 'index.php/mine/visualizarProcesso/' . $p->idProcessos . '">' . $numeroFormatado . '</a></td>';
+                            echo '<td>' . ($p->classe ?? '-') . '</td>';
+                            echo '<td>' . ($p->assunto ?? '-') . '</td>';
+                            echo '<td>' . (isset($p->nomeAdvogado) ? $p->nomeAdvogado : '-') . '</td>';
+                            echo '<td><span class="badge" style="background-color: ' . $status_info['cor'] . '; border-color: ' . $status_info['cor'] . '">' . $status_info['label'] . '</span></td>';
+                            echo '<td>' . (isset($p->dataUltimaMovimentacao) ? date('d/m/Y', strtotime($p->dataUltimaMovimentacao)) : '-') . '</td>';
                             echo '<td style="text-align:right">';
-                            echo '<a href="' . base_url() . 'index.php/mine/visualizarOs/' . $o->idOs . '" class="btn"> <i class="fas fa-eye" ></i></a> ';
-                            echo '<a href="' . base_url('index.php/mine/imprimirOs/' . $o->idOs) . '" class="btn" target="_blank"> <i class="fas fa-print"></i></a>';
+                            echo '<a href="' . base_url() . 'index.php/mine/visualizarProcesso/' . $p->idProcessos . '" class="btn"> <i class="fas fa-eye" ></i></a>';
                             echo '</td>';
                             echo '</tr>';
                         }
                     } else {
-                        echo '<tr><td colspan="3">Nenhum ordem de serviço encontrada.</td></tr>';
+                        echo '<tr><td colspan="7">Nenhum processo encontrado.</td></tr>';
                     }
-
-            ?>
+                    ?>
                 </tbody>
             </table>
         </div>
@@ -148,103 +104,68 @@
 
     <div class="widget-box">
         <div class="widget-title" style="margin: -20px 0 0">
-            <span class="icon"><i class="fas fa-signal"></i></span>
-            <h5>Últimas Compras</h5>
+            <span class="icon"><i class="fas fa-calendar-check"></i></span>
+            <h5>Prazos Próximos</h5>
         </div>
         <div class="widget-content">
             <table id="tabela" class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Responsável</th>
-                        <th>Data da Venda</th>
-                        <th>Faturado</th>
-                        <th>Venc. da Garantia</th>
+                        <th>Processo</th>
+                        <th>Descrição</th>
+                        <th>Tipo</th>
+                        <th>Data Vencimento</th>
                         <th>Status</th>
-                        <th style="text-align:right">Visualizar / Imprimir</th>
+                        <th>Prioridade</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-            if ($compras != null) {
-                foreach ($compras as $c) {
-                    $vencGarantia = '';
-
-                            if ($c->garantia && is_numeric($c->garantia)) {
-                                $vencGarantia = dateInterval($c->dataVenda, $c->garantia);
+                    if (isset($prazos) && $prazos != null) {
+                        foreach ($prazos as $pz) {
+                            $dataVenc = strtotime($pz->dataVencimento);
+                            $hoje = strtotime(date('Y-m-d'));
+                            $diasRestantes = floor(($dataVenc - $hoje) / 86400);
+                            
+                            $cor = '#436eee'; // Normal
+                            if ($diasRestantes < 0) {
+                                $cor = '#CD0000'; // Vencido
+                            } elseif ($diasRestantes <= 2) {
+                                $cor = '#FF7F00'; // Urgente
+                            } elseif ($diasRestantes <= 5) {
+                                $cor = '#AEB404'; // Atenção
                             }
-                            $corGarantia = '';
-                            if (!empty($vencGarantia)) {
-                                    $dataGarantia = explode('/', $vencGarantia);
-                                    $dataGarantiaFormatada = $dataGarantia[2] . '-' . $dataGarantia[1] . '-' . $dataGarantia[0];
-                                if (strtotime($dataGarantiaFormatada) >= strtotime(date('d-m-Y'))) {
-                                    $corGarantia = '#4d9c79';
-                                } else {
-                                    $corGarantia = '#f24c6f';
-                                }
-                                } elseif ($c->garantia == "0") {
-                                    $vencGarantia = 'Sem Garantia';
-                                    $corGarantia = '';
-                                } else {
-                                    $vencGarantia = '';
-                                    $corGarantia = '';
-                                }
-                            if ($c->faturado == 1) {
-                                    $faturado = 'Sim';
-                                } else {
-                                    $faturado = 'Não';
-                                }
-                    
-                    switch ($c->status) {
-                        case 'Aberto':
-                            $cor = '#00cd00';
-                            break;
-                        case 'Em Andamento':
-                            $cor = '#436eee';
-                            break;
-                        case 'Orçamento':
-                            $cor = '#CDB380';
-                            break;
-                        case 'Negociação':
-                            $cor = '#AEB404';
-                            break;
-                        case 'Cancelado':
-                            $cor = '#CD0000';
-                            break;
-                        case 'Finalizado':
-                            $cor = '#256';
-                            break;
-                        case 'Faturado':
-                            $cor = '#B266FF';
-                            break;
-                        case 'Aguardando Peças':
-                            $cor = '#FF7F00';
-                            break;
-                        case 'Aprovado':
-                            $cor = '#808080';
-                            break;
-                        default:
-                            $cor = '#E0E4CC';
-                            break;
-                    }
-                    echo '<tr>';
-                    echo '<td>' . $c->idVendas . '</td>';
-                    echo '<td>' . $c->nome . '</td>';
-                    echo '<td>' . date('d/m/Y', strtotime($c->dataVenda)) . '</td>';
-                    echo '<td>' . $faturado . '</td>';
-                    echo '<td><span class="badge" style="background-color: ' . $corGarantia . '; border-color: ' . $corGarantia . '">' . $vencGarantia . '</span> </td>';
-                    echo '<td><span class="badge" style="background-color: ' . $cor . '; border-color: ' . $cor . '">' . $c->status . '</span> </td>';
-                    echo '<td style="text-align:right">';
-                    echo '<a href="' . base_url() . 'index.php/mine/visualizarCompra/' . $c->idVendas . '" class="btn"> <i class="fas fa-eye" ></i> </a> ';
-                    echo '<a href="' . base_url() . 'index.php/mine/imprimirCompra/' . $c->idVendas . '" class="btn"> <i class="fas fa-print" ></i> </a>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="5">Nenhum venda encontrada.</td></tr>';
-            }
+                            
+                            $status_labels = [
+                                'pendente' => ['label' => 'Pendente', 'cor' => '#FF7F00'],
+                                'concluido' => ['label' => 'Concluído', 'cor' => '#4d9c79'],
+                                'cancelado' => ['label' => 'Cancelado', 'cor' => '#808080'],
+                            ];
+                            $status = $pz->status ?? 'pendente';
+                            $status_info = $status_labels[$status] ?? ['label' => ucfirst($status), 'cor' => '#E0E4CC'];
+                            
+                            $prioridade_labels = [
+                                'baixa' => ['label' => 'Baixa', 'cor' => '#808080'],
+                                'normal' => ['label' => 'Normal', 'cor' => '#436eee'],
+                                'alta' => ['label' => 'Alta', 'cor' => '#FF7F00'],
+                                'urgente' => ['label' => 'Urgente', 'cor' => '#CD0000'],
+                            ];
+                            $prioridade = $pz->prioridade ?? 'normal';
+                            $prioridade_info = $prioridade_labels[$prioridade] ?? ['label' => ucfirst($prioridade), 'cor' => '#E0E4CC'];
 
-            ?>
+                            echo '<tr>';
+                            echo '<td>' . (isset($pz->numeroProcesso) ? $pz->numeroProcesso : '-') . '</td>';
+                            echo '<td>' . ($pz->descricao ?? '-') . '</td>';
+                            echo '<td>' . ($pz->tipo ?? '-') . '</td>';
+                            echo '<td><span style="color: ' . $cor . '; font-weight: bold;">' . date('d/m/Y', strtotime($pz->dataVencimento)) . '</span></td>';
+                            echo '<td><span class="badge" style="background-color: ' . $status_info['cor'] . '; border-color: ' . $status_info['cor'] . '">' . $status_info['label'] . '</span></td>';
+                            echo '<td><span class="badge" style="background-color: ' . $prioridade_info['cor'] . '; border-color: ' . $prioridade_info['cor'] . '">' . $prioridade_info['label'] . '</span></td>';
+                            echo '</tr>';
+                        }
+                    } else {
+                        echo '<tr><td colspan="6">Nenhum prazo próximo encontrado.</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
         </div>

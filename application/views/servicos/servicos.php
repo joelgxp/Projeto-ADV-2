@@ -8,13 +8,13 @@
         <span class="icon">
             <i class="fas fa-wrench"></i>
         </span>
-        <h5>Serviços</h5>
+        <h5>Serviços Jurídicos</h5>
     </div>
     <div class="span12" style="margin-left: 0">
         <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'aServico')) : ?>
             <div class="span3 flexxn" style="display: flex;">
                 <a href="<?= base_url() ?>index.php/servicos/adicionar" class="button btn btn-mini btn-success" style="max-width: 160px">
-                    <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2"> Serviços</span>
+                    <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2"> Novo Serviço</span>
                 </a>
             </div>
         <?php endif; ?>
@@ -36,7 +36,9 @@
                     <tr>
                         <th>Cod.</th>
                         <th>Nome</th>
+                        <th>Tipo</th>
                         <th>Preço</th>
+                        <th>Tempo Estimado</th>
                         <th>Descrição</th>
                         <th>Ações</th>
                     </tr>
@@ -45,14 +47,16 @@
                     <?php
                         if (!$results) {
                             echo '<tr>
-                                    <td colspan="5">Nenhum Serviço Cadastrado</td>
+                                    <td colspan="7">Nenhum Serviço Jurídico Cadastrado</td>
                                 </tr>';
                         }
                         foreach ($results as $r) {
                             echo '<tr>';
                             echo '<td>' . $r->idServicos . '</td>';
                             echo '<td>' . $r->nome . '</td>';
-                            echo '<td>' . number_format($r->preco, 2, ',', '.') . '</td>';
+                            echo '<td>' . (isset($r->tipo_servico) && $r->tipo_servico ? $r->tipo_servico : '-') . '</td>';
+                            echo '<td>R$ ' . number_format($r->preco, 2, ',', '.') . '</td>';
+                            echo '<td>' . (isset($r->tempo_estimado) && $r->tempo_estimado ? $r->tempo_estimado . 'h' : '-') . '</td>';
                             echo '<td>' . $r->descricao . '</td>';
                             echo '<td>';
                             if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eServico')) {

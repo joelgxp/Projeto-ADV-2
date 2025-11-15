@@ -5,7 +5,7 @@
                 <span class="icon">
                     <i class="fas fa-wrench"></i>
                 </span>
-                <h5>Editar Serviço</h5>
+                <h5>Editar Serviço Jurídico</h5>
             </div>
             <div class="widget-content nopadding tab-content">
                 <?php echo $custom_error; ?>
@@ -24,9 +24,30 @@
                         </div>
                     </div>
                     <div class="control-group">
+                        <label for="tipo_servico" class="control-label">Tipo de Serviço</label>
+                        <div class="controls">
+                            <select id="tipo_servico" name="tipo_servico">
+                                <option value="">Selecione...</option>
+                                <?php
+                                $tipos = ['Consultoria', 'Petição', 'Contestação', 'Recurso', 'Audiência', 'Análise', 'Outros'];
+                                foreach ($tipos as $tipo) {
+                                    $selected = (isset($result->tipo_servico) && $result->tipo_servico == $tipo) ? 'selected' : '';
+                                    echo '<option value="' . $tipo . '" ' . $selected . '>' . $tipo . ($tipo == 'Análise' ? ' Jurídica' : '') . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="tempo_estimado" class="control-label">Tempo Estimado (horas)</label>
+                        <div class="controls">
+                            <input id="tempo_estimado" type="number" name="tempo_estimado" min="0" step="0.5" value="<?php echo isset($result->tempo_estimado) ? $result->tempo_estimado : ''; ?>" placeholder="Ex: 2.5" />
+                        </div>
+                    </div>
+                    <div class="control-group">
                         <label for="descricao" class="control-label">Descrição</label>
                         <div class="controls">
-                            <input id="descricao" type="text" name="descricao" value="<?php echo $result->descricao ?>" />
+                            <textarea id="descricao" name="descricao" rows="3"><?php echo $result->descricao ?></textarea>
                         </div>
                     </div>
                     <div class="form-actions">

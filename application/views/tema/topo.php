@@ -2,7 +2,7 @@
 <html lang="pt-br">
 
 <head>
-  <title><?= $configuration['app_name'] ?: 'Map-OS' ?></title>
+  <title><?= $configuration['app_name'] ?: 'Adv' ?></title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token-name" content="<?= config_item("csrf_token_name") ?>">
@@ -49,17 +49,19 @@
       location.href = '<?= site_url('clientes'); ?>';
     });
     shortcut.add("F2", function() {
-      location.href = '<?= site_url('produtos'); ?>';
+      location.href = '<?= site_url('processos'); ?>';
     });
     shortcut.add("F3", function() {
       location.href = '<?= site_url('servicos'); ?>';
     });
     shortcut.add("F4", function() {
-      location.href = '<?= site_url('os'); ?>';
+      location.href = '<?= site_url('prazos'); ?>';
     });
-    //shortcut.add("F5", function() {});
+    shortcut.add("F5", function() {
+      location.href = '<?= site_url('audiencias'); ?>';
+    });
     shortcut.add("F6", function() {
-      location.href = '<?= site_url('vendas/adicionar'); ?>';
+      location.href = '<?= site_url('financeiro/lancamentos'); ?>';
     });
     shortcut.add("F7", function() {
       location.href = '<?= site_url('financeiro/lancamentos'); ?>';
@@ -82,7 +84,7 @@
           <a href="#" class="tip-right dropdown-toggle" data-toggle="dropdown" title="Perfis"><i class='bx bx-user-circle iconN'></i><span class="text"></span></a>
           <ul class="dropdown-menu">
             <li class=""><a title="Área do Cliente" href="<?= site_url(); ?>/mine" target="_blank"> <span class="text">Área do Cliente</span></a></li>
-            <li class=""><a title="Meu Perfil" href="<?= site_url('mapos/minhaConta'); ?>"><span class="text">Meu Perfil</span></a></li>
+            <li class=""><a title="Meu Perfil" href="<?= site_url('adv/minhaConta'); ?>"><span class="text">Meu Perfil</span></a></li>
             <li class="divider"></li>
             <li class=""><a title="Sair do Sistema" href="<?= site_url('login/sair'); ?>"><i class='bx bx-log-out-circle'></i> <span class="text">Sair do Sistema</span></a></li>
           </ul>
@@ -91,25 +93,24 @@
           <a href="#" class="tip-right dropdown-toggle" data-toggle="dropdown" title="Relatórios"><i class='bx bx-pie-chart-alt-2 iconN'></i><span class="text"></span></a>
           <ul class="dropdown-menu">
             <li><a href="<?= site_url('relatorios/clientes') ?>">Clientes</a></li>
-            <li><a href="<?= site_url('relatorios/produtos') ?>">Produtos</a></li>
-            <li><a href="<?= site_url('relatorios/servicos') ?>">Serviços</a></li>
-            <li><a href="<?= site_url('relatorios/os') ?>">Ordens de Serviço</a></li>
-            <li><a href="<?= site_url('relatorios/vendas') ?>">Vendas</a></li>
+            <li><a href="<?= site_url('relatorios/processos') ?>">Processos</a></li>
+            <li><a href="<?= site_url('relatorios/prazos') ?>">Prazos</a></li>
+            <li><a href="<?= site_url('relatorios/audiencias') ?>">Audiências</a></li>
+            <li><a href="<?= site_url('relatorios/servicos') ?>">Serviços Jurídicos</a></li>
             <li><a href="<?= site_url('relatorios/financeiro') ?>">Financeiro</a></li>
-            <li><a href="<?= site_url('relatorios/sku') ?>">SKU</a></li>
-            <li><a href="<?= site_url('relatorios/receitasBrutasMei') ?>">Receitas Brutas - MEI</a></li>
+            <li><a href="<?= site_url('relatorios/honorarios') ?>">Honorários</a></li>
           </ul>
         </li>
         <li class="dropdown">
           <a href="#" class="tip-right dropdown-toggle" data-toggle="dropdown" title="Configurações"><i class='bx bx-cog iconN'></i><span class="text"></span></a>
           <ul class="dropdown-menu">
-            <li><a href="<?= site_url('mapos/configurar') ?>">Sistema</a></li>
+            <li><a href="<?= site_url('adv/configurar') ?>">Sistema</a></li>
             <li><a href="<?= site_url('usuarios') ?>">Usuários</a></li>
-            <li><a href="<?= site_url('mapos/emitente') ?>">Emitente</a></li>
+            <li><a href="<?= site_url('adv/emitente') ?>">Emitente</a></li>
             <li><a href="<?= site_url('permissoes') ?>">Permissões</a></li>
             <li><a href="<?= site_url('auditoria') ?>">Auditoria</a></li>
-            <li><a href="<?= site_url('mapos/emails') ?>">Emails</a></li>
-            <li><a href="<?= site_url('mapos/backup') ?>">Backup</a></li>
+            <li><a href="<?= site_url('adv/emails') ?>">Emails</a></li>
+            <li><a href="<?= site_url('adv/backup') ?>">Backup</a></li>
           </ul>
         </li>
       </ul>
@@ -140,7 +141,7 @@
       <section class="sec_profile">
         <div class="profile">
           <div class="profile-img">
-            <a href="<?= site_url('mapos/minhaConta'); ?>"><img src="<?= !is_file(FCPATH . "assets/userImage/" . $this->session->userdata('url_image_user_admin')) ?  base_url() . "assets/img/User.png" : base_url() . "assets/userImage/" . $this->session->userdata('url_image_user_admin') ?>" alt=""></a>
+            <a href="<?= site_url('adv/minhaConta'); ?>"><img src="<?= !is_file(FCPATH . "assets/userImage/" . $this->session->userdata('url_image_user_admin')) ?  base_url() . "assets/img/User.png" : base_url() . "assets/userImage/" . $this->session->userdata('url_image_user_admin') ?>" alt=""></a>
           </div>
         </div>
       </section>
@@ -151,7 +152,7 @@
 
   <!--start-top-serch-->
   <div style="display: none" id="search">
-    <form action="<?= site_url('mapos/pesquisar') ?>">
+    <form action="<?= site_url('adv/pesquisar') ?>">
       <input type="text" name="termo" placeholder="Pesquisar..." />
       <button type="submit" class="tip-bottom" title="Pesquisar"><i class="fas fa-search fa-white"></i></button>
     </form>

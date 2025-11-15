@@ -10,7 +10,7 @@ class Login extends CI_Controller
 
     public function index()
     {
-        $this->load->view('mapos/login');
+        $this->load->view('adv/login');
     }
 
     public function sair()
@@ -65,14 +65,26 @@ class Login extends CI_Controller
                     ];
                     $this->session->set_userdata($session_admin_data);
                     log_info('Efetuou login no sistema');
-                    $json = ['result' => true];
+                    $json = [
+                        'result' => true,
+                        'message' => 'Login realizado com sucesso!',
+                        'ADV_TOKEN' => $this->security->get_csrf_hash()
+                    ];
                     echo json_encode($json);
                 } else {
-                    $json = ['result' => false, 'message' => 'Os dados de acesso estão incorretos.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()];
+                    $json = [
+                        'result' => false, 
+                        'message' => 'Os dados de acesso estão incorretos.', 
+                        'ADV_TOKEN' => $this->security->get_csrf_hash()
+                    ];
                     echo json_encode($json);
                 }
             } else {
-                $json = ['result' => false, 'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()];
+                $json = [
+                    'result' => false, 
+                    'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 
+                    'ADV_TOKEN' => $this->security->get_csrf_hash()
+                ];
                 echo json_encode($json);
             }
         }

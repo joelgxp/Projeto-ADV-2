@@ -100,7 +100,7 @@ ECHO  **                                              **
 ECHO  **                                              **
 ECHO  **                                              **
 ECHO  **           SCRIPT AUTO INSTALADOR             **
-ECHO  **    MAP-OS - SISTEMA DE ORDEM DE SERVICO      **
+ECHO  **    ADV - SISTEMA DE GESTAO JURIDICA          **
 ECHO  **            Windows 10/11 x64                 **
 ECHO  **                                              **
 ECHO  **                                              **
@@ -115,7 +115,7 @@ GOTO etapa%step%
 :: <=== Inicio Boas Vindas ===>
 :etapa1
 ECHO Ola, seja bem vindo.
-ECHO Esse script foi desenvolvido com o intuito de auxiliar na instalacao automatizada do Sistema MAP-OS e os componentes necessarios.
+ECHO Esse script foi desenvolvido com o intuito de auxiliar na instalacao automatizada do Sistema Adv (Sistema de Gestao Juridica) e os componentes necessarios.
 ECHO Reforcamos que nao recomendamos a instalacao em localhost para uso em PRODUCAO, apenas para TESTE ou DESENVOLVIMENTO devido a riscos de perdas de dados e seguranca.
 ECHO.
 CHOICE /C SN /M "Continuar a instalacao"
@@ -204,19 +204,19 @@ GOTO etapa0
 
 :: <=== Inicio Instalação MAP-OS ===>
 :etapa6
-ECHO # INSTALACAO SISTEMA MAP-OS...
+ECHO # INSTALACAO SISTEMA ADV...
 ECHO.
-ECHO Extracao dos arquivos MAP-OS
+ECHO Extracao dos arquivos ADV
 IF EXIST %dirHtdocs%\mapos\index.php GOTO etapa0
 PowerShell -ExecutionPolicy Bypass -Command "Expand-Archive %dirDefault%\MapOS.zip %dirHtdocs%" -Force
 ECHO.
-ECHO Correcao da Pasta MAP-OS
+ECHO Correcao da Pasta ADV
 IF EXIST %dirHtdocs%\mapos-master (
     RENAME %dirHtdocs%\mapos-master mapos
 ) ELSE (
     FOR /F "tokens=4" %%B IN ( ' dir "%dirHtdocs%\" ^| findstr /I /C:"RamonSilva20" ' ) DO IF NOT EXIST %dirHtdocs%\mapos rename %dirHtdocs%\%%B mapos
 )
-IF not EXIST %dirHtdocs%\mapos\index.php ( DEL %dirDefault%\MapOS.zip && ECHO Falha na extracao do Map-OS, efetuando novo download. && SET step=2 && GOTO etapa0 )
+IF not EXIST %dirHtdocs%\mapos\index.php ( DEL %dirDefault%\MapOS.zip && ECHO Falha na extracao do Adv, efetuando novo download. && SET step=2 && GOTO etapa0 )
 IF EXIST %dirHtdocs%\mapos\.htaccess DEL %dirHtdocs%\mapos\.htaccess
 GOTO etapa0
 :: <=== Fim Instalação MAP-OS ===>
@@ -230,21 +230,21 @@ IF EXIST "%dirXampp%\composer\composer.bat" ( GOTO composerinstall )
 CALL %dirDefault%\composer.exe /SILENT /ALLUSERS /DEV="%dirXampp%\composer" >NUL 2>&1
 IF %ErrorLevel% GTR 0 ( DEL %dirDefault%\composer.exe && ECHO Falha na execucao do COMPOSER, efetuando novo download. && SET step=2 && GOTO etapa0 )
 :composerinstall
-ECHO Instalando Composer Install no MAP-OS
+ECHO Instalando Composer Install no ADV
 IF not EXIST %dirHtdocs%\mapos\application\vendor START /I /WAIT /D %dirHtdocs%\mapos PowerShell %dirXampp%\composer\composer.bat install --ignore-platform-reqs --no-dev
 GOTO etapa0
 :: <=== Fim Instalação Composer ===>
 
 :: <=== Inicio Configuração pelo Browser ===>
 :etapa8
-%dirMySQL%\mysql.exe -u "root" -e "create database `mapos`;" >NUL 2>&1
-ECHO # CONFIGURANDO MAPOS...
+%dirMySQL%\mysql.exe -u "root" -e "create database `adv`;" >NUL 2>&1
+ECHO # CONFIGURANDO ADV...
 ECHO Clique em "Proximo" e insira os dados abaixo:
 ECHO.
 ECHO Host: localhost
 ECHO Usuario: root
 ECHO Senha: "Em Branco"
-ECHO Banco de Dados: mapos
+ECHO Banco de Dados: adv
 ECHO.
 ECHO Nome: "Digite seu Nome Completo"
 ECHO Email: "Informe seu E-mail para Login"

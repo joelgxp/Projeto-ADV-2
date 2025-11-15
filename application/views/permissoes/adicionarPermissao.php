@@ -61,6 +61,41 @@
                                                 </label>
                                             </td>
                                         </tr>
+                                        <tr>
+                                            <td>
+                                                <label>
+                                                    <input name="vClienteDadosSensiveis" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Visualizar Dados Sensíveis</span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <label>
+                                                    <input name="eClienteDadosSensiveis" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Editar Dados Sensíveis</span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <label>
+                                                    <input name="vClienteProcessos" class="marcar" type="checkbox" checked="checked" value="1" />
+                                                    <span class="lbl"> Visualizar Processos do Cliente</span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <label>
+                                                    <input name="vClienteDocumentos" class="marcar" type="checkbox" checked="checked" value="1" />
+                                                    <span class="lbl"> Visualizar Documentos</span>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <label>
+                                                    <input name="vClienteFinanceiro" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Visualizar Dados Financeiros</span>
+                                                </label>
+                                            </td>
+                                            <td colspan="3"></td>
+                                        </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -70,8 +105,8 @@
                             <div class="accordion-heading">
                                 <div class="widget-title">
                                     <a data-parent="#collapse-group" href="#collapseGTwo" data-toggle="collapse">
-                                      <span><i class='bx bx-package icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Produtos</h5>
+                                      <span><i class='bx bx-file-blank icon-cli'></i></span>
+                                      <h5 style="padding-left: 28px">Processos</h5>
                                     </a>
                                 </div>
                             </div>
@@ -82,26 +117,34 @@
                                         <tr>
                                             <td>
                                                 <label>
-                                                    <input name="vProduto" class="marcar" type="checkbox" checked="checked" value="1" />
-                                                    <span class="lbl"> Visualizar Produto</span>
+                                                    <input name="vProcesso" class="marcar" type="checkbox" checked="checked" value="1" />
+                                                    <span class="lbl"> Visualizar Processo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="aProduto" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Adicionar Produto</span>
+                                                    <input name="aProcesso" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Adicionar Processo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="eProduto" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Editar Produto</span>
+                                                    <input name="eProcesso" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Editar Processo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="dProduto" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Excluir Produto</span>
+                                                    <input name="dProcesso" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Excluir Processo</span>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="4">
+                                                <label>
+                                                    <input name="sProcesso" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Sincronizar Processo com API</span>
                                                 </label>
                                             </td>
                                         </tr>
@@ -115,7 +158,7 @@
                                 <div class="widget-title">
                                     <a data-parent="#collapse-group" href="#collapseGThree" data-toggle="collapse">
                                       <span><i class='bx bx-stopwatch icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Serviços</h5>
+                                      <h5 style="padding-left: 28px">Serviços Jurídicos</h5>
                                     </a>
                                 </div>
                             </div>
@@ -158,8 +201,8 @@
                             <div class="accordion-heading">
                                 <div class="widget-title">
                                     <a data-parent="#collapse-group" href="#collapseGThree3" data-toggle="collapse">
-                                      <span><i class='bx bx-spreadsheet icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Ordem de Serviços - OS</h5>
+                                      <span><i class='bx bx-calendar-check icon-cli'></i></span>
+                                      <h5 style="padding-left: 28px">Prazos</h5>
                                     </a>
                                 </div>
                             </div>
@@ -170,26 +213,26 @@
                                         <tr>
                                             <td>
                                                 <label>
-                                                    <input name="vOs" class="marcar" type="checkbox" checked="checked" value="1" />
-                                                    <span class="lbl"> Visualizar OS</span>
+                                                    <input name="vPrazo" class="marcar" type="checkbox" checked="checked" value="1" />
+                                                    <span class="lbl"> Visualizar Prazo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="aOs" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Adicionar OS</span>
+                                                    <input name="aPrazo" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Adicionar Prazo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="eOs" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Editar OS</span>
+                                                    <input name="ePrazo" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Editar Prazo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="dOs" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Excluir OS</span>
+                                                    <input name="dPrazo" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Excluir Prazo</span>
                                                 </label>
                                             </td>
                                         </tr>
@@ -202,8 +245,8 @@
                             <div class="accordion-heading">
                                 <div class="widget-title">
                                     <a data-parent="#collapse-group" href="#collapseGThree33" data-toggle="collapse">
-                                      <span><i class='bx bx-cart-alt icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Vendas</h5>
+                                      <span><i class='bx bx-calendar-event icon-cli'></i></span>
+                                      <h5 style="padding-left: 28px">Audiências</h5>
                                     </a>
                                 </div>
                             </div>
@@ -214,26 +257,52 @@
                                         <tr>
                                             <td>
                                                 <label>
-                                                    <input name="vVenda" class="marcar" type="checkbox" checked="checked" value="1" />
-                                                    <span class="lbl"> Visualizar Venda</span>
+                                                    <input name="vAudiencia" class="marcar" type="checkbox" checked="checked" value="1" />
+                                                    <span class="lbl"> Visualizar Audiência</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="aVenda" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Adicionar Venda</span>
+                                                    <input name="aAudiencia" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Adicionar Audiência</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="eVenda" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Editar Venda</span>
+                                                    <input name="eAudiencia" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Editar Audiência</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="dVenda" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Excluir Venda</span>
+                                                    <input name="dAudiencia" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Excluir Audiência</span>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-group widget-box">
+                            <div class="accordion-heading">
+                                <div class="widget-title">
+                                    <a data-parent="#collapse-group" href="#collapseGThree34" data-toggle="collapse">
+                                      <span><i class='bx bx-search-alt icon-cli'></i></span>
+                                      <h5 style="padding-left: 28px">Consulta Processual</h5>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="collapse accordion-body" id="collapseGThree34">
+                                <div class="widget-content">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                        <tr>
+                                            <td colspan="4">
+                                                <label>
+                                                    <input name="cConsultaProcessual" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Consultar Processos na API CNJ/DataJud</span>
                                                 </label>
                                             </td>
                                         </tr>
@@ -278,50 +347,6 @@
                                                 <label>
                                                     <input name="dCobranca" class="marcar" type="checkbox" value="1" />
                                                     <span class="lbl"> Excluir Cobranças</span>
-                                                </label>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-group widget-box">
-                            <div class="accordion-heading">
-                                <div class="widget-title">
-                                    <a data-parent="#collapse-group" href="#collapseGThree3333" data-toggle="collapse">
-                                      <span><i class='bx bx-receipt icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Garantias</h5>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="collapse accordion-body" id="collapseGThree3333">
-                                <div class="widget-content">
-                                    <table class="table table-bordered">
-                                        <tbody>
-                                        <tr>
-                                            <td>
-                                                <label>
-                                                    <input name="vGarantia" class="marcar" type="checkbox" checked="checked" value="1" />
-                                                    <span class="lbl"> Visualizar Garantia</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="aGarantia" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Adicionar Garantia</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="eGarantia" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Editar Garantia</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="dGarantia" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Excluir Garantia</span>
                                                 </label>
                                             </td>
                                         </tr>
@@ -472,22 +497,22 @@
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="rOs" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Relatório OS</span>
+                                                    <input name="rProcesso" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Relatório Processo</span>
                                                 </label>
                                             </td>
                                             <td>
                                                 <label>
-                                                    <input name="rProduto" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Relatório Produto</span>
+                                                    <input name="rPrazo" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Relatório Prazo</span>
                                                 </label>
                                             </td>
                                         </tr>
                                         <tr>
                                             <td>
                                                 <label>
-                                                    <input name="rVenda" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Relatório Venda</span>
+                                                    <input name="rAudiencia" class="marcar" type="checkbox" value="1" />
+                                                    <span class="lbl"> Relatório Audiência</span>
                                                 </label>
                                             </td>
                                             <td>

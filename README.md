@@ -1,5 +1,5 @@
 
-# MapOS - Sistema de Controle de Ordens de Serviço
+# Adv - Sistema de Gestão Jurídica
 
 ![version](https://img.shields.io/badge/version-4.52.0-blue.svg?longCache=true&style=flat-square)
 ![license](https://img.shields.io/badge/license-Apache-green.svg?longCache=true&style=flat-square)
@@ -10,7 +10,7 @@
 1. Faça o download dos arquivos.
 2. Extraia o pacote e copie para seu webserver.
 3. Rode o comando `composer install --no-dev` a partir da raiz do projeto.
-4. Acesse sua URL e inicie a instalação, é bem simples, basta preencher as informações no assistente de instalação **MAPOS**.
+4. Acesse sua URL e inicie a instalação, é bem simples, basta preencher as informações no assistente de instalação **Adv**.
 5. Configure o email de envio em Configurações > Sistema > E-mail .
 6. Configurar cron jobs para envio de e-mail:
     ##### Enviar emails pendentes a cada 2 minutos.
@@ -31,9 +31,9 @@
 ```
 1. Por favor, insira as informações da sua conexão de banco de dados.
 Host: mysql
-Usuário: mapos
-Senha: mapos
-Banco de Dados: mapos
+Usuário: adv
+Senha: adv
+Banco de Dados: adv
 
 2. Por favor, insira as informações para sua conta de administrador.
 Configure do jeito que quiser.
@@ -88,7 +88,7 @@ URL: http://localhost:8000/
 ### Atualização via sistema
 
 1. Primeiro é necessário atualizar manualmente o sistema para a versão v4.4.0;
-2. Quando estiver nessa versão é possível atualizar o sistema clicando no botão "Atualizar Mapos" em Sistema >> Configurações;
+2. Quando estiver nessa versão é possível atualizar o sistema clicando no botão "Atualizar Adv" em Sistema >> Configurações;
 3. Serão baixados e atualizados todos os arquivos exceto: `config.php`, `database.php` e `email.php`;
 
 ### Comandos de terminal

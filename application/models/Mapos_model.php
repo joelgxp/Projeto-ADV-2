@@ -69,33 +69,64 @@ class Mapos_model extends CI_Model
         $data = [];
         
         // buscando clientes
-        $this->db->like('nomeCliente', $termo);
-        $this->db->or_like('telefone', $termo);
-        $this->db->or_like('celular', $termo);
-        $this->db->or_like('documento', $termo);
-        $this->db->limit(15);
-        $query = $this->db->get('clientes');
-        $data['clientes'] = ($query !== false) ? $query->result() : [];
+        if ($this->db->table_exists('clientes')) {
+            $this->db->like('nomeCliente', $termo);
+            $this->db->or_like('telefone', $termo);
+            $this->db->or_like('celular', $termo);
+            $this->db->or_like('documento', $termo);
+            $this->db->limit(15);
+            $query = $this->db->get('clientes');
+            $data['clientes'] = ($query !== false) ? $query->result() : [];
+        } else {
+            $data['clientes'] = [];
+        }
 
-        // buscando os
-        $this->db->like('idOs', $termo);
-        $this->db->or_like('descricaoProduto', $termo);
-        $this->db->limit(15);
-        $query = $this->db->get('os');
-        $data['os'] = ($query !== false) ? $query->result() : [];
+        // buscando processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->like('numeroProcesso', $termo);
+            $this->db->or_like('classe', $termo);
+            $this->db->or_like('assunto', $termo);
+            $this->db->limit(15);
+            $query = $this->db->get('processos');
+            $data['processos'] = ($query !== false) ? $query->result() : [];
+        } else {
+            $data['processos'] = [];
+        }
 
-        // buscando produtos
-        $this->db->like('codDeBarra', $termo);
-        $this->db->or_like('descricao', $termo);
-        $this->db->limit(50);
-        $query = $this->db->get('produtos');
-        $data['produtos'] = ($query !== false) ? $query->result() : [];
+        // buscando prazos
+        if ($this->db->table_exists('prazos')) {
+            $this->db->like('descricao', $termo);
+            $this->db->or_like('tipo', $termo);
+            $this->db->limit(15);
+            $query = $this->db->get('prazos');
+            $data['prazos'] = ($query !== false) ? $query->result() : [];
+        } else {
+            $data['prazos'] = [];
+        }
 
-        //buscando serviços
-        $this->db->like('nome', $termo);
-        $this->db->limit(15);
-        $query = $this->db->get('servicos');
-        $data['servicos'] = ($query !== false) ? $query->result() : [];
+        // buscando audiências
+        if ($this->db->table_exists('audiencias')) {
+            $this->db->like('tipo', $termo);
+            $this->db->or_like('local', $termo);
+            $this->db->or_like('observacoes', $termo);
+            $this->db->limit(15);
+            $query = $this->db->get('audiencias');
+            $data['audiencias'] = ($query !== false) ? $query->result() : [];
+        } else {
+            $data['audiencias'] = [];
+        }
+
+        //buscando serviços jurídicos
+        $tableName = $this->db->table_exists('servicos_juridicos') ? 'servicos_juridicos' : ($this->db->table_exists('servicos') ? 'servicos' : null);
+        if ($tableName) {
+            $this->db->like('nome', $termo);
+            $this->db->or_like('descricao', $termo);
+            $this->db->limit(15);
+            $query = $this->db->get($tableName);
+            $data['servicos'] = ($query !== false) ? $query->result() : [];
+        } else {
+            $data['servicos'] = [];
+        }
 
         return $data;
     }
@@ -420,71 +451,52 @@ class Mapos_model extends CI_Model
 
     public function calendario($start, $end, $status = null)
     {
-        // Verificar se as tabelas existem
-        if (!$this->db->table_exists('os')) {
-            log_message('error', 'Tabela os não existe para calendario');
-            return [];
-        }
-        
-        if (!$this->db->table_exists('clientes')) {
-            log_message('error', 'Tabela clientes não existe para calendario');
+        // Verificar se a tabela de audiências existe
+        if (!$this->db->table_exists('audiencias')) {
+            log_message('error', 'Tabela audiencias não existe para calendario');
             return [];
         }
         
         // Detectar estrutura das tabelas
-        $os_columns = $this->db->list_fields('os');
-        $clientes_columns = $this->db->list_fields('clientes');
+        $audiencias_columns = $this->db->list_fields('audiencias');
         
-        // Detectar colunas
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
-        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        $os_id_col = in_array('idOs', $os_columns) ? 'idOs' : (in_array('id', $os_columns) ? 'id' : null);
-        $data_final_col = in_array('dataFinal', $os_columns) ? 'dataFinal' : (in_array('data_final', $os_columns) ? 'data_final' : null);
+        // Construir SELECT - começar com audiencias.*
+        $this->db->select('audiencias.*');
         
-        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col || !$os_id_col || !$data_final_col) {
-            log_message('error', 'Estrutura de tabelas incompatível para calendario');
-            return [];
+        // Join com processos se a tabela existir
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+            
+            // Join com clientes através de processos
+            if ($this->db->table_exists('clientes')) {
+                $clientes_columns = $this->db->list_fields('clientes');
+                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+                
+                if ($clientes_id_col && $clientes_nome_col) {
+                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+                }
+            }
         }
         
-        // Construir SELECT adaptado
-        $select = 'os.*, clientes.' . $nome_cliente_col . ' as nomeCliente';
-        
-        // Adicionar subqueries apenas se as tabelas existirem
-        if ($this->db->table_exists('produtos_os')) {
-            $produtos_os_id_col = in_array('os_id', $this->db->list_fields('produtos_os')) ? 'os_id' : 'id';
-            $select .= ', COALESCE((SELECT SUM(produtos_os.preco * produtos_os.quantidade) FROM produtos_os WHERE produtos_os.' . $produtos_os_id_col . ' = os.' . $os_id_col . '), 0) as totalProdutos';
-        }
-        
-        if ($this->db->table_exists('servicos_os')) {
-            $servicos_os_id_col = in_array('os_id', $this->db->list_fields('servicos_os')) ? 'os_id' : 'id';
-            $select .= ', COALESCE((SELECT SUM(servicos_os.preco * servicos_os.quantidade) FROM servicos_os WHERE servicos_os.' . $servicos_os_id_col . ' = os.' . $os_id_col . '), 0) as totalServicos';
-        }
-        
-        $this->db->select($select);
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
-        
-        // JOINs opcionais apenas se as tabelas existirem
-        if ($this->db->table_exists('produtos_os')) {
-            $produtos_os_id_col = in_array('os_id', $this->db->list_fields('produtos_os')) ? 'os_id' : 'id';
-            $this->db->join('produtos_os', 'produtos_os.' . $produtos_os_id_col . ' = os.' . $os_id_col, 'left');
-        }
-        
-        if ($this->db->table_exists('servicos_os')) {
-            $servicos_os_id_col = in_array('os_id', $this->db->list_fields('servicos_os')) ? 'os_id' : 'id';
-            $this->db->join('servicos_os', 'servicos_os.' . $servicos_os_id_col . ' = os.' . $os_id_col, 'left');
-        }
+        $this->db->from('audiencias');
         
         // Filtros de data
-        $this->db->where('os.' . $data_final_col . ' >=', $start);
-        $this->db->where('os.' . $data_final_col . ' <=', $end);
-        $this->db->group_by('os.' . $os_id_col);
-
-        // Filtro de status se fornecido e coluna existir
-        if (!empty($status) && in_array('status', $os_columns)) {
-            $this->db->where('os.status', $status);
+        if ($start) {
+            $this->db->where('DATE(audiencias.dataHora) >=', $start);
         }
+        if ($end) {
+            $this->db->where('DATE(audiencias.dataHora) <=', $end);
+        }
+
+        // Filtro de status se fornecido
+        if (!empty($status) && in_array('status', $audiencias_columns)) {
+            $this->db->where('audiencias.status', $status);
+        }
+        
+        $this->db->order_by('audiencias.dataHora', 'ASC');
 
         $query = $this->db->get();
         if ($query === false) {
@@ -753,6 +765,287 @@ class Mapos_model extends CI_Model
         }
         
         return $query->row();
+    }
+
+    /**
+     * Busca processos por status
+     */
+    public function getProcessosByStatus($status)
+    {
+        if (!$this->db->table_exists('processos')) {
+            return [];
+        }
+
+        // Detectar estrutura das tabelas
+        $processos_columns = $this->db->list_fields('processos');
+        $status_col = in_array('status', $processos_columns) ? 'status' : null;
+        
+        if (!$status_col) {
+            log_message('error', 'Coluna status não encontrada na tabela processos');
+            return [];
+        }
+
+        $this->db->select('processos.*');
+        
+        // Join com clientes se a tabela existir
+        if ($this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('processos');
+        $this->db->where('processos.' . $status_col, $status);
+        $this->db->order_by('processos.dataCadastro', 'DESC');
+        $this->db->limit(10);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getProcessosByStatus: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca prazos vencidos
+     */
+    public function getPrazosVencidos()
+    {
+        if (!$this->db->table_exists('prazos')) {
+            return [];
+        }
+
+        $this->db->select('prazos.*');
+        
+        // Join com processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
+        }
+        
+        // Join com clientes
+        if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('prazos');
+        $this->db->where('prazos.status', 'pendente');
+        $this->db->where('prazos.dataVencimento <', date('Y-m-d'));
+        $this->db->order_by('prazos.dataVencimento', 'ASC');
+        $this->db->limit(10);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getPrazosVencidos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca prazos próximos (próximos 7 dias)
+     */
+    public function getPrazosProximos()
+    {
+        if (!$this->db->table_exists('prazos')) {
+            return [];
+        }
+
+        $this->db->select('prazos.*');
+        
+        // Join com processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
+        }
+        
+        // Join com clientes
+        if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('prazos');
+        $this->db->where('prazos.status', 'pendente');
+        $this->db->where('prazos.dataVencimento >=', date('Y-m-d'));
+        $this->db->where('prazos.dataVencimento <=', date('Y-m-d', strtotime('+7 days')));
+        $this->db->order_by('prazos.dataVencimento', 'ASC');
+        $this->db->limit(10);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getPrazosProximos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca audiências de hoje
+     */
+    public function getAudienciasHoje()
+    {
+        if (!$this->db->table_exists('audiencias')) {
+            return [];
+        }
+
+        $this->db->select('audiencias.*');
+        
+        // Join com processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+        }
+        
+        // Join com clientes
+        if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('audiencias');
+        $this->db->where('DATE(audiencias.dataHora)', date('Y-m-d'));
+        $this->db->where('audiencias.status', 'agendada');
+        $this->db->order_by('audiencias.dataHora', 'ASC');
+        $this->db->limit(10);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getAudienciasHoje: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca próximas audiências (próximos 7 dias)
+     */
+    public function getAudienciasProximas()
+    {
+        if (!$this->db->table_exists('audiencias')) {
+            return [];
+        }
+
+        $this->db->select('audiencias.*');
+        
+        // Join com processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+        }
+        
+        // Join com clientes
+        if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('audiencias');
+        $this->db->where('DATE(audiencias.dataHora) >', date('Y-m-d'));
+        $this->db->where('DATE(audiencias.dataHora) <=', date('Y-m-d', strtotime('+7 days')));
+        $this->db->where('audiencias.status', 'agendada');
+        $this->db->order_by('audiencias.dataHora', 'ASC');
+        $this->db->limit(10);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getAudienciasProximas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca audiências agendadas
+     */
+    public function getAudienciasAgendadas()
+    {
+        if (!$this->db->table_exists('audiencias')) {
+            return [];
+        }
+
+        $this->db->select('audiencias.*');
+        
+        // Join com processos
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+        }
+        
+        // Join com clientes
+        if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            }
+        }
+        
+        $this->db->from('audiencias');
+        $this->db->where('audiencias.dataHora >=', date('Y-m-d H:i:s'));
+        $this->db->where('audiencias.status', 'agendada');
+        $this->db->order_by('audiencias.dataHora', 'ASC');
+        $this->db->limit(5);
+
+        $query = $this->db->get();
+        if ($query === false) {
+            log_message('error', 'Erro na query getAudienciasAgendadas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Busca estatísticas de processos
+     */
+    public function getEstatisticasProcessos()
+    {
+        if (!$this->db->table_exists('processos')) {
+            return false;
+        }
+
+        $sql = 'SELECT status, COUNT(status) as total FROM processos GROUP BY status ORDER BY status';
+
+        $query = $this->db->query($sql);
+        if ($query === false) {
+            log_message('error', 'Erro na query getEstatisticasProcessos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        return $query->result();
     }
 
     /**

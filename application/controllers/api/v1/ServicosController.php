@@ -54,7 +54,7 @@ class ServicosController extends REST_Controller
 
         $this->response([
             'status' => false,
-            'message' => 'Nenhum Produto localizado.',
+            'message' => 'Nenhum Serviço localizado.',
             'result' => null,
         ], REST_Controller::HTTP_OK);
     }
@@ -168,8 +168,6 @@ class ServicosController extends REST_Controller
                 'message' => 'Informe o ID do Serviço!',
             ], REST_Controller::HTTP_BAD_REQUEST);
         }
-
-        $this->servicos_model->delete('servicos_os', 'servicos_id', $id);
 
         if ($this->servicos_model->delete('servicos', 'idServicos', $id)) {
             $this->log_app('Removeu um Serviço. ID' . $id);

@@ -278,8 +278,19 @@ class Mine extends CI_Controller
         }
 
         $data['menuPainel'] = 'painel';
-        $data['compras'] = $this->Conecte_model->getLastCompras($this->session->userdata('cliente_id'));
-        $data['os'] = $this->Conecte_model->getLastOs($this->session->userdata('cliente_id'));
+        
+        // Buscar processos do cliente
+        $this->load->model('processos_model');
+        $data['processos'] = $this->processos_model->getProcessosByCliente($this->session->userdata('cliente_id'), 5);
+        
+        // Buscar prazos próximos
+        $this->load->model('prazos_model');
+        $data['prazos'] = $this->prazos_model->getPrazosProximosByCliente($this->session->userdata('cliente_id'), 5);
+        
+        // Buscar audiências próximas
+        $this->load->model('audiencias_model');
+        $data['audiencias'] = $this->audiencias_model->getAudienciasProximasByCliente($this->session->userdata('cliente_id'), 5);
+        
         $data['output'] = 'conecte/painel';
         $this->load->view('conecte/template', $data);
     }
@@ -361,44 +372,6 @@ class Mine extends CI_Controller
         $this->load->view('conecte/template', $data);
     }
 
-    public function compras()
-    {
-        if (! session_id() || ! $this->session->userdata('conectado')) {
-            redirect('mine');
-        }
-
-        $data['menuVendas'] = 'vendas';
-        $this->load->library('pagination');
-
-        $config['base_url'] = base_url() . 'index.php/mine/compras/';
-        $config['total_rows'] = $this->Conecte_model->count('vendas', $this->session->userdata('cliente_id'));
-        $config['per_page'] = 10;
-        $config['next_link'] = 'Próxima';
-        $config['prev_link'] = 'Anterior';
-        $config['full_tag_open'] = '<div class="pagination alternate"><ul>';
-        $config['full_tag_close'] = '</ul></div>';
-        $config['num_tag_open'] = '<li>';
-        $config['num_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li><a style="color: #2D335B"><b>';
-        $config['cur_tag_close'] = '</b></a></li>';
-        $config['prev_tag_open'] = '<li>';
-        $config['prev_tag_close'] = '</li>';
-        $config['next_tag_open'] = '<li>';
-        $config['next_tag_close'] = '</li>';
-        $config['first_link'] = 'Primeira';
-        $config['last_link'] = 'Última';
-        $config['first_tag_open'] = '<li>';
-        $config['first_tag_close'] = '</li>';
-        $config['last_tag_open'] = '<li>';
-        $config['last_tag_close'] = '</li>';
-
-        $this->pagination->initialize($config);
-
-        $data['results'] = $this->Conecte_model->getCompras('vendas', '*', '', $config['per_page'], $this->uri->segment(3), '', '', $this->session->userdata('cliente_id'));
-
-        $data['output'] = 'conecte/compras';
-        $this->load->view('conecte/template', $data);
-    }
 
     public function cobrancas()
     {
@@ -486,17 +459,18 @@ class Mine extends CI_Controller
         redirect(site_url('mine/cobrancas/'));
     }
 
-    public function os()
+    public function processos()
     {
         if (! session_id() || ! $this->session->userdata('conectado')) {
             redirect('mine');
         }
 
-        $data['menuOs'] = 'os';
+        $data['menuProcessos'] = 'processos';
         $this->load->library('pagination');
+        $this->load->model('processos_model');
 
-        $config['base_url'] = base_url() . 'index.php/mine/os/';
-        $config['total_rows'] = $this->Conecte_model->count('os', $this->session->userdata('cliente_id'));
+        $config['base_url'] = base_url() . 'index.php/mine/processos/';
+        $config['total_rows'] = $this->processos_model->countProcessosByCliente($this->session->userdata('cliente_id'));
         $config['per_page'] = 10;
         $config['next_link'] = 'Próxima';
         $config['prev_link'] = 'Anterior';
@@ -519,44 +493,84 @@ class Mine extends CI_Controller
 
         $this->pagination->initialize($config);
 
-        $data['results'] = $this->Conecte_model->getOs('os', '*', '', $config['per_page'], $this->uri->segment(3), '', '', $this->session->userdata('cliente_id'));
+        $data['results'] = $this->processos_model->getProcessosByCliente($this->session->userdata('cliente_id'), $config['per_page'], $this->uri->segment(3));
+        $data['pagination'] = $this->pagination->create_links();
 
-        $data['output'] = 'conecte/os';
+        $data['output'] = 'conecte/processos';
         $this->load->view('conecte/template', $data);
     }
 
-    public function visualizarOs($id = null)
+    public function visualizarProcesso($id = null)
     {
         if (! session_id() || ! $this->session->userdata('conectado')) {
             redirect('mine');
         }
 
-        $data['menuOs'] = 'os';
-        $this->data['custom_error'] = '';
-        $this->load->model('mapos_model');
-        $this->load->model('os_model');
-        $this->CI = &get_instance();
-        $this->CI->load->database();
+        $data['menuProcessos'] = 'processos';
+        $this->load->model('processos_model');
+        $this->load->model('movimentacoes_processuais_model');
+        $this->load->model('prazos_model');
+        $this->load->model('audiencias_model');
 
-        $data['pix_key'] = $this->CI->db->get_where('configuracoes', ['config' => 'pix_key'])->row_object()->valor;
-        $data['result'] = $this->os_model->getById($this->uri->segment(3));
-        $data['produtos'] = $this->os_model->getProdutos($this->uri->segment(3));
-        $data['servicos'] = $this->os_model->getServicos($this->uri->segment(3));
-        $data['anexos'] = $this->os_model->getAnexos($this->uri->segment(3));
-        $data['emitente'] = $this->mapos_model->getEmitente();
-        $data['qrCode'] = $this->os_model->getQrCode(
-            $id,
-            $data['pix_key'],
-            $data['emitente']
-        );
-        $data['chaveFormatada'] = $this->formatarChave($data['pix_key']);
+        $processoId = $this->uri->segment(3);
+        $data['result'] = $this->processos_model->getById($processoId);
 
-        if ($data['result']->idClientes != $this->session->userdata('cliente_id')) {
-            $this->session->set_flashdata('error', 'Esta OS não pertence ao cliente logado.');
+        if (!$data['result'] || $data['result']->clientes_id != $this->session->userdata('cliente_id')) {
+            $this->session->set_flashdata('error', 'Este processo não pertence ao cliente logado.');
             redirect('mine/painel');
         }
 
-        $data['output'] = 'conecte/visualizar_os';
+        // Buscar movimentações
+        $data['movimentacoes'] = $this->movimentacoes_processuais_model->getByProcesso($processoId);
+        
+        // Buscar prazos do processo
+        $data['prazos'] = $this->prazos_model->getPrazosByProcesso($processoId);
+        
+        // Buscar audiências do processo
+        $data['audiencias'] = $this->audiencias_model->getAudienciasByProcesso($processoId);
+
+        $data['output'] = 'conecte/visualizar_processo';
+        $this->load->view('conecte/template', $data);
+    }
+
+    public function prazos()
+    {
+        if (! session_id() || ! $this->session->userdata('conectado')) {
+            redirect('mine');
+        }
+
+        $data['menuPrazos'] = 'prazos';
+        $this->load->library('pagination');
+        $this->load->model('prazos_model');
+
+        $config['base_url'] = base_url() . 'index.php/mine/prazos/';
+        $config['total_rows'] = $this->prazos_model->countPrazosByCliente($this->session->userdata('cliente_id'));
+        $config['per_page'] = 10;
+        $config['next_link'] = 'Próxima';
+        $config['prev_link'] = 'Anterior';
+        $config['full_tag_open'] = '<div class="pagination alternate"><ul>';
+        $config['full_tag_close'] = '</ul></div>';
+        $config['num_tag_open'] = '<li>';
+        $config['num_tag_close'] = '</li>';
+        $config['cur_tag_open'] = '<li><a style="color: #2D335B"><b>';
+        $config['cur_tag_close'] = '</b></a></li>';
+        $config['prev_tag_open'] = '<li>';
+        $config['prev_tag_close'] = '</li>';
+        $config['next_tag_open'] = '<li>';
+        $config['next_tag_close'] = '</li>';
+        $config['first_link'] = 'Primeira';
+        $config['last_link'] = 'Última';
+        $config['first_tag_open'] = '<li>';
+        $config['first_tag_close'] = '</li>';
+        $config['last_tag_open'] = '<li>';
+        $config['last_tag_close'] = '</li>';
+
+        $this->pagination->initialize($config);
+
+        $data['results'] = $this->prazos_model->getPrazosByCliente($this->session->userdata('cliente_id'), $config['per_page'], $this->uri->segment(3));
+        $data['pagination'] = $this->pagination->create_links();
+
+        $data['output'] = 'conecte/prazos';
         $this->load->view('conecte/template', $data);
     }
 
@@ -635,227 +649,6 @@ class Mine extends CI_Controller
 
     }
 
-    public function imprimirOs($id = null)
-    {
-        if (!session_id() || !$this->session->userdata('conectado')) {
-            redirect('mine');
-        }
-
-        $data['menuOs'] = 'os';
-        $this->data['custom_error'] = '';
-        $this->load->model('mapos_model');
-        $this->load->model('os_model');
-        $data['result'] = $this->os_model->getById($this->uri->segment(3));
-        $data['produtos'] = $this->os_model->getProdutos($this->uri->segment(3));
-        $data['servicos'] = $this->os_model->getServicos($this->uri->segment(3));
-        $data['emitente'] = $this->mapos_model->getEmitente();
-        $data['pix_key'] = $this->db->get_where('configuracoes', ['config' => 'pix_key'])->row_object()->valor;
-        $data['qrCode'] = $this->os_model->getQrCode(
-            $id,
-            $data['pix_key'],
-            $data['emitente']
-        );
-        $data['chaveFormatada'] = $this->formatarChave($data['pix_key']);      
-
-        if ($data['result']->idClientes != $this->session->userdata('cliente_id')) {
-            $this->session->set_flashdata('error', 'Esta OS não pertence ao cliente logado.');
-            redirect('mine/painel');
-        }
-
-        $this->load->view('conecte/imprimirOs', $data);
-    }
-
-    public function visualizarCompra($id = null)
-    {
-        if (! session_id() || ! $this->session->userdata('conectado')) {
-            redirect('mine');
-        }
-
-        $data['menuVendas'] = 'vendas';
-        $data['custom_error'] = '';
-        $this->CI = &get_instance();
-        $this->CI->load->database();
-        $this->load->model('mapos_model');
-        $this->load->model('os_model');
-        $this->load->model('vendas_model');        
-
-        $data['result'] = $this->vendas_model->getById($this->uri->segment(3));
-        $data['produtos'] = $this->vendas_model->getProdutos($this->uri->segment(3));
-        $data['emitente'] = $this->mapos_model->getEmitente();
-        $data['pix_key'] = $this->CI->db->get_where('configuracoes', ['config' => 'pix_key'])->row_object()->valor;
-        $data['qrCode'] = $this->vendas_model->getQrCode(
-            $id,
-            $data['pix_key'],
-            $data['emitente']
-        );
-        $data['chaveFormatada'] = $this->formatarChave($data['pix_key']);
-        
-        if ($data['result']->clientes_id != $this->session->userdata('cliente_id')) {
-            $this->session->set_flashdata('error', 'Esta OS não pertence ao cliente logado.');
-            redirect('mine/painel');
-        }
-
-        $data['output'] = 'conecte/visualizar_compra';
-
-        $this->load->view('conecte/template', $data);
-    }
-
-    public function imprimirCompra($id = null)
-    {
-        if (!session_id() || !$this->session->userdata('conectado')) {
-            redirect('mine');
-        }
-
-        $data['menuVendas'] = 'vendas';
-        $data['custom_error'] = '';
-
-        $this->load->model('mapos_model');
-        $this->load->model('vendas_model');
-        $this->load->model('os_model');
-
-        $data['result'] = $this->vendas_model->getById($id);
-        $data['produtos'] = $this->vendas_model->getProdutos($id);
-        $data['emitente'] = $this->mapos_model->getEmitente();
-
-        $this->CI = &get_instance();
-        $this->CI->load->database();
-        $data['pix_key'] = $this->CI->db->get_where('configuracoes', ['config' => 'pix_key'])->row_object()->valor;
-        $data['qrCode'] = $this->vendas_model->getQrCode($id, $data['pix_key'], $data['emitente']);
-        $data['chaveFormatada'] = $this->formatarChave($data['pix_key']);
-
-        if ($data['result']->clientes_id != $this->session->userdata('cliente_id')) {
-            $this->session->set_flashdata('error', 'Esta venda não pertence ao cliente logado.');
-            redirect('mine/painel');
-        }
-
-        $this->load->view('conecte/imprimirVenda', $data);
-    }
-
-    public function minha_ordem_de_servico($y = null, $when = null)
-    {
-        if (($y != null) && (is_numeric($y))) {
-            // Do not forget this number -> 44023
-            // function sending => y = (7653 * ID) + 44023
-            // function recieving => x = (y - 44023) / 7653
-
-            // Example ID = 2 | y = 59329
-
-            $y = intval($y);
-            $id = ($y - 44023) / 7653;
-
-            $data['menuOs'] = 'os';
-            $this->data['custom_error'] = '';
-            $this->load->model('mapos_model');
-            $this->load->model('os_model');
-            $data['result'] = $this->os_model->getById($id);
-            if ($data['result'] == null) {
-                // Resposta em caso de não encontrar a ordem de serviço
-                //$this->load->view('conecte/login');
-            } else {
-                $data['produtos'] = $this->os_model->getProdutos($id);
-                $data['servicos'] = $this->os_model->getServicos($id);
-                $data['emitente'] = $this->mapos_model->getEmitente();
-
-                $this->load->view('conecte/minha_os', $data);
-            }
-        } else {
-            // Resposta em caso de não encontrar a ordem de serviço
-            //$this->load->view('conecte/');
-        }
-    }
-
-    public function adicionarOs()
-    {
-        if (! session_id() || ! $this->session->userdata('conectado')) {
-            redirect('mine');
-        }
-        $this->load->library('form_validation');
-
-        $this->form_validation->set_rules('descricaoProduto', 'Descrição', 'required');
-        $this->form_validation->set_rules('defeito', 'Defeito');
-        $this->form_validation->set_rules('observacoes', 'Observações');
-
-        if ($this->form_validation->run() == false) {
-            $this->data['custom_error'] = (validation_errors() ? true : false);
-        } else {
-            $id = null;
-            $usuario = $this->db->query('SELECT usuarios_id, count(*) as down FROM os GROUP BY usuarios_id ORDER BY down LIMIT 1')->row();
-            if ($usuario == null) {
-                $this->db->where('situacao', 1);
-                $this->db->limit(1);
-                $usuario = $this->db->get('usuarios')->row();
-
-                if ($usuario->idUsuarios == null) {
-                    $this->session->set_flashdata('error', 'Ocorreu um erro ao cadastrar a ordem de serviço, por favor contate o administrador do sistema.');
-                    redirect('mine/os');
-                } else {
-                    $id = $usuario->idUsuarios;
-                }
-            } else {
-                $id = $usuario->usuarios_id;
-            }
-
-            $data = [
-                'dataInicial' => date('Y-m-d'),
-                'clientes_id' => $this->session->userdata('cliente_id'),
-                'usuarios_id' => $id,
-                'dataFinal' => date('Y-m-d'),
-                'descricaoProduto' => $this->security->xss_clean($this->input->post('descricaoProduto')),
-                'defeito' => $this->security->xss_clean($this->input->post('defeito')),
-                'status' => 'Aberto',
-                'observacoes' => $this->security->xss_clean(set_value('observacoes')),
-                'faturado' => 0,
-            ];
-
-            if (is_numeric($id = $this->Conecte_model->add('os', $data, true))) {
-                $this->load->model('mapos_model');
-                $this->load->model('usuarios_model');
-
-                $idOs = $id;
-                $os = $this->Conecte_model->getById($id);
-
-                $remetentes = [];
-                $usuarios = $this->usuarios_model->getAll();
-
-                foreach ($usuarios as $usuario) {
-                    array_push($remetentes, $usuario->email);
-                }
-                array_push($remetentes, $os->email);
-
-                $this->enviarOsPorEmail($idOs, $remetentes, 'Nova Ordem de Serviço #' . $idOs . ' - Criada pelo Cliente');
-                $this->session->set_flashdata('success', 'OS adicionada com sucesso!');
-                redirect('mine/detalhesOs/' . $id);
-            } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro.</p></div>';
-            }
-        }
-
-        $data['output'] = 'conecte/adicionarOs';
-        $this->load->view('conecte/template', $data);
-    }
-
-    public function detalhesOs($id = null)
-    {
-        if (is_numeric($id) && $id != null) {
-            $this->load->model('mapos_model');
-            $this->load->model('os_model');
-
-            $this->data['result'] = $this->os_model->getById($id);
-            $this->data['produtos'] = $this->os_model->getProdutos($id);
-            $this->data['servicos'] = $this->os_model->getServicos($id);
-            $this->data['anexos'] = $this->os_model->getAnexos($id);
-
-            if ($this->data['result']->idClientes != $this->session->userdata('cliente_id')) {
-                $this->session->set_flashdata('error', 'Esta OS não pertence ao cliente logado.');
-                redirect('mine/painel');
-            }
-
-            $this->data['output'] = 'conecte/detalhes_os';
-            $this->load->view('conecte/template', $this->data);
-        } else {
-            echo 'teste';
-        }
-    }
 
     public function cadastrar()
     {
@@ -987,49 +780,6 @@ class Mine extends CI_Controller
         return $this->email_model->add('email_queue', $email);
     }
 
-    private function enviarOsPorEmail($idOs, $remetentes, $assunto)
-    {
-        $dados = [];
-
-        $this->load->model('mapos_model');
-        $this->load->model('os_model');
-        $dados['result'] = $this->os_model->getById($idOs);
-        if (! isset($dados['result']->email)) {
-            return false;
-        }
-
-        $dados['produtos'] = $this->os_model->getProdutos($idOs);
-        $dados['servicos'] = $this->os_model->getServicos($idOs);
-        $dados['emitente'] = $this->mapos_model->getEmitente();
-
-        $emitente = $dados['emitente'];
-        if (! isset($emitente)) {
-            return false;
-        }
-
-        $html = $this->load->view('os/emails/os', $dados, true);
-
-        $this->load->model('email_model');
-
-        $remetentes = array_unique($remetentes);
-        foreach ($remetentes as $remetente) {
-            $headers = [
-                'From' => $emitente->email,
-                'Subject' => $assunto,
-                'Return-Path' => '',
-            ];
-            $email = [
-                'to' => $remetente,
-                'message' => $html,
-                'status' => 'pending',
-                'date' => date('Y-m-d H:i:s'),
-                'headers' => serialize($headers),
-            ];
-            $this->email_model->add('email_queue', $email);
-        }
-
-        return true;
-    }
 
     private function enviarEmailBoasVindas($id)
     {

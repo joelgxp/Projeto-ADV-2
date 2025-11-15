@@ -60,41 +60,42 @@ class Permissoes extends MY_Controller
                 'eCliente' => $this->input->post('eCliente'),
                 'dCliente' => $this->input->post('dCliente'),
                 'vCliente' => $this->input->post('vCliente'),
-
-                'aProduto' => $this->input->post('aProduto'),
-                'eProduto' => $this->input->post('eProduto'),
-                'dProduto' => $this->input->post('dProduto'),
-                'vProduto' => $this->input->post('vProduto'),
+                
+                // Permissões RBAC de clientes
+                'vClienteDadosSensiveis' => $this->input->post('vClienteDadosSensiveis'),
+                'eClienteDadosSensiveis' => $this->input->post('eClienteDadosSensiveis'),
+                'vClienteProcessos' => $this->input->post('vClienteProcessos'),
+                'vClienteDocumentos' => $this->input->post('vClienteDocumentos'),
+                'vClienteFinanceiro' => $this->input->post('vClienteFinanceiro'),
 
                 'aServico' => $this->input->post('aServico'),
                 'eServico' => $this->input->post('eServico'),
                 'dServico' => $this->input->post('dServico'),
                 'vServico' => $this->input->post('vServico'),
 
-                'aOs' => $this->input->post('aOs'),
-                'eOs' => $this->input->post('eOs'),
-                'dOs' => $this->input->post('dOs'),
-                'vOs' => $this->input->post('vOs'),
+                // Novas permissões jurídicas
+                'aProcesso' => $this->input->post('aProcesso'),
+                'eProcesso' => $this->input->post('eProcesso'),
+                'dProcesso' => $this->input->post('dProcesso'),
+                'vProcesso' => $this->input->post('vProcesso'),
+                'sProcesso' => $this->input->post('sProcesso'), // Sincronizar processo
 
-                'aVenda' => $this->input->post('aVenda'),
-                'eVenda' => $this->input->post('eVenda'),
-                'dVenda' => $this->input->post('dVenda'),
-                'vVenda' => $this->input->post('vVenda'),
+                'aPrazo' => $this->input->post('aPrazo'),
+                'ePrazo' => $this->input->post('ePrazo'),
+                'dPrazo' => $this->input->post('dPrazo'),
+                'vPrazo' => $this->input->post('vPrazo'),
 
-                'aGarantia' => $this->input->post('aGarantia'),
-                'eGarantia' => $this->input->post('eGarantia'),
-                'dGarantia' => $this->input->post('dGarantia'),
-                'vGarantia' => $this->input->post('vGarantia'),
+                'aAudiencia' => $this->input->post('aAudiencia'),
+                'eAudiencia' => $this->input->post('eAudiencia'),
+                'dAudiencia' => $this->input->post('dAudiencia'),
+                'vAudiencia' => $this->input->post('vAudiencia'),
+
+                'cConsultaProcessual' => $this->input->post('cConsultaProcessual'), // Consulta processual na API
 
                 'aArquivo' => $this->input->post('aArquivo'),
                 'eArquivo' => $this->input->post('eArquivo'),
                 'dArquivo' => $this->input->post('dArquivo'),
                 'vArquivo' => $this->input->post('vArquivo'),
-
-                'aPagamento' => $this->input->post('aPagamento'),
-                'ePagamento' => $this->input->post('ePagamento'),
-                'dPagamento' => $this->input->post('dPagamento'),
-                'vPagamento' => $this->input->post('vPagamento'),
 
                 'aLancamento' => $this->input->post('aLancamento'),
                 'eLancamento' => $this->input->post('eLancamento'),
@@ -110,10 +111,10 @@ class Permissoes extends MY_Controller
                 'cSistema' => $this->input->post('cSistema'),
 
                 'rCliente' => $this->input->post('rCliente'),
-                'rProduto' => $this->input->post('rProduto'),
                 'rServico' => $this->input->post('rServico'),
-                'rOs' => $this->input->post('rOs'),
-                'rVenda' => $this->input->post('rVenda'),
+                'rProcesso' => $this->input->post('rProcesso'),
+                'rPrazo' => $this->input->post('rPrazo'),
+                'rAudiencia' => $this->input->post('rAudiencia'),
                 'rFinanceiro' => $this->input->post('rFinanceiro'),
 
                 'aCobranca' => $this->input->post('aCobranca'),
@@ -161,41 +162,42 @@ class Permissoes extends MY_Controller
                 'eCliente' => $this->input->post('eCliente'),
                 'dCliente' => $this->input->post('dCliente'),
                 'vCliente' => $this->input->post('vCliente'),
-
-                'aProduto' => $this->input->post('aProduto'),
-                'eProduto' => $this->input->post('eProduto'),
-                'dProduto' => $this->input->post('dProduto'),
-                'vProduto' => $this->input->post('vProduto'),
+                
+                // Permissões RBAC de clientes
+                'vClienteDadosSensiveis' => $this->input->post('vClienteDadosSensiveis'),
+                'eClienteDadosSensiveis' => $this->input->post('eClienteDadosSensiveis'),
+                'vClienteProcessos' => $this->input->post('vClienteProcessos'),
+                'vClienteDocumentos' => $this->input->post('vClienteDocumentos'),
+                'vClienteFinanceiro' => $this->input->post('vClienteFinanceiro'),
 
                 'aServico' => $this->input->post('aServico'),
                 'eServico' => $this->input->post('eServico'),
                 'dServico' => $this->input->post('dServico'),
                 'vServico' => $this->input->post('vServico'),
 
-                'aOs' => $this->input->post('aOs'),
-                'eOs' => $this->input->post('eOs'),
-                'dOs' => $this->input->post('dOs'),
-                'vOs' => $this->input->post('vOs'),
+                // Novas permissões jurídicas
+                'aProcesso' => $this->input->post('aProcesso'),
+                'eProcesso' => $this->input->post('eProcesso'),
+                'dProcesso' => $this->input->post('dProcesso'),
+                'vProcesso' => $this->input->post('vProcesso'),
+                'sProcesso' => $this->input->post('sProcesso'), // Sincronizar processo
 
-                'aVenda' => $this->input->post('aVenda'),
-                'eVenda' => $this->input->post('eVenda'),
-                'dVenda' => $this->input->post('dVenda'),
-                'vVenda' => $this->input->post('vVenda'),
+                'aPrazo' => $this->input->post('aPrazo'),
+                'ePrazo' => $this->input->post('ePrazo'),
+                'dPrazo' => $this->input->post('dPrazo'),
+                'vPrazo' => $this->input->post('vPrazo'),
 
-                'aGarantia' => $this->input->post('aGarantia'),
-                'eGarantia' => $this->input->post('eGarantia'),
-                'dGarantia' => $this->input->post('dGarantia'),
-                'vGarantia' => $this->input->post('vGarantia'),
+                'aAudiencia' => $this->input->post('aAudiencia'),
+                'eAudiencia' => $this->input->post('eAudiencia'),
+                'dAudiencia' => $this->input->post('dAudiencia'),
+                'vAudiencia' => $this->input->post('vAudiencia'),
+
+                'cConsultaProcessual' => $this->input->post('cConsultaProcessual'), // Consulta processual na API
 
                 'aArquivo' => $this->input->post('aArquivo'),
                 'eArquivo' => $this->input->post('eArquivo'),
                 'dArquivo' => $this->input->post('dArquivo'),
                 'vArquivo' => $this->input->post('vArquivo'),
-
-                'aPagamento' => $this->input->post('aPagamento'),
-                'ePagamento' => $this->input->post('ePagamento'),
-                'dPagamento' => $this->input->post('dPagamento'),
-                'vPagamento' => $this->input->post('vPagamento'),
 
                 'aLancamento' => $this->input->post('aLancamento'),
                 'eLancamento' => $this->input->post('eLancamento'),
@@ -211,10 +213,10 @@ class Permissoes extends MY_Controller
                 'cSistema' => $this->input->post('cSistema'),
 
                 'rCliente' => $this->input->post('rCliente'),
-                'rProduto' => $this->input->post('rProduto'),
                 'rServico' => $this->input->post('rServico'),
-                'rOs' => $this->input->post('rOs'),
-                'rVenda' => $this->input->post('rVenda'),
+                'rProcesso' => $this->input->post('rProcesso'),
+                'rPrazo' => $this->input->post('rPrazo'),
+                'rAudiencia' => $this->input->post('rAudiencia'),
                 'rFinanceiro' => $this->input->post('rFinanceiro'),
 
                 'aCobranca' => $this->input->post('aCobranca'),

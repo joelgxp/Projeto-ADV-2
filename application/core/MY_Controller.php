@@ -23,7 +23,7 @@ class MY_Controller extends CI_Controller
             'first_tag_close' => '</li>',
             'last_tag_open' => '<li>',
             'last_tag_close' => '</li>',
-            'app_name' => 'Map-OS',
+            'app_name' => 'Adv',
             'app_theme' => 'default',
             'os_notification' => 'cliente',
             'control_estoque' => '1',
@@ -49,10 +49,17 @@ class MY_Controller extends CI_Controller
     {
         $this->CI = &get_instance();
         $this->CI->load->database();
-        $configuracoes = $this->CI->db->get('configuracoes')->result();
-
-        foreach ($configuracoes as $c) {
-            $this->data['configuration'][$c->config] = $c->valor;
+        
+        if ($this->CI->db->table_exists('configuracoes')) {
+            $configuracoes = $this->CI->db->get('configuracoes')->result();
+            
+            if ($configuracoes) {
+                foreach ($configuracoes as $c) {
+                    if (isset($c->config) && isset($c->valor)) {
+                        $this->data['configuration'][$c->config] = $c->valor;
+                    }
+                }
+            }
         }
     }
 
