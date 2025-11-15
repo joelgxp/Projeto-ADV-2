@@ -41,19 +41,55 @@ class Permission
             return false;
         }
         
-        // Se as permissões não estiverem carregadas, requisita o carregamento
-        if (empty($this->permissions)) {
-            // Se não carregar retorna falso
-            if (! $this->loadPermission($idPermissao)) {
-                return false;
-            }
+        // Se for string "admin" ou "administrador", dar acesso total
+        if (is_string($idPermissao) && (strtolower($idPermissao) === 'admin' || strtolower($idPermissao) === 'administrador')) {
+            return true;
         }
+        
+        // Se for numérico, tentar buscar na tabela de permissões
+        if (is_numeric($idPermissao)) {
+            // Se as permissões não estiverem carregadas, requisita o carregamento
+            if (empty($this->permissions)) {
+                // Se não carregar, verificar se é porque a tabela não existe
+                if (! $this->loadPermission($idPermissao)) {
+                    // Se a tabela não existe, verificar se é admin por outro método
+                    // Tentar buscar na tabela usuarios para verificar nivel
+                    if ($this->CI->db->table_exists('usuarios')) {
+                        $user_columns = $this->CI->db->list_fields('usuarios');
+                        $id_col = in_array('idUsuarios', $user_columns) ? 'idUsuarios' : (in_array('id', $user_columns) ? 'id' : null);
+                        $nivel_col = in_array('nivel', $user_columns) ? 'nivel' : null;
+                        
+                        if ($id_col && $nivel_col) {
+                            $this->CI->db->select($nivel_col);
+                            $this->CI->db->where($id_col, $idPermissao);
+                            $user = $this->CI->db->get('usuarios')->row();
+                            
+                            if ($user && isset($user->$nivel_col) && strtolower($user->$nivel_col) === 'admin') {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            }
 
-        // Verificar se o array de permissões não está vazio
-        if (!empty($this->permissions) && isset($this->permissions[0]) && is_array($this->permissions[0])) {
-            if (array_key_exists($atividade, $this->permissions[0])) {
-                // compara a atividade requisitada com a permissão.
-                if ($this->permissions[0][$atividade] == 1) {
+            // Verificar se o array de permissões não está vazio
+            if (!empty($this->permissions) && isset($this->permissions[0]) && is_array($this->permissions[0])) {
+                if (array_key_exists($atividade, $this->permissions[0])) {
+                    // compara a atividade requisitada com a permissão.
+                    if ($this->permissions[0][$atividade] == 1) {
+                        return true;
+                    }
+                }
+            }
+        } else {
+            // Se não for numérico nem admin, tentar verificar se é admin na tabela usuarios
+            // Isso pode acontecer se a sessão tiver o valor "admin" diretamente
+            if ($this->CI->db->table_exists('usuarios')) {
+                $user_columns = $this->CI->db->list_fields('usuarios');
+                $nivel_col = in_array('nivel', $user_columns) ? 'nivel' : null;
+                
+                if ($nivel_col && strtolower($idPermissao) === 'admin') {
                     return true;
                 }
             }
