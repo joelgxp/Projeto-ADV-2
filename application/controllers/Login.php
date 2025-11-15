@@ -40,8 +40,8 @@ class Login extends CI_Controller
             $user = $this->Mapos_model->check_credentials($email);
 
             if ($user) {
-                // Verificar se acesso está expirado
-                if ($this->chk_date($user->dataExpiracao)) {
+                // Verificar se acesso está expirado (se a coluna existir)
+                if (isset($user->dataExpiracao) && $this->chk_date($user->dataExpiracao)) {
                     $json = ['result' => false, 'message' => 'A conta do usuário está expirada, por favor entre em contato com o administrador do sistema.'];
                     echo json_encode($json);
                     exit();
@@ -49,7 +49,20 @@ class Login extends CI_Controller
 
                 // Verificar credenciais do usuário
                 if (password_verify($password, $user->senha)) {
-                    $session_admin_data = ['nome_admin' => $user->nome, 'email_admin' => $user->email, 'url_image_user_admin' => $user->url_image_user, 'id_admin' => $user->idUsuarios, 'permissao' => $user->permissoes_id, 'logado' => true];
+                    // Adaptar campos baseado na estrutura da tabela
+                    $user_email = isset($user->email) ? $user->email : (isset($user->usuario) ? $user->usuario : '');
+                    $user_id = isset($user->idUsuarios) ? $user->idUsuarios : (isset($user->id) ? $user->id : 0);
+                    $user_permissao = isset($user->permissoes_id) ? $user->permissoes_id : (isset($user->nivel) ? $user->nivel : 1);
+                    $user_image = isset($user->url_image_user) ? $user->url_image_user : '';
+                    
+                    $session_admin_data = [
+                        'nome_admin' => $user->nome,
+                        'email_admin' => $user_email,
+                        'url_image_user_admin' => $user_image,
+                        'id_admin' => $user_id,
+                        'permissao' => $user_permissao,
+                        'logado' => true
+                    ];
                     $this->session->set_userdata($session_admin_data);
                     log_info('Efetuou login no sistema');
                     $json = ['result' => true];
@@ -59,7 +72,7 @@ class Login extends CI_Controller
                     echo json_encode($json);
                 }
             } else {
-                $json = ['result' => false, 'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretass.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()];
+                $json = ['result' => false, 'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()];
                 echo json_encode($json);
             }
         }

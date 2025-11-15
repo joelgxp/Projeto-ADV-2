@@ -436,8 +436,34 @@ class Mapos_model extends CI_Model
 
     public function check_credentials($email)
     {
-        $this->db->where('email', $email);
-        $this->db->where('situacao', 1);
+        // Detectar estrutura da tabela
+        $columns = $this->db->list_fields('usuarios');
+        
+        // Detectar coluna de email/usuario
+        $email_column = null;
+        if (in_array('email', $columns)) {
+            $email_column = 'email';
+        } elseif (in_array('usuario', $columns)) {
+            $email_column = 'usuario';
+        } else {
+            log_message('error', 'Coluna de email/usuario não encontrada na tabela usuarios');
+            return false;
+        }
+        
+        // Detectar coluna de situação
+        $situacao_column = null;
+        $situacao_value = 1;
+        if (in_array('situacao', $columns)) {
+            $situacao_column = 'situacao';
+        } elseif (in_array('ativo', $columns)) {
+            $situacao_column = 'ativo';
+        }
+        // Se não encontrar coluna de situação, não filtra por ela
+        
+        $this->db->where($email_column, $email);
+        if ($situacao_column) {
+            $this->db->where($situacao_column, $situacao_value);
+        }
         $this->db->limit(1);
 
         $query = $this->db->get('usuarios');

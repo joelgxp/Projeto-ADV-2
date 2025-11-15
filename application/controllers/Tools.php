@@ -255,16 +255,22 @@ class Tools extends CI_Controller
             $columns = $this->db->list_fields('usuarios');
             echo "Colunas disponíveis na tabela: " . implode(', ', $columns) . "\n\n";
             
-            // Verificar qual coluna usar para email
+            // Detectar estrutura da tabela (MapOS padrão vs estrutura customizada)
+            $is_mapos_structure = in_array('idUsuarios', $columns) && in_array('email', $columns);
+            $is_custom_structure = in_array('id', $columns) && in_array('usuario', $columns);
+            
+            // Verificar qual coluna usar para email/usuario
             $email_column = null;
             if (in_array('email', $columns)) {
                 $email_column = 'email';
+            } elseif (in_array('usuario', $columns)) {
+                $email_column = 'usuario';
             } elseif (in_array('Email', $columns)) {
                 $email_column = 'Email';
             } elseif (in_array('EMAIL', $columns)) {
                 $email_column = 'EMAIL';
             } else {
-                echo "❌ Erro: Coluna de email não encontrada na tabela!\n";
+                echo "❌ Erro: Coluna de email/usuario não encontrada na tabela!\n";
                 echo "Colunas disponíveis: " . implode(', ', $columns) . "\n";
                 return;
             }
@@ -283,65 +289,88 @@ class Tools extends CI_Controller
             
             if ($existe) {
                 echo "⚠️  Usuário admin@admin.com já existe!\n";
-                $user_email = isset($existe->email) ? $existe->email : (isset($existe->Email) ? $existe->Email : 'N/A');
+                $user_email = isset($existe->email) ? $existe->email : (isset($existe->usuario) ? $existe->usuario : (isset($existe->Email) ? $existe->Email : 'N/A'));
                 $user_nome = isset($existe->nome) ? $existe->nome : 'N/A';
                 $user_id = isset($existe->idUsuarios) ? $existe->idUsuarios : (isset($existe->id) ? $existe->id : 'N/A');
-                echo "Email: " . $user_email . "\n";
+                echo "Email/Usuário: " . $user_email . "\n";
                 echo "Nome: " . $user_nome . "\n";
                 echo "ID: " . $user_id . "\n";
                 return;
             }
             
-            // Verificar se existe permissão ID 1
-            if ($this->db->table_exists('permissoes')) {
-                $this->db->where('idPermissao', 1);
-                $permissao = $this->db->get('permissoes')->row();
-                
-                if (!$permissao) {
-                    echo "⚠️  Aviso: Permissão ID 1 não existe!\n";
-                    echo "Criando usuário mesmo assim...\n";
-                    echo "Você pode executar depois: php index.php tools seed Permissoes\n\n";
-                }
-            } else {
-                echo "⚠️  Aviso: Tabela 'permissoes' não existe!\n";
-                echo "Criando usuário mesmo assim...\n\n";
-            }
-            
-            // Criar usuário - usar apenas colunas que existem
+            // Criar usuário baseado na estrutura detectada
             $data = [];
             
-            // Mapear colunas possíveis
-            $colunas_map = [
-                'nome' => 'Admin',
-                'rg' => 'MG-25.502.560',
-                'cpf' => '517.565.356-39',
-                'cep' => '01024-900',
-                'rua' => 'R. Cantareira',
-                'numero' => '306',
-                'bairro' => 'Centro Histórico de São Paulo',
-                'cidade' => 'São Paulo',
-                'estado' => 'SP',
-                'email' => 'admin@admin.com',
-                'senha' => password_hash('123456', PASSWORD_DEFAULT),
-                'telefone' => '0000-0000',
-                'celular' => '',
-                'situacao' => 1,
-                'dataCadastro' => date('Y-m-d'),
-                'permissoes_id' => 1,
-                'dataExpiracao' => '2030-01-01',
-            ];
-            
-            // Adicionar apenas colunas que existem na tabela
-            foreach ($colunas_map as $coluna => $valor) {
-                if (in_array($coluna, $columns)) {
-                    $data[$coluna] = $valor;
+            if ($is_custom_structure) {
+                // Estrutura customizada (como no servidor)
+                echo "📋 Detectada estrutura customizada\n\n";
+                
+                $data['nome'] = 'Admin';
+                if (in_array('cpf', $columns)) {
+                    $data['cpf'] = '000.000.000-00';
                 }
-            }
-            
-            // Usar a coluna de email correta
-            if ($email_column && $email_column !== 'email') {
-                unset($data['email']);
-                $data[$email_column] = 'admin@admin.com';
+                if (in_array('usuario', $columns)) {
+                    $data['usuario'] = 'admin@admin.com';
+                }
+                if (in_array('senha', $columns)) {
+                    $data['senha'] = password_hash('123456', PASSWORD_DEFAULT);
+                }
+                if (in_array('senha_original', $columns)) {
+                    $data['senha_original'] = '123456';
+                }
+                if (in_array('nivel', $columns)) {
+                    $data['nivel'] = 'admin';
+                }
+                if (in_array('data_cadastro', $columns)) {
+                    $data['data_cadastro'] = date('Y-m-d H:i:s');
+                } elseif (in_array('dataCadastro', $columns)) {
+                    $data['dataCadastro'] = date('Y-m-d');
+                }
+                if (in_array('ativo', $columns)) {
+                    $data['ativo'] = 1;
+                }
+                if (in_array('situacao', $columns)) {
+                    $data['situacao'] = 1;
+                }
+                if (in_array('cep', $columns)) {
+                    $data['cep'] = '01024-900';
+                }
+            } else {
+                // Estrutura padrão MapOS
+                echo "📋 Detectada estrutura padrão MapOS\n\n";
+                
+                $colunas_map = [
+                    'nome' => 'Admin',
+                    'rg' => 'MG-25.502.560',
+                    'cpf' => '517.565.356-39',
+                    'cep' => '01024-900',
+                    'rua' => 'R. Cantareira',
+                    'numero' => '306',
+                    'bairro' => 'Centro Histórico de São Paulo',
+                    'cidade' => 'São Paulo',
+                    'estado' => 'SP',
+                    'email' => 'admin@admin.com',
+                    'senha' => password_hash('123456', PASSWORD_DEFAULT),
+                    'telefone' => '0000-0000',
+                    'celular' => '',
+                    'situacao' => 1,
+                    'dataCadastro' => date('Y-m-d'),
+                    'permissoes_id' => 1,
+                    'dataExpiracao' => '2030-01-01',
+                ];
+                
+                // Adicionar apenas colunas que existem na tabela
+                foreach ($colunas_map as $coluna => $valor) {
+                    if (in_array($coluna, $columns)) {
+                        $data[$coluna] = $valor;
+                    }
+                }
+                
+                // Usar a coluna de email correta
+                if ($email_column && $email_column !== 'email') {
+                    unset($data['email']);
+                    $data[$email_column] = 'admin@admin.com';
+                }
             }
             
             if (empty($data)) {
@@ -349,11 +378,21 @@ class Tools extends CI_Controller
                 return;
             }
             
+            echo "Dados que serão inseridos:\n";
+            foreach ($data as $key => $value) {
+                if ($key !== 'senha') {
+                    echo "  $key: $value\n";
+                } else {
+                    echo "  $key: [hash oculto]\n";
+                }
+            }
+            echo "\n";
+            
             if ($this->db->insert('usuarios', $data)) {
                 $id = $this->db->insert_id();
                 echo "✅ Usuário criado com sucesso!\n\n";
                 echo "ID: $id\n";
-                echo "Email: admin@admin.com\n";
+                echo "Email/Usuário: admin@admin.com\n";
                 echo "Senha: 123456\n";
                 echo "⚠️  IMPORTANTE: Altere a senha após o primeiro login!\n";
             } else {
