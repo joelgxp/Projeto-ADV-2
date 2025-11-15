@@ -221,15 +221,41 @@ class Mapos_model extends CI_Model
 
     public function getOsAndamento()
     {
-        $this->db->select('os.*, clientes.nomeCliente');
+        // Verificar se as tabelas existem
+        if (!$this->db->table_exists('os') || !$this->db->table_exists('clientes')) {
+            log_message('error', 'Tabelas os ou clientes não existem');
+            return [];
+        }
+        
+        // Detectar estrutura das tabelas
+        $os_columns = $this->db->list_fields('os');
+        $clientes_columns = $this->db->list_fields('clientes');
+        
+        // Detectar colunas
+        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
+        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+        
+        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col) {
+            log_message('error', 'Estrutura de tabelas incompatível para getOsAndamento');
+            return [];
+        }
+        
+        $this->db->select('os.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
         $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Em Andamento');
+        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
+        
+        // Verificar se coluna status existe
+        if (in_array('status', $os_columns)) {
+            $this->db->where('os.status', 'Em Andamento');
+        }
+        
         $this->db->limit(10);
 
         $query = $this->db->get();
         if ($query === false) {
-            log_message('error', 'Erro na query getOsAndamento: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            $error = $this->db->error();
+            log_message('error', 'Erro na query getOsAndamento: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
@@ -237,16 +263,52 @@ class Mapos_model extends CI_Model
 
     public function getOsStatus($status)
     {
-        $this->db->select('os.*, clientes.nomeCliente');
+        // Verificar se as tabelas existem
+        if (!$this->db->table_exists('os')) {
+            log_message('error', 'Tabela os não existe');
+            return [];
+        }
+        
+        if (!$this->db->table_exists('clientes')) {
+            log_message('error', 'Tabela clientes não existe');
+            return [];
+        }
+        
+        // Detectar estrutura das tabelas
+        $os_columns = $this->db->list_fields('os');
+        $clientes_columns = $this->db->list_fields('clientes');
+        
+        // Detectar coluna de ID de clientes
+        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
+        
+        // Detectar coluna de nome do cliente
+        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+        
+        // Detectar coluna de ID da OS
+        $os_id_col = in_array('idOs', $os_columns) ? 'idOs' : (in_array('id', $os_columns) ? 'id' : null);
+        
+        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col || !$os_id_col) {
+            log_message('error', 'Estrutura de tabelas incompatível para getOsStatus');
+            return [];
+        }
+        
+        $this->db->select('os.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
         $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where_in('os.status', $status);
-        $this->db->order_by('os.idOs', 'DESC');
+        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
+        
+        // Verificar se coluna status existe
+        if (in_array('status', $os_columns)) {
+            $this->db->where_in('os.status', $status);
+        }
+        
+        $this->db->order_by('os.' . $os_id_col, 'DESC');
         $this->db->limit(10);
 
         $query = $this->db->get();
         if ($query === false) {
-            log_message('error', 'Erro na query getOsStatus: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            $error = $this->db->error();
+            log_message('error', 'Erro na query getOsStatus: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
@@ -254,16 +316,52 @@ class Mapos_model extends CI_Model
     
     public function getVendasStatus($vstatus)
     {
-        $this->db->select('vendas.*, clientes.nomeCliente');
+        // Verificar se as tabelas existem
+        if (!$this->db->table_exists('vendas')) {
+            log_message('error', 'Tabela vendas não existe');
+            return [];
+        }
+        
+        if (!$this->db->table_exists('clientes')) {
+            log_message('error', 'Tabela clientes não existe');
+            return [];
+        }
+        
+        // Detectar estrutura das tabelas
+        $vendas_columns = $this->db->list_fields('vendas');
+        $clientes_columns = $this->db->list_fields('clientes');
+        
+        // Detectar coluna de ID de clientes
+        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+        $vendas_clientes_id_col = in_array('clientes_id', $vendas_columns) ? 'clientes_id' : null;
+        
+        // Detectar coluna de nome do cliente
+        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+        
+        // Detectar coluna de ID da venda
+        $vendas_id_col = in_array('idVendas', $vendas_columns) ? 'idVendas' : (in_array('id', $vendas_columns) ? 'id' : null);
+        
+        if (!$clientes_id_col || !$vendas_clientes_id_col || !$nome_cliente_col || !$vendas_id_col) {
+            log_message('error', 'Estrutura de tabelas incompatível para getVendasStatus');
+            return [];
+        }
+        
+        $this->db->select('vendas.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
         $this->db->from('vendas');
-        $this->db->join('clientes', 'clientes.idClientes = vendas.clientes_id');
-        $this->db->where_in('vendas.status', $vstatus);
-        $this->db->order_by('vendas.idVendas', 'DESC');
+        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = vendas.' . $vendas_clientes_id_col);
+        
+        // Verificar se coluna status existe
+        if (in_array('status', $vendas_columns)) {
+            $this->db->where_in('vendas.status', $vstatus);
+        }
+        
+        $this->db->order_by('vendas.' . $vendas_id_col, 'DESC');
         $this->db->limit(10);
 
         $query = $this->db->get();
         if ($query === false) {
-            log_message('error', 'Erro na query getVendasStatus: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            $error = $this->db->error();
+            log_message('error', 'Erro na query getVendasStatus: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
@@ -271,15 +369,50 @@ class Mapos_model extends CI_Model
 
     public function getLancamentos()
     {
-        $this->db->select('idLancamentos, tipo, cliente_fornecedor, descricao, data_vencimento, forma_pgto, valor_desconto, baixado');
+        // Verificar se a tabela existe
+        if (!$this->db->table_exists('lancamentos')) {
+            log_message('error', 'Tabela lancamentos não existe');
+            return [];
+        }
+        
+        // Verificar quais colunas existem
+        $columns = $this->db->list_fields('lancamentos');
+        
+        // Adaptar select baseado nas colunas disponíveis
+        $select_fields = [];
+        $possible_fields = ['idLancamentos', 'tipo', 'cliente_fornecedor', 'descricao', 'data_vencimento', 'forma_pgto', 'valor_desconto', 'baixado'];
+        
+        foreach ($possible_fields as $field) {
+            if (in_array($field, $columns)) {
+                $select_fields[] = $field;
+            }
+        }
+        
+        if (empty($select_fields)) {
+            log_message('error', 'Nenhuma coluna válida encontrada na tabela lancamentos');
+            return [];
+        }
+        
+        $this->db->select(implode(', ', $select_fields));
         $this->db->from('lancamentos');
-        $this->db->where('baixado', 0);
-        $this->db->order_by('idLancamentos', 'DESC');
+        
+        // Verificar se coluna baixado existe antes de usar
+        if (in_array('baixado', $columns)) {
+            $this->db->where('baixado', 0);
+        }
+        
+        // Verificar qual coluna usar para ordenação
+        $order_column = in_array('idLancamentos', $columns) ? 'idLancamentos' : (in_array('id', $columns) ? 'id' : null);
+        if ($order_column) {
+            $this->db->order_by($order_column, 'DESC');
+        }
+        
         $this->db->limit(10);
 
         $query = $this->db->get();
         if ($query === false) {
-            log_message('error', 'Erro na query getLancamentos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            $error = $this->db->error();
+            log_message('error', 'Erro na query getLancamentos: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
