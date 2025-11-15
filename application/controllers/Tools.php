@@ -204,55 +204,94 @@ class Tools extends CI_Controller
     {
         echo "=== Criando Usuário Admin ===\n\n";
         
-        // Verificar se já existe
-        $this->db->where('email', 'admin@admin.com');
-        $existe = $this->db->get('usuarios')->row();
-        
-        if ($existe) {
-            echo "⚠️  Usuário admin@admin.com já existe!\n";
-            echo "Email: " . $existe->email . "\n";
-            echo "Nome: " . $existe->nome . "\n";
-            return;
-        }
-        
-        // Verificar se existe permissão ID 1
-        $this->db->where('idPermissao', 1);
-        $permissao = $this->db->get('permissoes')->row();
-        
-        if (!$permissao) {
-            echo "❌ Erro: Permissão ID 1 não existe!\n";
-            echo "Execute primeiro: php index.php tools seed Permissoes\n";
-            return;
-        }
-        
-        // Criar usuário
-        $data = [
-            'nome' => 'Admin',
-            'rg' => 'MG-25.502.560',
-            'cpf' => '517.565.356-39',
-            'cep' => '01024-900',
-            'rua' => 'R. Cantareira',
-            'numero' => '306',
-            'bairro' => 'Centro Histórico de São Paulo',
-            'cidade' => 'São Paulo',
-            'estado' => 'SP',
-            'email' => 'admin@admin.com',
-            'senha' => password_hash('123456', PASSWORD_DEFAULT),
-            'telefone' => '0000-0000',
-            'celular' => '',
-            'situacao' => 1,
-            'dataCadastro' => date('Y-m-d'),
-            'permissoes_id' => 1,
-            'dataExpiracao' => '2030-01-01',
-        ];
-        
-        if ($this->db->insert('usuarios', $data)) {
-            echo "✅ Usuário criado com sucesso!\n\n";
-            echo "Email: admin@admin.com\n";
-            echo "Senha: 123456\n";
-            echo "⚠️  IMPORTANTE: Altere a senha após o primeiro login!\n";
-        } else {
-            echo "❌ Erro ao criar usuário: " . $this->db->error()['message'] . "\n";
+        try {
+            // Verificar conexão com banco
+            if (!$this->db->conn_id) {
+                echo "❌ Erro: Não há conexão com o banco de dados!\n";
+                echo "Verifique as configurações em application/.env\n";
+                return;
+            }
+            
+            // Verificar se tabela usuarios existe
+            if (!$this->db->table_exists('usuarios')) {
+                echo "❌ Erro: Tabela 'usuarios' não existe!\n";
+                echo "Execute as migrations primeiro: php index.php tools migrate\n";
+                return;
+            }
+            
+            // Verificar se já existe
+            $this->db->where('email', 'admin@admin.com');
+            $query = $this->db->get('usuarios');
+            
+            if ($query === false) {
+                $error = $this->db->error();
+                echo "❌ Erro ao consultar banco: " . ($error['message'] ?? 'Erro desconhecido') . "\n";
+                return;
+            }
+            
+            $existe = $query->row();
+            
+            if ($existe) {
+                echo "⚠️  Usuário admin@admin.com já existe!\n";
+                echo "Email: " . $existe->email . "\n";
+                echo "Nome: " . $existe->nome . "\n";
+                echo "ID: " . $existe->idUsuarios . "\n";
+                return;
+            }
+            
+            // Verificar se existe permissão ID 1
+            if ($this->db->table_exists('permissoes')) {
+                $this->db->where('idPermissao', 1);
+                $permissao = $this->db->get('permissoes')->row();
+                
+                if (!$permissao) {
+                    echo "⚠️  Aviso: Permissão ID 1 não existe!\n";
+                    echo "Criando usuário mesmo assim...\n";
+                    echo "Você pode executar depois: php index.php tools seed Permissoes\n\n";
+                }
+            } else {
+                echo "⚠️  Aviso: Tabela 'permissoes' não existe!\n";
+                echo "Criando usuário mesmo assim...\n\n";
+            }
+            
+            // Criar usuário
+            $data = [
+                'nome' => 'Admin',
+                'rg' => 'MG-25.502.560',
+                'cpf' => '517.565.356-39',
+                'cep' => '01024-900',
+                'rua' => 'R. Cantareira',
+                'numero' => '306',
+                'bairro' => 'Centro Histórico de São Paulo',
+                'cidade' => 'São Paulo',
+                'estado' => 'SP',
+                'email' => 'admin@admin.com',
+                'senha' => password_hash('123456', PASSWORD_DEFAULT),
+                'telefone' => '0000-0000',
+                'celular' => '',
+                'situacao' => 1,
+                'dataCadastro' => date('Y-m-d'),
+                'permissoes_id' => 1,
+                'dataExpiracao' => '2030-01-01',
+            ];
+            
+            if ($this->db->insert('usuarios', $data)) {
+                $id = $this->db->insert_id();
+                echo "✅ Usuário criado com sucesso!\n\n";
+                echo "ID: $id\n";
+                echo "Email: admin@admin.com\n";
+                echo "Senha: 123456\n";
+                echo "⚠️  IMPORTANTE: Altere a senha após o primeiro login!\n";
+            } else {
+                $error = $this->db->error();
+                echo "❌ Erro ao criar usuário!\n";
+                echo "Código: " . ($error['code'] ?? 'N/A') . "\n";
+                echo "Mensagem: " . ($error['message'] ?? 'Erro desconhecido') . "\n";
+            }
+        } catch (Exception $e) {
+            echo "❌ Exceção: " . $e->getMessage() . "\n";
+            echo "Arquivo: " . $e->getFile() . "\n";
+            echo "Linha: " . $e->getLine() . "\n";
         }
     }
 }
