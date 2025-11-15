@@ -173,6 +173,38 @@ class Tools extends CI_Controller
         }
     }
 
+    public function verificar_estrutura()
+    {
+        echo "=== Estrutura da Tabela usuarios ===\n\n";
+        
+        if (!$this->db->table_exists('usuarios')) {
+            echo "❌ Tabela 'usuarios' não existe!\n";
+            return;
+        }
+        
+        $columns = $this->db->list_fields('usuarios');
+        
+        echo "Colunas encontradas (" . count($columns) . "):\n";
+        foreach($columns as $col) {
+            echo "- $col\n";
+        }
+        
+        echo "\n=== Verificando dados ===\n";
+        $total = $this->db->count_all('usuarios');
+        echo "Total de registros: $total\n";
+        
+        if ($total > 0) {
+            $this->db->limit(1);
+            $user = $this->db->get('usuarios')->row();
+            if ($user) {
+                echo "\nPrimeiro registro:\n";
+                foreach((array)$user as $key => $value) {
+                    echo "$key: $value\n";
+                }
+            }
+        }
+    }
+
     public function verificar_usuario()
     {
         echo "=== Verificando Usuários no Banco ===\n\n";
@@ -219,8 +251,26 @@ class Tools extends CI_Controller
                 return;
             }
             
+            // Verificar estrutura da tabela primeiro
+            $columns = $this->db->list_fields('usuarios');
+            echo "Colunas disponíveis na tabela: " . implode(', ', $columns) . "\n\n";
+            
+            // Verificar qual coluna usar para email
+            $email_column = null;
+            if (in_array('email', $columns)) {
+                $email_column = 'email';
+            } elseif (in_array('Email', $columns)) {
+                $email_column = 'Email';
+            } elseif (in_array('EMAIL', $columns)) {
+                $email_column = 'EMAIL';
+            } else {
+                echo "❌ Erro: Coluna de email não encontrada na tabela!\n";
+                echo "Colunas disponíveis: " . implode(', ', $columns) . "\n";
+                return;
+            }
+            
             // Verificar se já existe
-            $this->db->where('email', 'admin@admin.com');
+            $this->db->where($email_column, 'admin@admin.com');
             $query = $this->db->get('usuarios');
             
             if ($query === false) {
@@ -233,9 +283,12 @@ class Tools extends CI_Controller
             
             if ($existe) {
                 echo "⚠️  Usuário admin@admin.com já existe!\n";
-                echo "Email: " . $existe->email . "\n";
-                echo "Nome: " . $existe->nome . "\n";
-                echo "ID: " . $existe->idUsuarios . "\n";
+                $user_email = isset($existe->email) ? $existe->email : (isset($existe->Email) ? $existe->Email : 'N/A');
+                $user_nome = isset($existe->nome) ? $existe->nome : 'N/A';
+                $user_id = isset($existe->idUsuarios) ? $existe->idUsuarios : (isset($existe->id) ? $existe->id : 'N/A');
+                echo "Email: " . $user_email . "\n";
+                echo "Nome: " . $user_nome . "\n";
+                echo "ID: " . $user_id . "\n";
                 return;
             }
             
@@ -254,8 +307,11 @@ class Tools extends CI_Controller
                 echo "Criando usuário mesmo assim...\n\n";
             }
             
-            // Criar usuário
-            $data = [
+            // Criar usuário - usar apenas colunas que existem
+            $data = [];
+            
+            // Mapear colunas possíveis
+            $colunas_map = [
                 'nome' => 'Admin',
                 'rg' => 'MG-25.502.560',
                 'cpf' => '517.565.356-39',
@@ -274,6 +330,24 @@ class Tools extends CI_Controller
                 'permissoes_id' => 1,
                 'dataExpiracao' => '2030-01-01',
             ];
+            
+            // Adicionar apenas colunas que existem na tabela
+            foreach ($colunas_map as $coluna => $valor) {
+                if (in_array($coluna, $columns)) {
+                    $data[$coluna] = $valor;
+                }
+            }
+            
+            // Usar a coluna de email correta
+            if ($email_column && $email_column !== 'email') {
+                unset($data['email']);
+                $data[$email_column] = 'admin@admin.com';
+            }
+            
+            if (empty($data)) {
+                echo "❌ Erro: Nenhuma coluna válida encontrada para criar o usuário!\n";
+                return;
+            }
             
             if ($this->db->insert('usuarios', $data)) {
                 $id = $this->db->insert_id();
