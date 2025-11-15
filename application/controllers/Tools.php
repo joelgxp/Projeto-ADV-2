@@ -306,9 +306,55 @@ class Tools extends CI_Controller
                 echo "📋 Detectada estrutura customizada\n\n";
                 
                 $data['nome'] = 'Admin';
+                
+                // Verificar CPF único
                 if (in_array('cpf', $columns)) {
-                    $data['cpf'] = '000.000.000-00';
+                    $cpf_tentativas = [
+                        '111.111.111-11',
+                        '222.222.222-22',
+                        '333.333.333-33',
+                        '444.444.444-44',
+                        '555.555.555-55',
+                        '666.666.666-66',
+                        '777.777.777-77',
+                        '888.888.888-88',
+                        '999.999.999-99',
+                        '123.456.789-00'
+                    ];
+                    
+                    $cpf_valido = null;
+                    foreach ($cpf_tentativas as $cpf) {
+                        $this->db->where('cpf', $cpf);
+                        $existe_cpf = $this->db->get('usuarios')->row();
+                        if (!$existe_cpf) {
+                            $cpf_valido = $cpf;
+                            break;
+                        }
+                    }
+                    
+                    if (!$cpf_valido) {
+                        // Gerar CPF único até encontrar um disponível
+                        $tentativas = 0;
+                        do {
+                            $cpf_gerado = '999.' . str_pad(rand(100, 999), 3, '0', STR_PAD_LEFT) . '.' . str_pad(rand(100, 999), 3, '0', STR_PAD_LEFT) . '-' . str_pad(rand(10, 99), 2, '0', STR_PAD_LEFT);
+                            $this->db->where('cpf', $cpf_gerado);
+                            $existe_cpf = $this->db->get('usuarios')->row();
+                            $tentativas++;
+                        } while ($existe_cpf && $tentativas < 10);
+                        
+                        if (!$existe_cpf) {
+                            $cpf_valido = $cpf_gerado;
+                            echo "⚠️  CPFs comuns já existem, usando CPF gerado: $cpf_gerado\n";
+                        } else {
+                            echo "⚠️  Aviso: Não foi possível gerar CPF único após 10 tentativas. Tentando criar sem CPF...\n";
+                        }
+                    }
+                    
+                    if ($cpf_valido) {
+                        $data['cpf'] = $cpf_valido;
+                    }
                 }
+                
                 if (in_array('usuario', $columns)) {
                     $data['usuario'] = 'admin@admin.com';
                 }
