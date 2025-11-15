@@ -420,27 +420,76 @@ class Mapos_model extends CI_Model
 
     public function calendario($start, $end, $status = null)
     {
-        $this->db->select(
-            'os.*,
-            clientes.nomeCliente,
-            COALESCE((SELECT SUM(produtos_os.preco * produtos_os.quantidade ) FROM produtos_os WHERE produtos_os.os_id = os.idOs), 0) totalProdutos,
-            COALESCE((SELECT SUM(servicos_os.preco * servicos_os.quantidade ) FROM servicos_os WHERE servicos_os.os_id = os.idOs), 0) totalServicos'
-        );
+        // Verificar se as tabelas existem
+        if (!$this->db->table_exists('os')) {
+            log_message('error', 'Tabela os não existe para calendario');
+            return [];
+        }
+        
+        if (!$this->db->table_exists('clientes')) {
+            log_message('error', 'Tabela clientes não existe para calendario');
+            return [];
+        }
+        
+        // Detectar estrutura das tabelas
+        $os_columns = $this->db->list_fields('os');
+        $clientes_columns = $this->db->list_fields('clientes');
+        
+        // Detectar colunas
+        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
+        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+        $os_id_col = in_array('idOs', $os_columns) ? 'idOs' : (in_array('id', $os_columns) ? 'id' : null);
+        $data_final_col = in_array('dataFinal', $os_columns) ? 'dataFinal' : (in_array('data_final', $os_columns) ? 'data_final' : null);
+        
+        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col || !$os_id_col || !$data_final_col) {
+            log_message('error', 'Estrutura de tabelas incompatível para calendario');
+            return [];
+        }
+        
+        // Construir SELECT adaptado
+        $select = 'os.*, clientes.' . $nome_cliente_col . ' as nomeCliente';
+        
+        // Adicionar subqueries apenas se as tabelas existirem
+        if ($this->db->table_exists('produtos_os')) {
+            $produtos_os_id_col = in_array('os_id', $this->db->list_fields('produtos_os')) ? 'os_id' : 'id';
+            $select .= ', COALESCE((SELECT SUM(produtos_os.preco * produtos_os.quantidade) FROM produtos_os WHERE produtos_os.' . $produtos_os_id_col . ' = os.' . $os_id_col . '), 0) as totalProdutos';
+        }
+        
+        if ($this->db->table_exists('servicos_os')) {
+            $servicos_os_id_col = in_array('os_id', $this->db->list_fields('servicos_os')) ? 'os_id' : 'id';
+            $select .= ', COALESCE((SELECT SUM(servicos_os.preco * servicos_os.quantidade) FROM servicos_os WHERE servicos_os.' . $servicos_os_id_col . ' = os.' . $os_id_col . '), 0) as totalServicos';
+        }
+        
+        $this->db->select($select);
         $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->join('produtos_os', 'produtos_os.os_id = os.idOs', 'left');
-        $this->db->join('servicos_os', 'servicos_os.os_id = os.idOs', 'left');
-        $this->db->where('os.dataFinal >=', $start);
-        $this->db->where('os.dataFinal <=', $end);
-        $this->db->group_by('os.idOs');
+        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
+        
+        // JOINs opcionais apenas se as tabelas existirem
+        if ($this->db->table_exists('produtos_os')) {
+            $produtos_os_id_col = in_array('os_id', $this->db->list_fields('produtos_os')) ? 'os_id' : 'id';
+            $this->db->join('produtos_os', 'produtos_os.' . $produtos_os_id_col . ' = os.' . $os_id_col, 'left');
+        }
+        
+        if ($this->db->table_exists('servicos_os')) {
+            $servicos_os_id_col = in_array('os_id', $this->db->list_fields('servicos_os')) ? 'os_id' : 'id';
+            $this->db->join('servicos_os', 'servicos_os.' . $servicos_os_id_col . ' = os.' . $os_id_col, 'left');
+        }
+        
+        // Filtros de data
+        $this->db->where('os.' . $data_final_col . ' >=', $start);
+        $this->db->where('os.' . $data_final_col . ' <=', $end);
+        $this->db->group_by('os.' . $os_id_col);
 
-        if (! empty($status)) {
+        // Filtro de status se fornecido e coluna existir
+        if (!empty($status) && in_array('status', $os_columns)) {
             $this->db->where('os.status', $status);
         }
 
         $query = $this->db->get();
         if ($query === false) {
-            log_message('error', 'Erro na query calendario: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            $error = $this->db->error();
+            log_message('error', 'Erro na query calendario: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
