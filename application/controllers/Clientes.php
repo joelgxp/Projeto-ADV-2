@@ -54,17 +54,8 @@ class Clientes extends MY_Controller
         }
 
         $this->load->library('form_validation');
+        $this->load->helper('cliente');
         $this->data['custom_error'] = '';
-
-        $senhaCliente = $this->input->post('senha') ? $this->input->post('senha') : preg_replace('/[^\p{L}\p{N}\s]/', '', set_value('documento'));
-
-        $cpf_cnpj = preg_replace('/[^\p{L}\p{N}\s]/', '', set_value('documento'));
-
-        if (strlen($cpf_cnpj) == 11) {
-            $pessoa_fisica = true;
-        } else {
-            $pessoa_fisica = false;
-        }
 
         if ($this->form_validation->run('clientes') == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="form_error">' . validation_errors() . '</div>' : false);
@@ -73,33 +64,30 @@ class Clientes extends MY_Controller
             if ($email && $this->clientes_model->emailExists($email)) {
                 $this->data['custom_error'] = '<div class="form_error"><p>Este e-mail já está sendo utilizado por outro cliente.</p></div>';
             } else {
-                $data = [
-                'nomeCliente' => set_value('nomeCliente'),
-                'contato' => set_value('contato'),
-                'pessoa_fisica' => $pessoa_fisica,
-                'documento' => set_value('documento'),
-                'telefone' => set_value('telefone'),
-                'celular' => set_value('celular'),
-                'email' => set_value('email'),
-                'senha' => password_hash($senhaCliente, PASSWORD_DEFAULT),
-                'rua' => set_value('rua'),
-                'numero' => set_value('numero'),
-                'complemento' => set_value('complemento'),
-                'bairro' => set_value('bairro'),
-                'cidade' => set_value('cidade'),
-                'estado' => set_value('estado'),
-                'cep' => set_value('cep'),
-                'dataCadastro' => date('Y-m-d'),
-                'fornecedor' => $this->input->post('fornecedor') ? 1 : 0,
-            ];
+                // Determinar tipo de pessoa
+                $documento_limpo = preg_replace('/[^\p{L}\p{N}\s]/', '', set_value('documento'));
+                $pessoa_fisica = (strlen($documento_limpo) == 11);
 
-            if ($this->clientes_model->add('clientes', $data) == true) {
-                $this->session->set_flashdata('success', 'Cliente adicionado com sucesso!');
-                log_info('Adicionou um cliente.');
-                redirect(site_url('clientes/'));
-            } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro.</p></div>';
-            }
+                // Gerar senha padrão se não fornecida
+                $senha = $this->input->post('senha');
+                if (empty($senha)) {
+                    $senha = gerar_senha_padrao(set_value('documento'));
+                }
+
+                // Preparar dados usando helper
+                $post_data = $this->input->post();
+                $data = preparar_dados_cliente($post_data, $pessoa_fisica, $senha);
+
+                // Tentar adicionar cliente
+                $result = $this->clientes_model->add('clientes', $data);
+                
+                if ($result !== false) {
+                    $this->session->set_flashdata('success', 'Cliente adicionado com sucesso!');
+                    log_info('Adicionou um cliente.');
+                    redirect(site_url('clientes/'));
+                } else {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao adicionar o cliente.</p></div>';
+                }
             }
         }
 
@@ -121,68 +109,47 @@ class Clientes extends MY_Controller
         }
 
         $this->load->library('form_validation');
+        $this->load->helper('cliente');
         $this->data['custom_error'] = '';
 
         if ($this->form_validation->run('clientes') == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="form_error">' . validation_errors() . '</div>' : false);
         } else {
-            
             $email = $this->input->post('email');
             $idCliente = $this->input->post('idClientes');
+            
             if ($email && $this->clientes_model->emailExists($email, $idCliente)) {
                 $this->data['custom_error'] = '<div class="form_error"><p>Este e-mail já está sendo utilizado por outro cliente.</p></div>';
             } else {
+                // Determinar tipo de pessoa
+                $documento_limpo = preg_replace('/[^\p{L}\p{N}\s]/', '', $this->input->post('documento'));
+                $pessoa_fisica = (strlen($documento_limpo) == 11);
+
+                // Preparar dados usando helper
+                $post_data = $this->input->post();
                 $senha = $this->input->post('senha');
-            if ($senha != null) {
-                $senha = password_hash($senha, PASSWORD_DEFAULT);
+                
+                // Se senha fornecida, usar; caso contrário, não incluir no array
+                $data = preparar_dados_cliente($post_data, $pessoa_fisica, !empty($senha) ? $senha : null);
 
-                $data = [
-                    'nomeCliente' => $this->input->post('nomeCliente'),
-                    'contato' => $this->input->post('contato'),
-                    'documento' => $this->input->post('documento'),
-                    'telefone' => $this->input->post('telefone'),
-                    'celular' => $this->input->post('celular'),
-                    'email' => $this->input->post('email'),
-                    'senha' => $senha,
-                    'rua' => $this->input->post('rua'),
-                    'numero' => $this->input->post('numero'),
-                    'complemento' => $this->input->post('complemento'),
-                    'bairro' => $this->input->post('bairro'),
-                    'cidade' => $this->input->post('cidade'),
-                    'estado' => $this->input->post('estado'),
-                    'cep' => $this->input->post('cep'),
-                    'fornecedor' => (set_value('fornecedor') == true ? 1 : 0),
-                ];
-            } else {
-                $data = [
-                    'nomeCliente' => $this->input->post('nomeCliente'),
-                    'contato' => $this->input->post('contato'),
-                    'documento' => $this->input->post('documento'),
-                    'telefone' => $this->input->post('telefone'),
-                    'celular' => $this->input->post('celular'),
-                    'email' => $this->input->post('email'),
-                    'rua' => $this->input->post('rua'),
-                    'numero' => $this->input->post('numero'),
-                    'complemento' => $this->input->post('complemento'),
-                    'bairro' => $this->input->post('bairro'),
-                    'cidade' => $this->input->post('cidade'),
-                    'estado' => $this->input->post('estado'),
-                    'cep' => $this->input->post('cep'),
-                    'fornecedor' => (set_value('fornecedor') == true ? 1 : 0),
-                ];
-            }
-
-            if ($this->clientes_model->edit('clientes', $data, 'idClientes', $this->input->post('idClientes')) == true) {
-                $this->session->set_flashdata('success', 'Cliente editado com sucesso!');
-                log_info('Alterou um cliente. ID' . $this->input->post('idClientes'));
-                redirect(site_url('clientes/editar/') . $this->input->post('idClientes'));
-            } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro</p></div>';
-            }
+                // Tentar editar cliente
+                $result = $this->clientes_model->edit('clientes', $data, 'idClientes', $idCliente);
+                
+                if ($result !== false) {
+                    $this->session->set_flashdata('success', 'Cliente editado com sucesso!');
+                    log_info('Alterou um cliente. ID' . $idCliente);
+                    redirect(site_url('clientes/editar/') . $idCliente);
+                } else {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao editar o cliente.</p></div>';
+                }
             }
         }
 
-        $this->data['result'] = $this->clientes_model->getById($this->uri->segment(3));
+        $cliente = $this->clientes_model->getById($this->uri->segment(3));
+        $this->load->helper('cliente');
+        $cliente = aplicar_mascaras_exibicao($cliente);
+        
+        $this->data['result'] = $cliente;
         $this->data['view'] = 'clientes/editarCliente';
 
         return $this->layout();
