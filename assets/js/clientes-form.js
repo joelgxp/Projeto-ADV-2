@@ -532,6 +532,25 @@ var ClienteForm = {
             },
             errorClass: "help-inline",
             errorElement: "span",
+            // Não validar durante digitação para o campo documento (já temos validação customizada)
+            onkeyup: function(element, event) {
+                // Validar todos os campos exceto documento durante digitação
+                if ($(element).attr('name') !== 'documento') {
+                    return true;
+                }
+                return false;
+            },
+            onfocusout: function(element) {
+                // Validar documento apenas no blur se já tiver tamanho mínimo
+                if ($(element).attr('name') === 'documento') {
+                    var docLimpo = $(element).val().replace(/[^a-zA-Z0-9]/g, '');
+                    if (docLimpo.length >= 11) {
+                        return true;
+                    }
+                    return false;
+                }
+                return true;
+            },
             highlight: function(element, errorClass, validClass) {
                 $(element).parents('.control-group').addClass('error');
             },
@@ -549,50 +568,124 @@ var ClienteForm = {
     setupDocumentoValidation: function() {
         var self = this;
         var $documento = $('#documento');
+        var validationTimeout = null;
+        var lastValidatedValue = ''; // Armazenar último valor validado para evitar validações duplicadas
         
-        $documento.on('blur', function() {
-            var documento = $(this).val();
-            var $field = $(this);
-            var $controlGroup = $field.parents('.control-group');
+        // Função para validar e atualizar UI
+        var validarEAtualizar = function(forceValidation) {
+            var documento = $documento.val();
+            var $controlGroup = $documento.parents('.control-group');
+            var $helpInline = $controlGroup.find('.help-inline.documento-error');
+            var docLimpo = documento ? documento.replace(/[^a-zA-Z0-9]/g, '') : '';
+            
+            // Evitar validação duplicada do mesmo valor
+            if (!forceValidation && documento === lastValidatedValue) {
+                return;
+            }
+            
+            // Se não for forçar validação e ainda estiver digitando, não validar
+            if (!forceValidation && docLimpo.length > 0 && docLimpo.length < 11) {
+                // Ainda digitando CPF, não fazer nada
+                return;
+            }
             
             if (documento && documento.trim() !== '') {
-                if (!self.validarDocumento(documento)) {
-                    $field.addClass('error');
-                    $controlGroup.addClass('error');
+                // Só validar se tiver tamanho completo (11 para CPF ou 14 para CNPJ)
+                if (docLimpo.length === 11 || docLimpo.length === 14) {
+                    var isValid = self.validarDocumento(documento);
                     
-                    // Adicionar mensagem de erro se não existir
-                    if ($controlGroup.find('.help-inline').length === 0) {
+                    if (!isValid) {
+                        // Documento inválido
+                        $documento.addClass('error');
+                        $controlGroup.addClass('error');
+                        
+                        // Adicionar mensagem de erro se não existir
+                        if ($helpInline.length === 0) {
+                            $controlGroup.find('.controls').append(
+                                '<span class="help-inline documento-error">CPF/CNPJ inválido.</span>'
+                            );
+                        }
+                        
+                        // Armazenar valor validado (mesmo que inválido) para evitar validações duplicadas
+                        lastValidatedValue = documento;
+                    } else {
+                        // Documento válido
+                        $documento.removeClass('error');
+                        $controlGroup.removeClass('error');
+                        $helpInline.remove();
+                        
+                        // Remover também mensagens de erro do jQuery Validate
+                        var $validateError = $controlGroup.find('.help-inline:not(.documento-error)');
+                        if ($validateError.length > 0 && $validateError.text().indexOf('CPF/CNPJ') !== -1) {
+                            $validateError.remove();
+                        }
+                        
+                        // Marcar como válido no jQuery Validate
+                        if ($('#formCliente').data('validator')) {
+                            $documento.valid();
+                        }
+                        
+                        // Armazenar valor validado
+                        lastValidatedValue = documento;
+                    }
+                } else if (docLimpo.length > 14) {
+                    // Muito longo, mostrar erro
+                    $documento.addClass('error');
+                    $controlGroup.addClass('error');
+                    if ($helpInline.length === 0) {
                         $controlGroup.find('.controls').append(
-                            '<span class="help-inline">CPF/CNPJ inválido.</span>'
+                            '<span class="help-inline documento-error">CPF/CNPJ inválido.</span>'
                         );
                     }
                 } else {
-                    $field.removeClass('error');
-                    $controlGroup.removeClass('error');
-                    $controlGroup.find('.help-inline').remove();
+                    // Ainda digitando, remover mensagem de erro mas manter campo limpo
+                    $helpInline.remove();
+                    if (docLimpo.length === 0) {
+                        $documento.removeClass('error');
+                        $controlGroup.removeClass('error');
+                        lastValidatedValue = '';
+                    }
                 }
             } else {
-                // Limpar erros se campo vazio
-                $field.removeClass('error');
+                // Campo vazio, limpar erros
+                $documento.removeClass('error');
                 $controlGroup.removeClass('error');
-                $controlGroup.find('.help-inline').remove();
+                $helpInline.remove();
+                lastValidatedValue = '';
             }
+        };
+        
+        // Validação no blur (quando sai do campo) - sempre validar
+        $documento.on('blur', function() {
+            clearTimeout(validationTimeout);
+            validarEAtualizar(true); // Forçar validação no blur
         });
 
-        // Validação também ao digitar (com debounce)
-        var timeout;
+        // Validação durante digitação (com debounce) - apenas para CPF/CNPJ completos
         $documento.on('input', function() {
-            clearTimeout(timeout);
-            var $field = $(this);
-            var $controlGroup = $field.parents('.control-group');
+            clearTimeout(validationTimeout);
+            var documento = $(this).val();
+            var docLimpo = documento ? documento.replace(/[^a-zA-Z0-9]/g, '') : '';
             
-            timeout = setTimeout(function() {
-                var documento = $field.val();
-                if (documento && documento.trim() !== '') {
-                    // Remover erro temporariamente durante digitação
-                    $controlGroup.find('.help-inline').remove();
+            // Só validar se tiver tamanho completo (11 para CPF ou 14 para CNPJ)
+            if (docLimpo.length === 11 || docLimpo.length === 14) {
+                validationTimeout = setTimeout(function() {
+                    validarEAtualizar(true); // Forçar validação quando completo
+                }, 500); // Aumentar debounce para evitar validações muito frequentes
+            } else if (docLimpo.length > 14) {
+                // Muito longo, validar imediatamente
+                validarEAtualizar(true);
+            } else {
+                // Ainda digitando, apenas limpar mensagem de erro se existir
+                var $controlGroup = $documento.parents('.control-group');
+                var $helpInline = $controlGroup.find('.help-inline.documento-error');
+                if ($helpInline.length > 0 && docLimpo.length < 11) {
+                    // Só remover se ainda não tiver tamanho mínimo
+                    $helpInline.remove();
+                    $documento.removeClass('error');
+                    $controlGroup.removeClass('error');
                 }
-            }, 500);
+            }
         });
     },
 
