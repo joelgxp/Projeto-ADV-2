@@ -5,7 +5,7 @@ class Login extends CI_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
     }
 
     public function index()
@@ -36,8 +36,8 @@ class Login extends CI_Controller
         } else {
             $email = $this->input->post('email');
             $password = $this->input->post('senha');
-            $this->load->model('Mapos_model');
-            $user = $this->Mapos_model->check_credentials($email);
+            $this->load->model('Sistema_model');
+            $user = $this->Sistema_model->check_credentials($email);
 
             if ($user) {
                 // Verificar se acesso está expirado (se a coluna existir)

@@ -3,7 +3,7 @@ class Adv extends MY_Controller {
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
     }
 
     public function index()
@@ -11,20 +11,20 @@ class Adv extends MY_Controller {
         $this->load->model('processos_model');
         
         // Dados de processos jurídicos
-        $this->data['processos_em_andamento'] = $this->mapos_model->getProcessosByStatus('em_andamento') ?: [];
-        $this->data['prazos_vencidos'] = $this->mapos_model->getPrazosVencidos() ?: [];
-        $this->data['audiencias_agendadas'] = $this->mapos_model->getAudienciasAgendadas() ?: [];
+        $this->data['processos_em_andamento'] = $this->sistema_model->getProcessosByStatus('em_andamento') ?: [];
+        $this->data['prazos_vencidos'] = $this->sistema_model->getPrazosVencidos() ?: [];
+        $this->data['audiencias_agendadas'] = $this->sistema_model->getAudienciasAgendadas() ?: [];
         
         // Lançamentos financeiros (honorários)
-        $this->data['lancamentos'] = $this->mapos_model->getLancamentos() ?: [];
+        $this->data['lancamentos'] = $this->sistema_model->getLancamentos() ?: [];
         
         // Estatísticas financeiras
-        $this->data['estatisticas_financeiro'] = $this->mapos_model->getEstatisticasFinanceiro() ?: (object)[];
+        $this->data['estatisticas_financeiro'] = $this->sistema_model->getEstatisticasFinanceiro() ?: (object)[];
         
         $year = $this->input->get('year') ?: date('Y');
-        $this->data['financeiro_mes_dia'] = $this->mapos_model->getEstatisticasFinanceiroDia($year) ?: (object)[];
-        $this->data['financeiro_mes'] = $this->mapos_model->getEstatisticasFinanceiroMes($year) ?: (object)[];
-        $this->data['financeiro_mesinadipl'] = $this->mapos_model->getEstatisticasFinanceiroMesInadimplencia($year) ?: (object)[];
+        $this->data['financeiro_mes_dia'] = $this->sistema_model->getEstatisticasFinanceiroDia($year) ?: (object)[];
+        $this->data['financeiro_mes'] = $this->sistema_model->getEstatisticasFinanceiroMes($year) ?: (object)[];
+        $this->data['financeiro_mesinadipl'] = $this->sistema_model->getEstatisticasFinanceiroMesInadimplencia($year) ?: (object)[];
         
         $this->data['menuPainel'] = 'Painel';
         $this->data['view'] = 'adv/painel';
@@ -34,7 +34,7 @@ class Adv extends MY_Controller {
 
     public function minhaConta()
     {
-        $this->data['usuario'] = $this->mapos_model->getById($this->session->userdata('id_admin'));
+        $this->data['usuario'] = $this->sistema_model->getById($this->session->userdata('id_admin'));
         $this->data['view'] = 'adv/minhaConta';
 
         return $this->layout();
@@ -42,7 +42,7 @@ class Adv extends MY_Controller {
 
     public function alterarSenha()
     {
-        $current_user = $this->mapos_model->getById($this->session->userdata('id_admin'));
+        $current_user = $this->sistema_model->getById($this->session->userdata('id_admin'));
 
         if (!$current_user) {
             $this->session->set_flashdata('error', 'Ocorreu um erro ao pesquisar usuário!');
@@ -57,7 +57,7 @@ class Adv extends MY_Controller {
             redirect(site_url('adv/minhaConta'));
         }
 
-        $result = $this->mapos_model->alterarSenha($senha);
+        $result = $this->sistema_model->alterarSenha($senha);
 
         if ($result) {
             $this->session->set_flashdata('success', 'Senha alterada com sucesso!');
@@ -72,7 +72,7 @@ class Adv extends MY_Controller {
     {
         $termo = $this->input->get('termo');
 
-        $data['results'] = $this->mapos_model->pesquisar($termo);
+        $data['results'] = $this->sistema_model->pesquisar($termo);
         $this->data['processos'] = $data['results']['processos'] ?? [];
         $this->data['servicos'] = $data['results']['servicos'] ?? [];
         $this->data['prazos'] = $data['results']['prazos'] ?? [];
@@ -116,7 +116,7 @@ class Adv extends MY_Controller {
         }
 
         $this->data['menuConfiguracoes'] = 'Configuracoes';
-        $this->data['dados'] = $this->mapos_model->getEmitente();
+        $this->data['dados'] = $this->sistema_model->getEmitente();
         $this->data['view'] = 'adv/emitente';
 
         return $this->layout();
@@ -234,7 +234,7 @@ class Adv extends MY_Controller {
             $image = $this->do_upload();
             $logo = base_url() . 'assets/uploads/' . $image;
 
-            $retorno = $this->mapos_model->addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo);
+            $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram inseridas com sucesso.');
                 log_info('Adicionou informações de emitente.');
@@ -282,7 +282,7 @@ class Adv extends MY_Controller {
             $email = $this->input->post('email');
             $id = $this->input->post('id');
 
-            $retorno = $this->mapos_model->editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email);
+            $retorno = $this->sistema_model->editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram alteradas com sucesso.');
                 log_info('Alterou informações de emitente.');
@@ -311,7 +311,7 @@ class Adv extends MY_Controller {
         $image = $this->do_upload();
         $logo = base_url() . 'assets/uploads/' . $image;
 
-        $retorno = $this->mapos_model->editLogo($id, $logo);
+        $retorno = $this->sistema_model->editLogo($id, $logo);
         if ($retorno) {
             $this->session->set_flashdata('success', 'As informações foram alteradas com sucesso.');
             log_info('Alterou a logomarca do emitente.');
@@ -334,7 +334,7 @@ class Adv extends MY_Controller {
             redirect(site_url('adv/minhaConta'));
         }
 
-        $usuario = $this->mapos_model->getById($id);
+        $usuario = $this->sistema_model->getById($id);
 
         if (is_file(FCPATH . 'assets/userImage/' . $usuario->url_image_user)) {
             unlink(FCPATH . 'assets/userImage/' . $usuario->url_image_user);
@@ -342,7 +342,7 @@ class Adv extends MY_Controller {
 
         $image = $this->do_upload_user();
         $imageUserPath = $image;
-        $retorno = $this->mapos_model->editImageUser($id, $imageUserPath);
+        $retorno = $this->sistema_model->editImageUser($id, $imageUserPath);
 
         if ($retorno) {
             $this->session->set_userdata('url_image_user', $imageUserPath);
@@ -409,7 +409,7 @@ class Adv extends MY_Controller {
         $this->data['menuConfiguracoes'] = 'Sistema';
 
         $this->load->library('form_validation');
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
 
         $this->data['custom_error'] = '';
 
@@ -447,7 +447,7 @@ class Adv extends MY_Controller {
                 'prazo_notification' => $this->input->post('prazo_notification'),
                 'audiencia_notification' => $this->input->post('audiencia_notification'),
             ];
-            if ($this->mapos_model->saveConfiguracao($data) == true) {
+            if ($this->sistema_model->saveConfiguracao($data) == true) {
                 $this->session->set_flashdata('success', 'Configurações do sistema atualizadas com sucesso!');
                 redirect(site_url('adv/configurar'));
             } else {
@@ -586,7 +586,7 @@ class Adv extends MY_Controller {
 
             // Buscar audiências se tipoEvento for 'audiencia' ou vazio
             if ($tipoEvento == 'audiencia' || $tipoEvento == '') {
-                $allAudiencias = $this->mapos_model->calendario($start, $end, null);
+                $allAudiencias = $this->sistema_model->calendario($start, $end, null);
                 
                 if ($allAudiencias === false) {
                     log_message('error', 'Erro ao buscar audiências no calendário');
