@@ -22,20 +22,15 @@ class Prazos_model extends CI_Model
             $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
         }
 
-        // Join com clientes através de processos (verificar se coluna clientes_id existe)
+        // Join com clientes através de processos
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $processos_columns = $this->db->list_fields('processos');
-            $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
             
-            if ($processos_has_clientes_id) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-                
-                if ($clientes_id_col && $clientes_nome_col) {
-                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-                }
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
             }
         }
 
@@ -248,10 +243,8 @@ class Prazos_model extends CI_Model
 
         // Detectar coluna de ID de clientes e verificar se processos.clientes_id existe
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $processos_columns = $this->db->list_fields('processos');
-            $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
-            
-            if ($processos_has_clientes_id) {
+            // Join com clientes através de processos
+            if ($this->db->table_exists('clientes')) {
                 $clientes_columns = $this->db->list_fields('clientes');
                 $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
                 
@@ -260,19 +253,20 @@ class Prazos_model extends CI_Model
                     $this->db->from('prazos');
                     $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
                     $this->db->where('processos.clientes_id', $cliente_id);
-                $this->db->where('prazos.status', 'pendente');
-                $this->db->where('prazos.dataVencimento >=', date('Y-m-d'));
-                $this->db->where('prazos.dataVencimento <=', date('Y-m-d', strtotime('+7 days')));
-                $this->db->order_by('prazos.dataVencimento', 'ASC');
-                $this->db->limit($limit);
-                $query = $this->db->get();
-                
-                if ($query === false) {
-                    log_message('error', 'Erro na query getPrazosProximosByCliente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-                    return [];
+                    $this->db->where('prazos.status', 'pendente');
+                    $this->db->where('prazos.dataVencimento >=', date('Y-m-d'));
+                    $this->db->where('prazos.dataVencimento <=', date('Y-m-d', strtotime('+7 days')));
+                    $this->db->order_by('prazos.dataVencimento', 'ASC');
+                    $this->db->limit($limit);
+                    $query = $this->db->get();
+                    
+                    if ($query === false) {
+                        log_message('error', 'Erro na query getPrazosProximosByCliente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+                        return [];
+                    }
+                    
+                    return $query->result();
                 }
-                
-                return $query->result();
             }
         }
 
@@ -316,13 +310,7 @@ class Prazos_model extends CI_Model
             return [];
         }
 
-        // Verificar se processos.clientes_id existe
         if (!$this->db->table_exists('processos')) {
-            return [];
-        }
-        
-        $processos_columns = $this->db->list_fields('processos');
-        if (!in_array('clientes_id', $processos_columns)) {
             return [];
         }
         
@@ -362,13 +350,7 @@ class Prazos_model extends CI_Model
             return 0;
         }
 
-        // Verificar se processos.clientes_id existe
         if (!$this->db->table_exists('processos')) {
-            return 0;
-        }
-        
-        $processos_columns = $this->db->list_fields('processos');
-        if (!in_array('clientes_id', $processos_columns)) {
             return 0;
         }
         

@@ -18,41 +18,19 @@ class Audiencias_model extends CI_Model
 
         // Join com processos
         if ($this->db->table_exists('processos')) {
-            // Verificar se a coluna numeroProcesso existe antes de selecioná-la
-            $processos_columns = $this->db->list_fields('processos');
-            $selects = [];
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $selects[] = 'processos.numeroProcesso';
-            }
-            if (in_array('classe', $processos_columns)) {
-                $selects[] = 'processos.classe';
-            }
-            if (in_array('assunto', $processos_columns)) {
-                $selects[] = 'processos.assunto';
-            }
-            if (in_array('status', $processos_columns)) {
-                $selects[] = 'processos.status as statusProcesso';
-            }
-            if (!empty($selects)) {
-                $this->db->select(implode(', ', $selects));
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto, processos.status as statusProcesso');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
 
-        // Join com clientes através de processos (verificar se coluna clientes_id existe)
+        // Join com clientes através de processos
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $processos_columns = $this->db->list_fields('processos');
-            $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
+            $clientes_columns = $this->db->list_fields('clientes');
+            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
             
-            if ($processos_has_clientes_id) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-                
-                if ($clientes_id_col && $clientes_nome_col) {
-                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-                }
+            if ($clientes_id_col && $clientes_nome_col) {
+                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
             }
         }
 
@@ -82,10 +60,7 @@ class Audiencias_model extends CI_Model
                     $this->db->or_like('audiencias.local', $where);
                     $this->db->or_like('audiencias.observacoes', $where);
                     if ($this->db->table_exists('processos')) {
-                        $processos_columns = $this->db->list_fields('processos');
-                        if (in_array('numeroProcesso', $processos_columns)) {
-                            $this->db->or_like('processos.numeroProcesso', $where);
-                        }
+                        $this->db->or_like('processos.numeroProcesso', $where);
                     }
                     $this->db->group_end();
                 }
@@ -272,10 +247,8 @@ class Audiencias_model extends CI_Model
             return [];
         }
         
-        $processos_columns = $this->db->list_fields('processos');
-        $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
-        
-        if (!$processos_has_clientes_id) {
+        // Verificar se tabelas existem
+        if (!$this->db->table_exists('processos') || !$this->db->table_exists('clientes')) {
             return [];
         }
         
@@ -283,11 +256,7 @@ class Audiencias_model extends CI_Model
         $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
         
         if ($clientes_id_col) {
-            $this->db->select('audiencias.*');
-            // Verificar se a coluna numeroProcesso existe antes de selecioná-la
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso');
-            }
+            $this->db->select('audiencias.*, processos.numeroProcesso');
             $this->db->from('audiencias');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
             $this->db->where('processos.clientes_id', $cliente_id);
@@ -349,27 +318,13 @@ class Audiencias_model extends CI_Model
 
         $this->db->select('audiencias.*');
         // Verificar se as colunas existem antes de selecioná-las
-        $processos_columns = $this->db->list_fields('processos');
-        $selects = [];
-        if (in_array('numeroProcesso', $processos_columns)) {
-            $selects[] = 'processos.numeroProcesso';
-        }
-        if (in_array('classe', $processos_columns)) {
-            $selects[] = 'processos.classe';
-        }
-        if (in_array('assunto', $processos_columns)) {
-            $selects[] = 'processos.assunto';
-        }
-        if (!empty($selects)) {
-            $this->db->select(implode(', ', $selects));
-        }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
         // Verificar se processos.clientes_id existe
         if (!$this->db->table_exists('processos')) {
             return [];
         }
         
-        $processos_columns = $this->db->list_fields('processos');
-        if (!in_array('clientes_id', $processos_columns)) {
+        if (!$this->db->table_exists('processos') || !$this->db->table_exists('clientes')) {
             return [];
         }
         

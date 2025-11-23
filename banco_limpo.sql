@@ -65,7 +65,17 @@ CREATE TABLE IF NOT EXISTS `migrations` (
 -- TABELAS DE USUÁRIOS E PERMISSÕES
 -- ============================================================
 
--- Tabela de usuários
+-- Tabela de permissões (DEVE SER CRIADA PRIMEIRO)
+CREATE TABLE IF NOT EXISTS `permissoes` (
+    `idPermissao` INT(11) NOT NULL AUTO_INCREMENT,
+    `nome` VARCHAR(80) NOT NULL,
+    `permissoes` TEXT NULL,
+    `situacao` TINYINT(1) NULL DEFAULT 1,
+    `data` DATE NULL,
+    PRIMARY KEY (`idPermissao`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de usuários (DEPOIS de permissoes, pois tem FK)
 CREATE TABLE IF NOT EXISTS `usuarios` (
     `idUsuarios` INT(11) NOT NULL AUTO_INCREMENT,
     `nome` VARCHAR(100) NOT NULL,
@@ -94,14 +104,27 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
         REFERENCES `permissoes` (`idPermissao`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabela de permissões
-CREATE TABLE IF NOT EXISTS `permissoes` (
-    `idPermissao` INT(11) NOT NULL AUTO_INCREMENT,
-    `nome` VARCHAR(80) NOT NULL,
-    `permissoes` TEXT NULL,
-    `situacao` TINYINT(1) NULL DEFAULT 1,
-    `data` DATE NULL,
-    PRIMARY KEY (`idPermissao`)
+-- ============================================================
+-- TABELAS DE PLANOS (DEVE SER CRIADA ANTES DE clientes)
+-- ============================================================
+
+-- Tabela de planos (DEVE SER CRIADA ANTES DE clientes)
+CREATE TABLE IF NOT EXISTS `planos` (
+    `idPlanos` INT(11) NOT NULL AUTO_INCREMENT,
+    `nome` VARCHAR(100) NOT NULL,
+    `descricao` TEXT NULL DEFAULT NULL,
+    `valor_mensal` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    `limite_processos` INT(11) NULL DEFAULT NULL COMMENT 'NULL = ilimitado',
+    `limite_prazos` INT(11) NULL DEFAULT NULL COMMENT 'NULL = ilimitado',
+    `limite_audiencias` INT(11) NULL DEFAULT NULL COMMENT 'NULL = ilimitado',
+    `limite_documentos` INT(11) NULL DEFAULT NULL COMMENT 'NULL = ilimitado',
+    `acesso_portal` TINYINT(1) NOT NULL DEFAULT 1,
+    `acesso_api` TINYINT(1) NOT NULL DEFAULT 0,
+    `suporte_prioritario` TINYINT(1) NOT NULL DEFAULT 0,
+    `relatorios_avancados` TINYINT(1) NOT NULL DEFAULT 0,
+    `status` TINYINT(1) NOT NULL DEFAULT 1,
+    `dataCadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idPlanos`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -269,26 +292,7 @@ CREATE TABLE IF NOT EXISTS `cobrancas` (
 -- ============================================================
 -- TABELAS JURÍDICAS
 -- ============================================================
-
--- Tabela de planos
-CREATE TABLE IF NOT EXISTS `planos` (
-    `idPlanos` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-    `nome` VARCHAR(100) NOT NULL,
-    `descricao` TEXT NULL,
-    `valor_mensal` DECIMAL(10,2) DEFAULT 0.00,
-    `limite_processos` INT(11) DEFAULT 0 COMMENT '0 = ilimitado',
-    `limite_prazos` INT(11) DEFAULT 0 COMMENT '0 = ilimitado',
-    `limite_audiencias` INT(11) DEFAULT 0 COMMENT '0 = ilimitado',
-    `limite_documentos` INT(11) DEFAULT 0 COMMENT '0 = ilimitado',
-    `acesso_portal` TINYINT(1) DEFAULT 1,
-    `acesso_api` TINYINT(1) DEFAULT 0,
-    `suporte_prioritario` TINYINT(1) DEFAULT 0,
-    `relatorios_avancados` TINYINT(1) DEFAULT 0,
-    `status` TINYINT(1) DEFAULT 1 COMMENT '1 = ativo, 0 = inativo',
-    `dataCadastro` DATETIME NULL,
-    `dataAtualizacao` DATETIME NULL,
-    PRIMARY KEY (`idPlanos`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- NOTA: A tabela planos já foi criada anteriormente (antes de clientes)
 
 -- Tabela de serviços jurídicos
 CREATE TABLE IF NOT EXISTS `servicos_juridicos` (
@@ -390,6 +394,21 @@ CREATE TABLE IF NOT EXISTS `audiencias` (
     INDEX `idx_status` (`status`),
     CONSTRAINT `fk_audiencias_processos` FOREIGN KEY (`processos_id`) 
         REFERENCES `processos` (`idProcessos`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de documentos gerais
+CREATE TABLE IF NOT EXISTS `documentos` (
+    `idDocumentos` INT(11) NOT NULL AUTO_INCREMENT,
+    `documento` VARCHAR(70) NULL DEFAULT NULL,
+    `descricao` TEXT NULL DEFAULT NULL,
+    `file` VARCHAR(100) NULL DEFAULT NULL,
+    `path` VARCHAR(300) NULL DEFAULT NULL,
+    `url` VARCHAR(300) NULL DEFAULT NULL,
+    `cadastro` DATE NULL DEFAULT NULL,
+    `categoria` VARCHAR(80) NULL DEFAULT NULL,
+    `tipo` VARCHAR(15) NULL DEFAULT NULL,
+    `tamanho` VARCHAR(45) NULL DEFAULT NULL,
+    PRIMARY KEY (`idDocumentos`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de documentos processuais
