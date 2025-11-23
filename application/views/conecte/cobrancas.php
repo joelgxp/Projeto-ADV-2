@@ -37,11 +37,12 @@
                         echo '<td>' . $r->charge_id . '</td>';
                         echo '<td>' . $dataVenda . '</td>';
 
-                        if ($r->os_id != '') {
-                            echo '<td><a href="' . base_url() . 'index.php/os/visualizar/' . $r->os_id . '">  Ordem de Serviço: #' . $r->os_id . '</a></td>';
-                        }
-                        if ($r->vendas_id != '') {
-                            echo '<td><a href="' . base_url() . 'index.php/vendas/visualizar/' . $r->vendas_id . '">  Venda: #' . $r->vendas_id . '</a></td>';
+                        if (isset($r->processos_id) && $r->processos_id != '') {
+                            echo '<td><a href="' . base_url() . 'index.php/mine/visualizarProcesso/' . $r->processos_id . '">  Processo: #' . $r->processos_id . '</a></td>';
+                        } elseif (isset($r->descricao) && $r->descricao != '') {
+                            echo '<td>' . $r->descricao . '</td>';
+                        } else {
+                            echo '<td>-</td>';
                         }
 
                         echo '<td>' . $cobrancaStatus . '</td>';

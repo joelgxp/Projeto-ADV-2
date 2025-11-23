@@ -374,7 +374,7 @@ e [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Adequação para renderizar PDF gerado de relatório MEI no navegador. [@Pr3d4dor](https://github.com/Pr3d4dor)
 - Alterado a tela de configurações do sistema para um formato com abas. [@seitbnao](https://github.com/seitbnao)
 - Alterado a tela de inclusão de clientes. [@seitbnao](https://github.com/seitbnao)
-- Alterado o nome cliente do Menu para Cliente / Fornecedor. [@seitbnao](https://github.com/seitbnao)
+- Alterado o nome cliente do Menu para Cliente. [@seitbnao](https://github.com/seitbnao)
 - Separado as permissões por colapse. [@seitbnao](https://github.com/seitbnao)
 - Remove a obrigatoriedade dos campos em adicionar e editar um cliente, somente o nome é obrigatório no cadastro. [@seitbnao](https://github.com/seitbnao)
 

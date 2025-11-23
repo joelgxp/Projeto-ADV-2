@@ -136,15 +136,32 @@ if (! function_exists('unique')) {
 
         $CI->form_validation->set_message('unique', 'O campo %s já está cadastrado.');
 
-        [$table, $field, $current_id, $key] = explode('.', $params);
+        $parts = explode('.', $params);
+        $table = $parts[0] ?? '';
+        $field = $parts[1] ?? '';
+        $current_id = $parts[2] ?? '';
+        $key = $parts[3] ?? 'id';
+
+        // Se não há valor, não validar
+        if (empty($value)) {
+            return true;
+        }
 
         $query = $CI->db->select()->from($table)->where($field, $value)->limit(1)->get();
 
-        if ($query->row() && $query->row()->{$key} != $current_id) {
+        // Se encontrou um registro
+        if ($query->num_rows() > 0) {
+            $row = $query->row();
+            // Se está editando e o ID é o mesmo, permitir
+            if (!empty($current_id) && isset($row->{$key}) && $row->{$key} == $current_id) {
+                return true;
+            }
+            // Se está criando ou editando com ID diferente, não permitir
             return false;
-        } else {
-            return true;
         }
+
+        // Se não encontrou registro, permitir
+        return true;
     }
 }
 
@@ -168,5 +185,51 @@ if (! function_exists('valid_pix_key')) {
         }
 
         return false;
+    }
+}
+
+/**
+ * Determina o tipo de pessoa (física ou jurídica) baseado no documento
+ * 
+ * @param string $documento Documento (CPF/CNPJ) com ou sem formatação
+ * @param string $tipo_pessoa_indicado Tipo de pessoa indicado manualmente (opcional)
+ * @return array ['tipo' => 'fisica'|'juridica', 'pessoa_fisica' => bool, 'documento_limpo' => string]
+ */
+if (! function_exists('determinar_tipo_pessoa')) {
+    function determinar_tipo_pessoa($documento, $tipo_pessoa_indicado = null)
+    {
+        // Remove formatação do documento
+        $documento_limpo = preg_replace('/[^0-9]/', '', $documento);
+        
+        // Se tipo foi indicado manualmente, usar ele
+        if ($tipo_pessoa_indicado === 'fisica' || $tipo_pessoa_indicado === 'juridica') {
+            return [
+                'tipo' => $tipo_pessoa_indicado,
+                'pessoa_fisica' => $tipo_pessoa_indicado === 'fisica',
+                'documento_limpo' => $documento_limpo
+            ];
+        }
+        
+        // Determinar automaticamente pelo tamanho do documento
+        if (strlen($documento_limpo) == 11) {
+            return [
+                'tipo' => 'fisica',
+                'pessoa_fisica' => true,
+                'documento_limpo' => $documento_limpo
+            ];
+        } elseif (strlen($documento_limpo) == 14) {
+            return [
+                'tipo' => 'juridica',
+                'pessoa_fisica' => false,
+                'documento_limpo' => $documento_limpo
+            ];
+        }
+        
+        // Padrão: pessoa física
+        return [
+            'tipo' => 'fisica',
+            'pessoa_fisica' => true,
+            'documento_limpo' => $documento_limpo
+        ];
     }
 }

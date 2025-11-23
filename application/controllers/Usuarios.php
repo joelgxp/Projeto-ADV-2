@@ -28,6 +28,22 @@ class Usuarios extends MY_Controller
 
     public function gerenciar()
     {
+        // Se for requisição AJAX do DataTables, retornar JSON
+        // Verificar se é requisição do DataTables (tem parâmetros específicos)
+        $hasDatatablesParams = (
+            $this->input->get('sEcho') !== false || 
+            $this->input->get('draw') !== false ||
+            $this->input->get('iDisplayStart') !== false ||
+            $this->input->get('start') !== false ||
+            $this->input->get('iDisplayLength') !== false ||
+            $this->input->get('length') !== false
+        );
+        
+        if ($this->input->is_ajax_request() && $hasDatatablesParams) {
+            $this->datatables_ajax();
+            return;
+        }
+
         $this->load->library('pagination');
 
         $this->data['configuration']['base_url'] = base_url() . 'index.php/usuarios/gerenciar/';
@@ -35,17 +51,133 @@ class Usuarios extends MY_Controller
 
         $this->pagination->initialize($this->data['configuration']);
 
-        $this->data['results'] = $this->usuarios_model->get($this->data['configuration']['per_page'], $this->uri->segment(3));
+        // Carregar apenas primeira página para fallback (quando JS desabilitado)
+        $this->data['results'] = $this->usuarios_model->get($this->data['configuration']['per_page'], 0);
 
         $this->data['view'] = 'usuarios/usuarios';
 
         return $this->layout();
     }
 
+    /**
+     * Retorna dados para DataTables (server-side processing)
+     */
+    private function datatables_ajax()
+    {
+        // DataTables 1.9.4 usa parâmetros diferentes
+        // sEcho deve ser retornado exatamente como foi enviado
+        $sEcho = $this->input->get('sEcho');
+        if ($sEcho === false || $sEcho === null) {
+            $sEcho = $this->input->get('draw') ?: 1;
+        }
+        
+        $start = intval($this->input->get('iDisplayStart') ?: $this->input->get('start') ?: 0);
+        $length = intval($this->input->get('iDisplayLength') ?: $this->input->get('length') ?: 20);
+        
+        // Buscar termo de pesquisa
+        $search = '';
+        $search_param = $this->input->get('sSearch');
+        if ($search_param !== false && $search_param !== null && $search_param !== '') {
+            $search = $search_param;
+        } else {
+            $search_array = $this->input->get('search');
+            if (is_array($search_array) && isset($search_array['value'])) {
+                $search = $search_array['value'];
+            }
+        }
+        
+        // Total de registros sem filtro
+        $recordsTotal = $this->usuarios_model->count('usuarios');
+        
+        // Buscar registros com paginação
+        $results = $this->usuarios_model->get($length, $start);
+        
+        // Total de registros com filtro aplicado
+        $recordsFiltered = $recordsTotal;
+        if ($search) {
+            // Resetar query builder
+            $this->db->reset_query();
+            
+            $this->db->from('usuarios');
+            $this->db->join('permissoes', 'usuarios.permissoes_id = permissoes.idPermissao', 'left');
+            
+            // Aplicar filtros de busca
+            $this->db->group_start();
+            $this->db->like('usuarios.nome', $search);
+            $this->db->or_like('usuarios.cpf', $search);
+            $this->db->or_like('usuarios.telefone', $search);
+            $this->db->or_like('permissoes.nome', $search);
+            $this->db->group_end();
+            
+            $recordsFiltered = $this->db->count_all_results();
+            
+            // Buscar novamente com filtro
+            $this->db->reset_query();
+            $this->db->from('usuarios');
+            $this->db->select('usuarios.*, permissoes.nome as permissao');
+            $this->db->join('permissoes', 'usuarios.permissoes_id = permissoes.idPermissao', 'left');
+            $this->db->group_start();
+            $this->db->like('usuarios.nome', $search);
+            $this->db->or_like('usuarios.cpf', $search);
+            $this->db->or_like('usuarios.telefone', $search);
+            $this->db->or_like('permissoes.nome', $search);
+            $this->db->group_end();
+            $this->db->limit($length, $start);
+            $results = $this->db->get()->result();
+        }
+        
+        // Formatar dados para DataTables
+        $data = [];
+        if ($results) {
+            foreach ($results as $r) {
+                // Situação com cores
+                $situacao = (isset($r->situacao) && $r->situacao == 1) ? 'Ativo' : 'Inativo';
+                $situacaoClasse = (isset($r->situacao) && $r->situacao == 1) ? 'situacao-ativo' : 'situacao-inativo';
+                
+                // Ações
+                $acoes = '<a href="' . base_url('index.php/usuarios/editar/' . $r->idUsuarios) . '" class="btn-nwe3" title="Editar Usuário"><i class="bx bx-edit"></i></a>';
+                
+                $data[] = [
+                    $r->idUsuarios ?? '-',
+                    $r->nome ?? '-',
+                    $r->cpf ?? '-',
+                    $r->telefone ?? '-',
+                    $r->permissao ?? '-',
+                    '<span class="badge ' . $situacaoClasse . '">' . ucfirst($situacao) . '</span>',
+                    $r->dataExpiracao ?? '-',
+                    $acoes
+                ];
+            }
+        }
+        
+        // DataTables 1.9.4 usa formato diferente
+        // sEcho deve ser retornado exatamente como foi enviado (pode ser string)
+        $response = [
+            'sEcho' => $sEcho, // Manter original, não converter para int
+            'iTotalRecords' => intval($recordsTotal),
+            'iTotalDisplayRecords' => intval($recordsFiltered),
+            'aaData' => $data
+        ];
+        
+        $this->output
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
     public function adicionar()
     {
         $this->load->library('form_validation');
         $this->data['custom_error'] = '';
+
+        // Adicionar validação de unicidade para CPF e Email
+        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf_cnpj|is_unique[usuarios.cpf]', [
+            'is_unique' => 'Este CPF já está cadastrado no sistema.',
+            'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.'
+        ]);
+        $this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email|is_unique[usuarios.email]', [
+            'is_unique' => 'Este email já está cadastrado no sistema.',
+            'valid_email' => 'O campo %s deve conter um email válido.'
+        ]);
 
         if ($this->form_validation->run('usuarios') == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert alert-danger">' . validation_errors() . '</div>' : false);
@@ -93,18 +225,28 @@ class Usuarios extends MY_Controller
             redirect('usuarios/gerenciar');
         }
 
+        $idUsuario = $this->uri->segment(3);
+        
         $this->load->library('form_validation');
         $this->data['custom_error'] = '';
         $this->form_validation->set_rules('nome', 'Nome', 'trim|required');
         $this->form_validation->set_rules('rg', 'RG', 'trim|required');
-        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required');
+        // Validação de CPF único (exceto o próprio registro na edição)
+        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf_cnpj|callback_check_unique_cpf[' . $idUsuario . ']', [
+            'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.',
+            'check_unique_cpf' => 'Este CPF já está cadastrado no sistema.'
+        ]);
         $this->form_validation->set_rules('cep', 'CEP', 'trim|required');
         $this->form_validation->set_rules('rua', 'Rua', 'trim|required');
         $this->form_validation->set_rules('numero', 'Número', 'trim|required');
         $this->form_validation->set_rules('bairro', 'Bairro', 'trim|required');
         $this->form_validation->set_rules('cidade', 'Cidade', 'trim|required');
         $this->form_validation->set_rules('estado', 'Estado', 'trim|required');
-        $this->form_validation->set_rules('email', 'Email', 'trim|required');
+        // Validação de Email único (exceto o próprio registro na edição)
+        $this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email|callback_check_unique_email[' . $idUsuario . ']', [
+            'valid_email' => 'O campo %s deve conter um email válido.',
+            'check_unique_email' => 'Este email já está cadastrado no sistema.'
+        ]);
         $this->form_validation->set_rules('telefone', 'Telefone', 'trim|required');
         $this->form_validation->set_rules('situacao', 'Situação', 'trim|required');
         $this->form_validation->set_rules('permissoes_id', 'Permissão', 'trim|required');
@@ -185,5 +327,41 @@ class Usuarios extends MY_Controller
         log_info('Removeu um usuário. ID: ' . $id);
 
         redirect(site_url('usuarios/gerenciar/'));
+    }
+
+    /**
+     * Callback para validar CPF único na edição
+     */
+    public function check_unique_cpf($cpf, $idUsuario)
+    {
+        $this->db->where('cpf', $cpf);
+        if ($idUsuario) {
+            $this->db->where('idUsuarios !=', $idUsuario);
+        }
+        $query = $this->db->get('usuarios');
+        
+        if ($query->num_rows() > 0) {
+            $this->form_validation->set_message('check_unique_cpf', 'Este CPF já está cadastrado no sistema.');
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Callback para validar Email único na edição
+     */
+    public function check_unique_email($email, $idUsuario)
+    {
+        $this->db->where('email', $email);
+        if ($idUsuario) {
+            $this->db->where('idUsuarios !=', $idUsuario);
+        }
+        $query = $this->db->get('usuarios');
+        
+        if ($query->num_rows() > 0) {
+            $this->form_validation->set_message('check_unique_email', 'Este email já está cadastrado no sistema.');
+            return false;
+        }
+        return true;
     }
 }

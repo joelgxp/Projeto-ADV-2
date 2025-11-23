@@ -16,8 +16,11 @@ class Tools extends CI_Controller
     {
         parent::__construct();
 
-        // can only be called from the command line
-        if (! $this->input->is_cli_request()) {
+        // Permitir acesso web apenas para métodos específicos
+        $allowedMethodsViaWeb = ['seed'];
+        $currentMethod = $this->router->method;
+        
+        if (! $this->input->is_cli_request() && !in_array($currentMethod, $allowedMethodsViaWeb)) {
             exit('Direct access is not allowed. This is a command line tool, use the terminal');
         }
 
@@ -90,11 +93,31 @@ class Tools extends CI_Controller
 
     public function seed($name = null)
     {
+        // Permitir execução via web para seeds específicos
+        $allowedSeedsViaWeb = ['PopularBanco'];
+        $isWebRequest = !$this->input->is_cli_request();
+        
+        if ($isWebRequest && $name && !in_array($name, $allowedSeedsViaWeb)) {
+            show_error('Este seed só pode ser executado via linha de comando.');
+            return;
+        }
+        
         if ($name) {
             $this->seeder->call($name);
 
-            echo 'Seeds run successfully' . PHP_EOL;
+            if ($isWebRequest) {
+                echo '<pre>Seed "' . $name . '" executado com sucesso!</pre>';
+                echo '<p><a href="' . base_url() . '">Voltar ao sistema</a></p>';
+            } else {
+                echo 'Seeds run successfully' . PHP_EOL;
+            }
 
+            return;
+        }
+
+        // Seeds padrão só via CLI
+        if ($isWebRequest) {
+            show_error('Para executar seeds padrão, use: tools/seed/NomeDoSeed');
             return;
         }
 
@@ -451,6 +474,254 @@ class Tools extends CI_Controller
             echo "❌ Exceção: " . $e->getMessage() . "\n";
             echo "Arquivo: " . $e->getFile() . "\n";
             echo "Linha: " . $e->getLine() . "\n";
+        }
+    }
+
+    public function listar_tabelas()
+    {
+        try {
+            $tables = $this->db->list_tables();
+            
+            echo "=== TABELAS DO BANCO DE DADOS ===\n\n";
+            echo "Total de tabelas: " . count($tables) . "\n\n";
+            
+            // Separar tabelas do sistema jurídico e outras
+            $tabelas_juridicas = ['processos', 'movimentacoes_processuais', 'prazos', 'audiencias', 'documentos_processuais', 'servicos_juridicos'];
+            $tabelas_principais = ['clientes', 'usuarios', 'lancamentos', 'cobrancas', 'permissoes', 'configuracoes', 'contas', 'categorias'];
+            $tabelas_sistema = ['ci_sessions', 'migrations'];
+            
+            $juridicas = [];
+            $principais = [];
+            $sistema = [];
+            $outras = [];
+            
+            foreach ($tables as $table) {
+                if (in_array($table, $tabelas_juridicas)) {
+                    $juridicas[] = $table;
+                } elseif (in_array($table, $tabelas_principais)) {
+                    $principais[] = $table;
+                } elseif (in_array($table, $tabelas_sistema)) {
+                    $sistema[] = $table;
+                } else {
+                    $outras[] = $table;
+                }
+            }
+            
+            if (!empty($juridicas)) {
+                echo "📋 TABELAS DO SISTEMA JURÍDICO:\n";
+                foreach ($juridicas as $table) {
+                    $count = $this->db->count_all($table);
+                    echo "  ✅ $table ($count registros)\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($principais)) {
+                echo "📊 TABELAS PRINCIPAIS:\n";
+                foreach ($principais as $table) {
+                    $count = $this->db->count_all($table);
+                    echo "  ✅ $table ($count registros)\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($sistema)) {
+                echo "⚙️  TABELAS DO SISTEMA:\n";
+                foreach ($sistema as $table) {
+                    $count = $this->db->count_all($table);
+                    echo "  ✅ $table ($count registros)\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($outras)) {
+                echo "📁 OUTRAS TABELAS:\n";
+                foreach ($outras as $table) {
+                    $count = $this->db->count_all($table);
+                    echo "  ✅ $table ($count registros)\n";
+                }
+                echo "\n";
+            }
+            
+            // Verificar estrutura de algumas tabelas importantes
+            echo "=== VERIFICAÇÃO DE ESTRUTURA ===\n\n";
+            
+            // Verificar tabela processos
+            if ($this->db->table_exists('processos')) {
+                echo "✅ Tabela 'processos' existe\n";
+                $columns = $this->db->list_fields('processos');
+                echo "   Colunas: " . implode(', ', $columns) . "\n";
+            } else {
+                echo "❌ Tabela 'processos' NÃO existe\n";
+            }
+            echo "\n";
+            
+            // Verificar tabela prazos
+            if ($this->db->table_exists('prazos')) {
+                echo "✅ Tabela 'prazos' existe\n";
+                $columns = $this->db->list_fields('prazos');
+                echo "   Colunas: " . implode(', ', $columns) . "\n";
+            } else {
+                echo "❌ Tabela 'prazos' NÃO existe\n";
+            }
+            echo "\n";
+            
+            // Verificar tabela audiencias
+            if ($this->db->table_exists('audiencias')) {
+                echo "✅ Tabela 'audiencias' existe\n";
+                $columns = $this->db->list_fields('audiencias');
+                echo "   Colunas: " . implode(', ', $columns) . "\n";
+            } else {
+                echo "❌ Tabela 'audiencias' NÃO existe\n";
+            }
+            echo "\n";
+            
+            // Verificar tabela servicos_juridicos
+            if ($this->db->table_exists('servicos_juridicos')) {
+                echo "✅ Tabela 'servicos_juridicos' existe\n";
+                $columns = $this->db->list_fields('servicos_juridicos');
+                echo "   Colunas: " . implode(', ', $columns) . "\n";
+            } else {
+                echo "⚠️  Tabela 'servicos_juridicos' NÃO existe (pode estar como 'servicos')\n";
+            }
+            echo "\n";
+            
+        } catch (Exception $e) {
+            echo "❌ Erro ao listar tabelas: " . $e->getMessage() . "\n";
+        }
+    }
+
+    public function verificar_clientes()
+    {
+        try {
+            if (!$this->db->table_exists('clientes')) {
+                echo "❌ Tabela 'clientes' não existe.\n";
+                return;
+            }
+
+            echo "=== ESTRUTURA DA TABELA CLIENTES ===\n\n";
+            
+            $columns = $this->db->list_fields('clientes');
+            echo "Total de colunas: " . count($columns) . "\n\n";
+            
+            // Separar campos por categoria
+            $campos_basicos = ['idClientes', 'nomeCliente', 'documento', 'email', 'telefone', 'celular', 'dataCadastro'];
+            $campos_endereco = ['rua', 'numero', 'bairro', 'cidade', 'estado', 'cep', 'complemento', 'contato'];
+            $campos_pf = ['rg', 'filiacao', 'profissao', 'sexo', 'pessoa_fisica'];
+            $campos_pj = ['razao_social', 'inscricao_estadual', 'inscricao_municipal', 'representantes_legais', 'socios', 'ramo_atividade'];
+            $campos_juridicos = ['oab', 'tipo_cliente', 'observacoes_juridicas'];
+            $campos_adicionais = ['emails_adicionais', 'telefones_adicionais', 'senha', 'fornecedor', 'asaas_id'];
+            
+            $basicos = [];
+            $endereco = [];
+            $pf = [];
+            $pj = [];
+            $juridicos = [];
+            $adicionais = [];
+            $outros = [];
+            
+            foreach ($columns as $col) {
+                if (in_array($col, $campos_basicos)) {
+                    $basicos[] = $col;
+                } elseif (in_array($col, $campos_endereco)) {
+                    $endereco[] = $col;
+                } elseif (in_array($col, $campos_pf)) {
+                    $pf[] = $col;
+                } elseif (in_array($col, $campos_pj)) {
+                    $pj[] = $col;
+                } elseif (in_array($col, $campos_juridicos)) {
+                    $juridicos[] = $col;
+                } elseif (in_array($col, $campos_adicionais)) {
+                    $adicionais[] = $col;
+                } else {
+                    $outros[] = $col;
+                }
+            }
+            
+            if (!empty($basicos)) {
+                echo "📋 CAMPOS BÁSICOS:\n";
+                foreach ($basicos as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($endereco)) {
+                echo "📍 CAMPOS DE ENDEREÇO:\n";
+                foreach ($endereco as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($pf)) {
+                echo "👤 CAMPOS PESSOA FÍSICA (PF):\n";
+                foreach ($pf as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($pj)) {
+                echo "🏢 CAMPOS PESSOA JURÍDICA (PJ):\n";
+                foreach ($pj as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($juridicos)) {
+                echo "⚖️  CAMPOS JURÍDICOS:\n";
+                foreach ($juridicos as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($adicionais)) {
+                echo "➕ CAMPOS ADICIONAIS:\n";
+                foreach ($adicionais as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            if (!empty($outros)) {
+                echo "📁 OUTROS CAMPOS:\n";
+                foreach ($outros as $col) {
+                    echo "  ✅ $col\n";
+                }
+                echo "\n";
+            }
+            
+            // Verificar campos que deveriam existir mas não existem
+            echo "=== VERIFICAÇÃO DE CAMPOS ESPERADOS ===\n\n";
+            
+            $campos_esperados_pf = ['rg', 'filiacao', 'profissao'];
+            $campos_esperados_pj = ['razao_social', 'inscricao_estadual', 'inscricao_municipal', 'representantes_legais', 'socios'];
+            
+            echo "Campos PF esperados:\n";
+            foreach ($campos_esperados_pf as $campo) {
+                if (in_array($campo, $columns)) {
+                    echo "  ✅ $campo\n";
+                } else {
+                    echo "  ❌ $campo (FALTANDO)\n";
+                }
+            }
+            echo "\n";
+            
+            echo "Campos PJ esperados:\n";
+            foreach ($campos_esperados_pj as $campo) {
+                if (in_array($campo, $columns)) {
+                    echo "  ✅ $campo\n";
+                } else {
+                    echo "  ❌ $campo (FALTANDO)\n";
+                }
+            }
+            echo "\n";
+            
+        } catch (Exception $e) {
+            echo "❌ Erro ao verificar clientes: " . $e->getMessage() . "\n";
         }
     }
 }

@@ -42,13 +42,41 @@ if (! defined('BASEPATH')) {
 |
 */
 
-$route['default_controller'] = 'mapos';
+$route['default_controller'] = 'adv';
 $route['404_override'] = '';
 
-// Rotas da API
-if (filter_var($_ENV['API_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-    require APPPATH . 'config/routes_api.php';
-}
+// Rotas dos novos módulos jurídicos
+$route['processos'] = 'processos/gerenciar';
+$route['processos/adicionar'] = 'processos/adicionar';
+$route['processos/editar/(:num)'] = 'processos/editar/$1';
+$route['processos/visualizar/(:num)'] = 'processos/visualizar/$1';
+$route['processos/excluir'] = 'processos/excluir';
+
+$route['prazos'] = 'prazos/gerenciar';
+$route['prazos/adicionar'] = 'prazos/adicionar';
+$route['prazos/editar/(:num)'] = 'prazos/editar/$1';
+$route['prazos/visualizar/(:num)'] = 'prazos/visualizar/$1';
+$route['prazos/excluir'] = 'prazos/excluir';
+
+$route['audiencias'] = 'audiencias/gerenciar';
+$route['audiencias/adicionar'] = 'audiencias/adicionar';
+$route['audiencias/editar/(:num)'] = 'audiencias/editar/$1';
+$route['audiencias/visualizar/(:num)'] = 'audiencias/visualizar/$1';
+$route['audiencias/excluir'] = 'audiencias/excluir';
+
+$route['planos'] = 'planos/gerenciar';
+$route['planos/adicionar'] = 'planos/adicionar';
+$route['planos/editar/(:num)'] = 'planos/editar/$1';
+$route['planos/visualizar/(:num)'] = 'planos/visualizar/$1';
+$route['planos/excluir'] = 'planos/excluir';
+
+$route['consulta-processual'] = 'consultaProcessual/index';
+$route['consulta-processual/consultar'] = 'consultaProcessual/consultar';
+$route['consulta-processual/sincronizar/(:num)'] = 'consultaProcessual/sincronizar/$1';
+$route['consulta-processual/buscar-cliente'] = 'consultaProcessual/buscar_cliente';
+$route['consulta-processual/cadastrar-cliente-rapido'] = 'consultaProcessual/cadastrar_cliente_rapido';
+$route['consulta-processual/salvar-processo'] = 'consultaProcessual/salvar_processo';
+
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */

@@ -80,11 +80,33 @@ class Cobrancas extends MY_Controller
         }
     }
 
+    public function gerenciar()
+    {
+        // Alias para cobrancas()
+        $this->cobrancas();
+    }
+
     public function cobrancas()
     {
         if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'vCobranca')) {
             $this->session->set_flashdata('error', 'Você não tem permissão para visualizar cobrancas.');
             redirect(base_url());
+        }
+
+        // Se for requisição AJAX do DataTables, retornar JSON
+        // Verificar se é requisição do DataTables (tem parâmetros específicos)
+        $hasDatatablesParams = (
+            $this->input->get('sEcho') !== false || 
+            $this->input->get('draw') !== false ||
+            $this->input->get('iDisplayStart') !== false ||
+            $this->input->get('start') !== false ||
+            $this->input->get('iDisplayLength') !== false ||
+            $this->input->get('length') !== false
+        );
+        
+        if ($this->input->is_ajax_request() && $hasDatatablesParams) {
+            $this->datatables_ajax();
+            return;
         }
 
         $this->load->library('pagination');
@@ -95,11 +117,143 @@ class Cobrancas extends MY_Controller
 
         $this->pagination->initialize($this->data['configuration']);
 
-        $this->data['results'] = $this->cobrancas_model->get('cobrancas', '*', '', $this->data['configuration']['per_page'], $this->uri->segment(3));
+        // Carregar apenas primeira página para fallback (quando JS desabilitado)
+        $this->data['results'] = $this->cobrancas_model->get('cobrancas', '*', '', $this->data['configuration']['per_page'], 0);
 
         $this->data['view'] = 'cobrancas/cobrancas';
 
         return $this->layout();
+    }
+
+    /**
+     * Retorna dados para DataTables (server-side processing)
+     */
+    private function datatables_ajax()
+    {
+        // Carregar helper
+        $this->load->helper('general');
+        
+        // DataTables 1.9.4 usa parâmetros diferentes
+        // sEcho deve ser retornado exatamente como foi enviado
+        $sEcho = $this->input->get('sEcho');
+        if ($sEcho === false || $sEcho === null) {
+            $sEcho = $this->input->get('draw') ?: 1;
+        }
+        
+        $start = intval($this->input->get('iDisplayStart') ?: $this->input->get('start') ?: 0);
+        $length = intval($this->input->get('iDisplayLength') ?: $this->input->get('length') ?: 20);
+        
+        // Buscar termo de pesquisa
+        $search = '';
+        $search_param = $this->input->get('sSearch');
+        if ($search_param !== false && $search_param !== null && $search_param !== '') {
+            $search = $search_param;
+        } else {
+            $search_array = $this->input->get('search');
+            if (is_array($search_array) && isset($search_array['value'])) {
+                $search = $search_array['value'];
+            }
+        }
+        
+        // Total de registros sem filtro
+        $recordsTotal = $this->cobrancas_model->count('cobrancas');
+        
+        // Buscar registros com paginação e filtro
+        $where = '';
+        if ($search) {
+            $where = $search;
+        }
+        $results = $this->cobrancas_model->get('cobrancas', '*', $where, $length, $start);
+        
+        // Total de registros com filtro aplicado
+        $recordsFiltered = $recordsTotal;
+        if ($search) {
+            // Resetar query builder
+            $this->db->reset_query();
+            
+            $this->db->from('cobrancas');
+            
+            // Aplicar filtros de busca
+            $this->db->group_start();
+            $this->db->like('idCobranca', $search);
+            $this->db->or_like('payment_gateway', $search);
+            $this->db->or_like('payment_method', $search);
+            $this->db->or_like('status', $search);
+            $this->db->group_end();
+            
+            $recordsFiltered = $this->db->count_all_results();
+        }
+        
+        // Carregar configuração de gateways
+        $this->load->config('payment_gateways');
+        $payment_gateways = $this->config->item('payment_gateways');
+        
+        // Formatar dados para DataTables
+        $data = [];
+        if ($results) {
+            foreach ($results as $r) {
+                // Formatar data de vencimento
+                $dataVencimento = isset($r->expire_at) ? date('d/m/Y', strtotime($r->expire_at)) : '-';
+                
+                // Status usando função helper
+                $cobrancaStatus = getCobrancaTransactionStatus(
+                    $payment_gateways,
+                    $r->payment_gateway ?? '',
+                    $r->status ?? ''
+                );
+                
+                // Formatar valor (total está em centavos)
+                $valor = isset($r->total) ? 'R$ ' . number_format($r->total / 100, 2, ',', '.') : '-';
+                
+                // Referência (os_id ou vendas_id)
+                $referencia = '-';
+                if (isset($r->os_id) && $r->os_id != '') {
+                    $referencia = '<a href="' . base_url() . 'index.php/os/visualizar/' . $r->os_id . '">Ordem de Serviço: #' . $r->os_id . '</a>';
+                } elseif (isset($r->vendas_id) && $r->vendas_id != '') {
+                    $referencia = '<a href="' . base_url() . 'index.php/vendas/visualizar/' . $r->vendas_id . '">Venda: #' . $r->vendas_id . '</a>';
+                }
+                
+                // Ações
+                $acoes = '';
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCobranca')) {
+                    $acoes .= '<a style="margin-right: 1%" href="#modal-cancelar" role="button" data-toggle="modal" cancela_id="' . $r->idCobranca . '" class="btn-nwe4" title="Cancelar Cobrança"><i class="bx bx-x"></i></a>';
+                    $acoes .= '<a style="margin-right: 1%" href="' . base_url() . 'index.php/cobrancas/atualizar/' . $r->idCobranca . '" class="btn-nwe" title="Atualizar Cobrança"><i class="bx bx-refresh"></i></a>';
+                    $acoes .= '<a style="margin-right: 1%" href="#modal-confirmar" role="button" data-toggle="modal" confirma_id="' . $r->idCobranca . '" class="btn-nwe3" title="Confirmar pagamento"><i class="bx bx-check"></i></a>';
+                    $acoes .= '<a style="margin-right: 1%" href="' . base_url() . 'index.php/cobrancas/visualizar/' . $r->idCobranca . '" class="btn-nwe2" title="Ver mais detalhes"><i class="bx bx-show"></i></a>';
+                    $acoes .= '<a style="margin-right: 1%" href="' . base_url() . 'index.php/cobrancas/enviarEmail/' . $r->idCobranca . '" class="btn-nwe5" title="Enviar por E-mail"><i class="bx bx-envelope"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eCobranca') && isset($r->barcode) && $r->barcode != '') {
+                    $acoes .= '<a style="margin-right: 1%" href="' . ($r->link ?? '#') . '" target="_blank" class="btn-nwe" title="Visualizar boleto"><i class="bx bx-barcode"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'dCobranca')) {
+                    $acoes .= '<a href="#modal-excluir" role="button" data-toggle="modal" excluir_id="' . $r->idCobranca . '" class="btn-nwe4" title="Excluir Cobrança"><i class="bx bx-trash-alt"></i></a>';
+                }
+                
+                $data[] = [
+                    $r->idCobranca ?? '-',
+                    $r->payment_gateway ?? '-',
+                    $r->payment_method ?? '-',
+                    $dataVencimento,
+                    $referencia,
+                    $cobrancaStatus,
+                    $valor,
+                    $acoes
+                ];
+            }
+        }
+        
+        // DataTables 1.9.4 usa formato diferente
+        // sEcho deve ser retornado exatamente como foi enviado (pode ser string)
+        $response = [
+            'sEcho' => $sEcho, // Manter original, não converter para int
+            'iTotalRecords' => intval($recordsTotal),
+            'iTotalDisplayRecords' => intval($recordsFiltered),
+            'aaData' => $data
+        ];
+        
+        $this->output
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function excluir()

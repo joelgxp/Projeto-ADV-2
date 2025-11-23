@@ -13,8 +13,15 @@ class Cobrancas_model extends CI_Model
 
     public function get($table, $fields, $where = '', $perpage = 0, $start = 0, $one = false, $array = 'array')
     {
-        $this->db->select($fields, 'vendas.*,os.*');
+        $this->db->select($fields);
         $this->db->from($table);
+        
+        // Join com processos se a tabela existir
+        if ($this->db->table_exists('processos')) {
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $this->db->join('processos', 'processos.idProcessos = cobrancas.processos_id', 'left');
+        }
+        
         $this->db->limit($perpage, $start);
         $this->db->order_by('idCobranca', 'desc');
         if ($where) {
@@ -22,6 +29,12 @@ class Cobrancas_model extends CI_Model
         }
 
         $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query Cobrancas_model::get: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        
         $result = ! $one ? $query->result() : $query->row();
 
         return $result;
@@ -38,14 +51,27 @@ class Cobrancas_model extends CI_Model
         return $this->db->get()->row();
     }
 
-    public function getByOs($id)
+    public function getByProcesso($processo_id)
     {
-        return $this->db->query("SELECT DISTINCT `cobrancas`.*,`clientes`.*,`os`.* FROM `cobrancas`,`clientes`,`os` WHERE `charge_id` = $id AND `os`.`idOs` = `cobrancas`.`os_id`")->row();
-    }
-
-    public function getByVendas($id)
-    {
-        return $this->db->query("SELECT DISTINCT `cobrancas`.*,`clientes`.*,`vendas`.* FROM `cobrancas`,`clientes`,`vendas` WHERE `charge_id` = $id AND `vendas`.`idVendas` = `cobrancas`.`vendas_id`")->row();
+        if (!$this->db->table_exists('cobrancas') || !$this->db->table_exists('processos')) {
+            return false;
+        }
+        
+        $this->db->select('cobrancas.*, clientes.*, processos.numeroProcesso, processos.classe, processos.assunto');
+        $this->db->from('cobrancas');
+        $this->db->join('clientes', 'clientes.idClientes = cobrancas.clientes_id', 'left');
+        $this->db->join('processos', 'processos.idProcessos = cobrancas.processos_id', 'left');
+        $this->db->where('cobrancas.processos_id', $processo_id);
+        $this->db->order_by('cobrancas.idCobranca', 'desc');
+        
+        $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getByProcesso: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        
+        return $query->result();
     }
 
     public function add($table, $data, $returnId = false)

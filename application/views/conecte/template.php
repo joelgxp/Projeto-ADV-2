@@ -49,10 +49,10 @@
     <nav id="sidebar">
         <div id="newlog">
             <div class="icon2">
-                <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+                <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
             </div>
             <div class="title1">
-                <img src="<?= base_url() ?>assets/img/logo-mapos-branco.png">
+                <img src="<?= base_url() ?>assets/img/logo-adv-branco.svg" onerror="this.src='<?= base_url() ?>assets/img/logo-adv-branco.png'">
             </div>
         </div>
         <a href="#" class="visible-phone">
@@ -70,18 +70,18 @@
                     <li class="<?php if (isset($menuPainel)) {
                                     echo 'active';
                                 }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/painel"><i class='bx bx-home-alt iconX'></i> <span class="title">Painel</span></a></li>
-                    <li class="<?php if (isset($menuConta)) {
+                    <li class="<?php if (isset($menuProcessos)) {
                                     echo 'active';
-                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/conta"><i class="bx bx-user-circle iconX"></i> <span class="title">Minha Contas</span></a></li>
-                    <li class="<?php if (isset($menuOs)) {
+                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/processos"><i class='bx bx-file-blank iconX'></i> <span class="title">Processos</span></a></li>
+                    <li class="<?php if (isset($menuPrazos)) {
                                     echo 'active';
-                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/os"><i class='bx bx-spreadsheet iconX'></i> <span class="title">Ordens de Serviço</span></a></li>
-                    <li class="<?php if (isset($menuVendas)) {
-                                    echo 'active';
-                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/compras"><i class='bx bx-cart-alt iconX'></i> <span class="title">Compras</span></a></li>
+                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/prazos"><i class='bx bx-calendar-check iconX'></i> <span class="title">Prazos</span></a></li>
                     <li class="<?php if (isset($menuCobrancas)) {
                                     echo 'active';
                                 }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/cobrancas"><i class='bx bx-credit-card-front iconX'></i> <span class="title">Cobranças</span></a></li>
+                    <li class="<?php if (isset($menuConta)) {
+                                    echo 'active';
+                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/conta"><i class="bx bx-user-circle iconX"></i> <span class="title">Minha Conta</span></a></li>
                 </ul>
             </div>
 

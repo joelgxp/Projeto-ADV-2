@@ -196,7 +196,8 @@ function validarCNPJ(cnpj) {
 
     $('#buscar_info_cnpj').on('click', function () {
         // Pega o valor original do campo, sem remover letras
-        var ndocumento = $('#documento').val().trim();
+        // Usa documento_pj pois a busca só funciona para pessoa jurídica
+        var ndocumento = $('#documento_pj').length > 0 ? $('#documento_pj').val().trim() : $('#documento').val().trim();
 
         if (validarCNPJ(ndocumento)) {
             // Se for CNPJ alfanumérico, exibe alerta e não faz requisição
@@ -210,19 +211,41 @@ function validarCNPJ(cnpj) {
             }
 
         //Nova variável "ndocumento" somente com dígitos.
-        var ndocumento = $('#documento').val().replace(/\D/g, '');
+        var ndocumento = $('#documento_pj').length > 0 ? $('#documento_pj').val().replace(/\D/g, '') : $('#documento').val().replace(/\D/g, '');
 
             //Preenche os campos com "..." enquanto consulta webservice.
-            $("#nomeCliente").val("...");
-            $("#email").val("...");
-            $("#cep").val("...");
-            $("#rua").val("...");
-            $("#numero").val("...");
-            $("#bairro").val("...");
-            $("#cidade").val("...");
-            $("#estado").val("...");
-            $("#complemento").val("...");
-            $("#telefone").val("...");
+            if ($("#razao_social").length > 0) {
+                $("#razao_social").val("...");
+            } else if ($("#nomeCliente").length > 0) {
+                $("#nomeCliente").val("...");
+            }
+            if ($("#email").length > 0) {
+                $("#email").val("...");
+            }
+            if ($("#cep").length > 0) {
+                $("#cep").val("...");
+            }
+            if ($("#rua").length > 0) {
+                $("#rua").val("...");
+            }
+            if ($("#numero").length > 0) {
+                $("#numero").val("...");
+            }
+            if ($("#bairro").length > 0) {
+                $("#bairro").val("...");
+            }
+            if ($("#cidade").length > 0) {
+                $("#cidade").val("...");
+            }
+            if ($("#estado").length > 0) {
+                $("#estado").val("...");
+            }
+            if ($("#complemento").length > 0) {
+                $("#complemento").val("...");
+            }
+            if ($("#telefone").length > 0) {
+                $("#telefone").val("...");
+            }
             //Consulta o webservice receitaws.com.br/
             $.ajax({
                 url: "https://www.receitaws.com.br/v1/cnpj/" + ndocumento,
@@ -232,41 +255,86 @@ function validarCNPJ(cnpj) {
                 success: function (dados) {
                     if (dados.status == "OK") {
                         //Atualiza os campos com os valores da consulta.
-                        if ($("#nomeCliente").val() != null) {
+                        // Para Pessoa Jurídica (razao_social) ou Pessoa Física (nomeCliente)
+                        if ($("#razao_social").length > 0) {
+                            $("#razao_social").val(capital_letter(dados.nome));
+                        } else if ($("#nomeCliente").length > 0) {
                             $("#nomeCliente").val(capital_letter(dados.nome));
                         }
-                        if ($("#nomeEmitente").val() != null) {
+                        if ($("#nomeEmitente").length > 0) {
                             $("#nomeEmitente").val(capital_letter(dados.nome));
                         }
-                        $("#cep").val(dados.cep.replace(/\./g, ''));
-                        $("#email").val(dados.email.toLocaleLowerCase());
-                        $("#telefone").val(dados.telefone.split("/")[0].replace(/\ /g, ''));
-                        $("#rua").val(capital_letter(dados.logradouro));
-                        $("#numero").val(dados.numero);
-                        $("#bairro").val(capital_letter(dados.bairro));
-                        $("#cidade").val(capital_letter(dados.municipio));
-                        $("#estado").val(dados.uf);
-                        if (dados.complemento != "") {
+                        // Nome fantasia se existir
+                        if ($("#nome_fantasia").length > 0 && dados.fantasia) {
+                            $("#nome_fantasia").val(capital_letter(dados.fantasia));
+                        }
+                        // Inscrição estadual se existir
+                        if ($("#inscricao_estadual").length > 0 && dados.inscricao_estadual) {
+                            $("#inscricao_estadual").val(dados.inscricao_estadual);
+                        }
+                        // CNAE se existir
+                        if ($("#cnae").length > 0 && dados.atividade_principal && dados.atividade_principal.length > 0) {
+                            $("#cnae").val(dados.atividade_principal[0].code);
+                        }
+                        // Ramo de atividade se existir
+                        if ($("#ramo_atividade").length > 0 && dados.atividade_principal && dados.atividade_principal.length > 0) {
+                            $("#ramo_atividade").val(capital_letter(dados.atividade_principal[0].text));
+                        }
+                        
+                        if (dados.cep) {
+                            $("#cep").val(dados.cep.replace(/\./g, ''));
+                        }
+                        if (dados.email) {
+                            $("#email").val(dados.email.toLocaleLowerCase());
+                        }
+                        if (dados.telefone) {
+                            $("#telefone").val(dados.telefone.split("/")[0].replace(/\ /g, ''));
+                        }
+                        if (dados.logradouro) {
+                            $("#rua").val(capital_letter(dados.logradouro));
+                        }
+                        if (dados.numero) {
+                            $("#numero").val(dados.numero);
+                        }
+                        if (dados.bairro) {
+                            $("#bairro").val(capital_letter(dados.bairro));
+                        }
+                        if (dados.municipio) {
+                            $("#cidade").val(capital_letter(dados.municipio));
+                        }
+                        if (dados.uf) {
+                            $("#estado").val(dados.uf);
+                        }
+                        if (dados.complemento && dados.complemento != "") {
                             $("#complemento").val(capital_letter(dados.complemento));
-                        } else{
+                        } else {
                             $("#complemento").val("");
                         }
 
-                        // Força uma atualizacao do endereco via cep
-                        //document.getElementById("cep").focus();
-                        if ($("#nomeCliente").val() != null) {
+                        // Focar no campo apropriado
+                        if ($("#razao_social").length > 0) {
+                            document.getElementById("razao_social").focus();
+                        } else if ($("#nomeCliente").length > 0) {
                             document.getElementById("nomeCliente").focus();
-                        }
-                        if ($("#nomeEmitente").val() != null) {
+                        } else if ($("#nomeEmitente").length > 0) {
                             document.getElementById("nomeEmitente").focus();
                         }
+                        
+                        Swal.fire({
+                            icon: "success",
+                            title: "Sucesso",
+                            text: "Dados do CNPJ preenchidos automaticamente!"
+                        });
                     } //end if.
                     else {
-                        //CEP pesquisado não foi encontrado.
-                        if ($("#nomeCliente").val() != null) {
+                        //CNPJ pesquisado não foi encontrado.
+                        if ($("#razao_social").length > 0) {
+                            $("#razao_social").val("");
+                        }
+                        if ($("#nomeCliente").length > 0) {
                             $("#nomeCliente").val("");
                         }
-                        if ($("#nomeEmitente").val() != null) {
+                        if ($("#nomeEmitente").length > 0) {
                             $("#nomeEmitente").val("");
                         }
                         $("#cep").val("");
@@ -276,18 +344,21 @@ function validarCNPJ(cnpj) {
                         $("#telefone").val("");
 
                         Swal.fire({
-                            type: "warning",
+                            icon: "warning",
                             title: "Atenção",
                             text: "CNPJ não encontrado."
                         });
                     }
                 },
                 error: function () {
-                    ///CEP pesquisado não foi encontrado.
-                    if ($("#nomeCliente").val() != null) {
+                    //CNPJ pesquisado não foi encontrado.
+                    if ($("#razao_social").length > 0) {
+                        $("#razao_social").val("");
+                    }
+                    if ($("#nomeCliente").length > 0) {
                         $("#nomeCliente").val("");
                     }
-                    if ($("#nomeEmitente").val() != null) {
+                    if ($("#nomeEmitente").length > 0) {
                         $("#nomeEmitente").val("");
                     }
                     $("#cep").val("");
@@ -297,7 +368,7 @@ function validarCNPJ(cnpj) {
                     $("#telefone").val("");
 
                     Swal.fire({
-                        type: "warning",
+                        icon: "warning",
                         title: "Atenção",
                         text: "CNPJ não encontrado."
                     });
@@ -306,70 +377,11 @@ function validarCNPJ(cnpj) {
             });
         } else {
             Swal.fire({
-                type: "warning",
+                icon: "warning",
                 title: "Atenção",
                 text: "CNPJ inválido!"
             });
         }
     });
 
-    //Quando o campo cep perde o foco.
-    $("#cep").blur(function () {
-
-        //Nova variável "cep" somente com dígitos.
-        var cep = $(this).val().replace(/\D/g, '');
-
-        //Verifica se campo cep possui valor informado.
-        if (cep != "") {
-
-            //Expressão regular para validar o CEP.
-
-            var validacep = /^[0-9]{8}$/;
-
-            //Valida o formato do CEP.
-
-            if (validacep.test(cep)) {
-
-                //Preenche os campos com "..." enquanto consulta webservice.
-                $("#rua").val("...");
-                $("#bairro").val("...");
-                $("#cidade").val("...");
-                $("#estado").val("...");
-
-                //Consulta o webservice viacep.com.br/
-                $.getJSON("https://viacep.com.br/ws/" + cep.replace(/\./g, '') + "/json/?callback=?", function (dados) {
-
-                    if (!("erro" in dados)) {
-                        //Atualiza os campos com os valores da consulta.
-                        $("#rua").val(dados.logradouro);
-                        $("#bairro").val(dados.bairro);
-                        $("#cidade").val(dados.localidade);
-                        $("#estado").val(dados.uf);
-                    } //end if.
-                    else {
-                        //CEP pesquisado não foi encontrado.
-                        limpa_formulario_cep();
-                        Swal.fire({
-                            type: "warning",
-                            title: "Atenção",
-                            text: "CEP não encontrado."
-                        });
-                    }
-                });
-            } //end if.
-            else {
-                //cep é inválido.
-                limpa_formulario_cep();
-                Swal.fire({
-                    type: "error",
-                    title: "Atenção",
-                    text: "Formato de CEP inválido."
-                });
-            }
-        } //end if.
-        else {
-            //cep sem valor, limpa formulário.
-            limpa_formulario_cep();
-        }
-    });
 }); 

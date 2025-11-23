@@ -34,8 +34,8 @@
         // Irá retornar conforme o horário:
         ?>
       </h1>
-      <h2 class="h-two"> Ao Sistema de Controle de Ordens de Serviço</h2>
-      <img src="<?php echo base_url() ?>assets/img/dashboard-animate.svg" class="left-login-image" alt="Map-OS - Versão: <?= $this->config->item('app_version'); ?>">
+      <h2 class="h-two"> Ao Sistema de Gestão Jurídica</h2>
+      <img src="<?php echo base_url() ?>assets/img/dashboard-animate.svg" class="left-login-image" alt="Adv - Versão: <?= $this->config->item('app_version'); ?>">
     </div>
     <form class="form-vertical" id="formLogin" method="post" action="<?= site_url('login/verificarLogin') ?>">
       <input type="hidden" name="<?= $this->security->get_csrf_token_name(); ?>" value="<?= $this->security->get_csrf_hash(); ?>">
@@ -54,10 +54,10 @@
               <div class="content">
                 <div id="newlog">
                   <div class="icon2">
-                    <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+                    <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
                   </div>
                   <div class="title01">
-                    <?= '<img src="' . base_url() . 'assets/img/logo-mapos-branco.png">'; ?>
+                    <?= '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
                   </div>
                 </div>
                 <div id="mcell">Versão: <?= $this->config->item('app_version'); ?></div>
@@ -79,7 +79,7 @@
                 <a href="#notification" id="call-modal" role="button" class="btn" data-toggle="modal" style="display: none ">notification</a>
                 <div id="notification" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                   <div class="modal-header">
-                    <h4 id="myModalLabel">Map-OS</h4>
+                    <h4 id="myModalLabel">Adv</h4>
                   </div>
                   <div class="modal-body">
                     <h5 style="text-align: center" id="message">Os dados de acesso estão incorretos, por favor tente novamente!</h5>
@@ -96,7 +96,7 @@
       <a href="#notification" id="call-modal" role="button" class="btn" data-toggle="modal" style="display: none ">notification</a>
       <div id="notification" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-header">
-          <h4 id="myModalLabel">Map-OS</h4>
+          <h4 id="myModalLabel">Adv</h4>
         </div>
         <div class="modal-body">
           <h5 style="text-align: center" id="message">Os dados de acesso estão incorretos, por favor tente novamente!</h5>
@@ -145,7 +145,7 @@
             dataType: 'json',
             success: function(data) {
                 if (data.result == true) {
-                    window.location.href = "<?= site_url('mapos'); ?>";
+                    window.location.href = "<?= site_url('adv'); ?>";
                 } else {
                     $('#btn-acessar').removeClass('disabled');
                     $('#progress-acessar').addClass('hide');
@@ -153,7 +153,7 @@
                     $('#call-modal').trigger('click');
 
                     // Atualiza o token a cada requisição
-                    var newCsrfToken = data.MAPOS_TOKEN; 
+                    var newCsrfToken = data.ADV_TOKEN || data.MAPOS_TOKEN; 
                     $("input[name='<?= $this->security->get_csrf_token_name(); ?>']").val(newCsrfToken);
                     
                 }

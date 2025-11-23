@@ -1,0 +1,410 @@
+.cliente-form__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.cliente-form__title-inline {
+    margin: 0;
+    font-size: 2em;
+    font-weight: 500;
+    color: #1f2933;
+}
+
+.cliente-form__tipo {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.tipo-cliente-select {
+    min-width: 180px;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #fff;
+    font-weight: 500;
+    color: #1f2933;
+}
+/**
+ * Estilos para formulário de clientes
+ * Extraído de adicionarCliente.php e editarCliente.php
+ */
+
+#imgSenha {
+    width: 18px;
+    cursor: pointer;
+}
+
+/* Hiding the checkbox, but allowing it to be focused */
+.badgebox {
+    opacity: 0;
+}
+
+.badgebox + .badge {
+    /* Move the check mark away when unchecked */
+    text-indent: -999999px;
+    /* Makes the badge's width stay the same checked and unchecked */
+    width: 27px;
+}
+
+.badgebox:focus + .badge {
+    /* Set something to make the badge looks focused */
+    /* This really depends on the application, in my case it was: */
+    /* Adding a light border */
+    box-shadow: inset 0px 0px 5px;
+    /* Taking the difference out of the padding */
+}
+
+.badgebox:checked + .badge {
+    /* Move the check mark back when checked */
+    text-indent: 0;
+}
+
+.control-group.error .help-inline {
+    display: flex;
+}
+
+.form-horizontal .control-group {
+    border-bottom: 1px solid #ffffff;
+}
+
+.form-horizontal .controls {
+    margin-left: 20px;
+    padding-bottom: 8px 0;
+}
+
+.form-horizontal .control-label {
+    text-align: left;
+    padding-top: 15px;
+}
+
+.nopadding {
+    padding: 0 20px !important;
+    margin-right: 20px;
+}
+
+.widget-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px;
+}
+
+.widget-title .icon {
+    display: flex;
+    align-items: center;
+}
+
+.widget-title h5 {
+    font-weight: 500;
+    padding: 12px;
+    padding-left: 18px;
+    line-height: 12px;
+    font-size: 1.7em;
+    color: var(--violeta1);
+    margin: 0;
+}
+
+.widget-title__tipo {
+    min-width: 180px;
+    display: flex;
+    align-items: center;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1000;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Feedback messages */
+.feedback-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    display: none;
+}
+
+.feedback-message.show {
+    display: block;
+}
+
+.feedback-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.feedback-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.feedback-message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Tabs padrão */
+.cliente-tabs {
+    margin-bottom: 24px;
+}
+
+.cliente-tabs__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 0 0 0 24px;
+}
+
+.cliente-step {
+    border: none;
+    background: #f5f5f5;
+    padding: 10px 18px;
+    font-weight: 600;
+    color: #555;
+    border-radius: 4px 4px 0 0;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+}
+
+.cliente-step.active {
+    background: #fff;
+    color: #222;
+    border-color: #3b82f6;
+}
+
+.cliente-tabs__content {
+    border-radius: 4px;
+    padding: 20px;
+    background: #fff;
+}
+
+.cliente-tab {
+    display: none;
+}
+
+.cliente-tab.active {
+    display: block;
+}
+
+ .cliente-grid {
+     display: grid;
+     gap: 15px;
+}
+
+ .cliente-grid--2 {
+     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+ }
+ 
+ .cliente-grid--stacked {
+     align-items: stretch;
+}
+
+ .cliente-grid--fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+ 
+ .cliente-field--sm {
+     max-width: 180px;
+ }
+ 
+ .cliente-field--span2 {
+     grid-column: span 2;
+ }
+ 
+ .cliente-field--span3 {
+     grid-column: span 3;
+ }
+ 
+.cliente-grid--fields .cliente-field,
+.cliente-grid--fields .cliente-field--sm,
+.cliente-grid--fields .cliente-field--span2,
+.cliente-grid--fields .cliente-field--span3 {
+    max-width: 100%;
+    width: 100%;
+}
+
+ .cliente-card {
+     background: #fff;
+    border: none;
+     border-radius: 4px;
+     padding: 15px;
+     display: flex;
+     flex-direction: column;
+     gap: 10px;
+     box-shadow: none;
+ }
+ 
+ .cliente-card__body {
+     display: flex;
+     flex-direction: column;
+     gap: 10px;
+ }
+ 
+ .cliente-card__body .control-group {
+     margin-bottom: 0;
+ }
+ 
+ .tipo-pessoa-toggle {
+     display: inline-flex;
+     gap: 10px;
+     flex-wrap: wrap;
+ }
+
+.tipo-pessoa-option {
+     background: #f7f7f7;
+    border-radius: 20px;
+     padding: 6px 14px;
+     border: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.tipo-pessoa-option input {
+    margin: 0;
+}
+
+.tipo-pessoa-option input:checked + span,
+.tipo-pessoa-option input:checked {
+    font-weight: 600;
+     color: #2563eb;
+}
+
+.campos-pf,
+.campos-pj {
+    transition: opacity 0.2s ease;
+}
+
+.cliente-card--naked {
+    border: none !important;
+    box-shadow: none;
+}
+
+.is-hidden {
+    display: none !important;
+}
+
+.cliente-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.senha-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.senha-wrapper img {
+    width: 20px;
+    cursor: pointer;
+}
+
+.file-preview {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.file-preview__img {
+    max-width: 80px;
+    max-height: 80px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.file-remove {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.form-actions__buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* Required field indicator */
+.required {
+    color: #e74c3c;
+    margin-left: 3px;
+}
+
+/* Form section styling */
+.form-section {
+    margin-bottom: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+    .cliente-form__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cliente-tab {
+        padding: 16px;
+    }
+
+    .cliente-card {
+        padding: 12px;
+    }
+}
+
+/* Responsive styles */
+@media (max-width: 480px) {
+    form {
+        display: contents !important;
+    }
+
+    .form-horizontal .control-label {
+        margin-bottom: -6px;
+    }
+
+    .btn-xs {
+        position: initial !important;
+    }
+}
