@@ -149,8 +149,8 @@ fi
         # ATENÇÃO: Download do GitHub foi removido
         # O instalador agora usa os arquivos locais do projeto
         # ============================================
-        if [ ! -f "$dirDefault/MapOS.zip" ]; then
-            echo "Erro: Arquivo MapOS.zip não encontrado em $dirDefault"
+        if [ ! -f "$dirDefault/Adv.zip" ] && [ ! -f "$dirDefault/MapOS.zip" ]; then
+            echo "Erro: Arquivo Adv.zip ou MapOS.zip não encontrado em $dirDefault"
             echo "Por favor, copie os arquivos do projeto manualmente ou configure um servidor de download"
             exit 1
         fi

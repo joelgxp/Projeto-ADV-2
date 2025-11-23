@@ -54,10 +54,10 @@
               <div class="content">
                 <div id="newlog">
                   <div class="icon2">
-                    <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+                    <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
                   </div>
                   <div class="title01">
-                    <?= '<img src="' . base_url() . 'assets/img/logo-adv-branco.png">'; ?>
+                    <?= '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
                   </div>
                 </div>
                 <div id="mcell">Versão: <?= $this->config->item('app_version'); ?></div>
@@ -153,7 +153,7 @@
                     $('#call-modal').trigger('click');
 
                     // Atualiza o token a cada requisição
-                    var newCsrfToken = data.MAPOS_TOKEN; 
+                    var newCsrfToken = data.ADV_TOKEN || data.MAPOS_TOKEN; 
                     $("input[name='<?= $this->security->get_csrf_token_name(); ?>']").val(newCsrfToken);
                     
                 }

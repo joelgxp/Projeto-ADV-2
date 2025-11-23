@@ -45,11 +45,9 @@
                 </thead>
                 <tbody>
                     <?php
-                        if (!$results) {
-                            echo '<tr>
-                                    <td colspan="7">Nenhum Serviço Jurídico Cadastrado</td>
-                                </tr>';
-                        }
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         foreach ($results as $r) {
                             echo '<tr>';
                             echo '<td>' . $r->idServicos . '</td>';
@@ -67,13 +65,16 @@
                             }
                             echo '</td>';
                             echo '</tr>';
-                        } ?>
+                        }
+                    } else {
+                        echo '<tr><td colspan="7" class="dataTables_empty">Carregando dados...</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-<?php echo $this->pagination->create_links(); ?>
 
 <!-- Modal -->
 <div id="modal-excluir" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">

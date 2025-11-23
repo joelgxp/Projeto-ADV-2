@@ -2,6 +2,8 @@
 # production
 /install/files
 /docker/data
+.cursor/
+docs/
 
 # misc
 .DS_Store

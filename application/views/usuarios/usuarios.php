@@ -42,34 +42,34 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($results)): ?>
-                        <tr>
-                            <td colspan="8">Nenhum Usuário Cadastrado</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($results as $r): ?>
+                    <?php
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
+                        foreach ($results as $r) {
+                            $situacao = (isset($r->situacao) && $r->situacao == 1) ? 'Ativo' : 'Inativo';
+                            $situacaoClasse = (isset($r->situacao) && $r->situacao == 1) ? 'situacao-ativo' : 'situacao-inativo';
+                            ?>
                             <tr>
                                 <td><?= $r->idUsuarios ?></td>
                                 <td><?= $r->nome ?></td>
                                 <td><?= $r->cpf ?></td>
                                 <td><?= $r->telefone ?></td>
                                 <td><?= $r->permissao ?></td>
-                                <?php
-                                $situacao = ($r->situacao == 1) ? 'Ativo' : 'Inativo';
-                                $situacaoClasse = ($r->situacao == 1) ? 'situacao-ativo' : 'situacao-inativo';
-                                ?>
                                 <td><span class="badge <?= $situacaoClasse ?>"><?= ucfirst($situacao) ?></span></td>
                                 <td><?= $r->dataExpiracao ?></td>
                                 <td>
-                                    <a href="<?= base_url('index.php/usuarios/editar/' . $r->idUsuarios) ?>" class="btn-nwe3" title="Editar OS"><i class="bx bx-edit"></i></a>
+                                    <a href="<?= base_url('index.php/usuarios/editar/' . $r->idUsuarios) ?>" class="btn-nwe3" title="Editar Usuário"><i class="bx bx-edit"></i></a>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                            <?php
+                        }
+                    } else {
+                        echo '<tr><td colspan="8" class="dataTables_empty">Carregando dados...</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<?= $this->pagination->create_links(); ?>

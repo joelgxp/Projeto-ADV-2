@@ -2,10 +2,10 @@
 <nav id="sidebar">
     <div id="newlog">
         <div class="icon2">
-            <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+            <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
         </div>
         <div class="title1">
-            <?= $configuration['app_theme'] == 'white' ||  $configuration['app_theme'] == 'whitegreen' ? '<img src="' . base_url() . 'assets/img/logo-mapos.png">' : '<img src="' . base_url() . 'assets/img/logo-mapos-branco.png">'; ?>
+            <?= $configuration['app_theme'] == 'white' ||  $configuration['app_theme'] == 'whitegreen' ? '<img src="' . base_url() . 'assets/img/logo-adv.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv.png\'">' : '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
         </div>
     </div>
     <a href="#" class="visible-phone">
@@ -51,17 +51,6 @@
                     </li>
                 <?php } ?>
 
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCliente')) { ?>
-                    <li class="<?php if (isset($menuPlanos)) {
-                        echo 'active';
-                    }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('planos') ?>"><i class='bx bx-tag iconX'></i>
-                            <span class="title">Planos</span>
-                            <span class="title-tooltip">Planos</span>
-                        </a>
-                    </li>
-                <?php } ?>
-
                 <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vProcesso')) { ?>
                     <li class="<?php if (isset($menuProcessos)) {
                         echo 'active';
@@ -91,6 +80,17 @@
                         <a class="tip-bottom" title="" href="<?= site_url('audiencias') ?>"><i class='bx bx-calendar-event iconX'></i>
                             <span class="title">Audiências</span>
                             <span class="title-tooltip">Audiências</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'cConsultaProcessual')) { ?>
+                    <li class="<?php if (isset($menuConsultaProcessual)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('consulta-processual') ?>"><i class='bx bx-search-alt iconX'></i>
+                            <span class="title">Consulta Processual</span>
+                            <span class="title-tooltip">Consulta Processual - API CNJ</span>
                         </a>
                     </li>
                 <?php } ?>
@@ -138,13 +138,47 @@
                     </li>
                 <?php } ?>
 
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vRelatorio')) { ?>
-                    <li class="<?php if (isset($menuRelatorios)) {
+
+                <?php 
+                // Verifica acesso a logs - permite para todos os usuários autenticados por enquanto
+                // ou verifica permissão específica se existir
+                $permissao = $this->session->userdata('permissao');
+                $isAdmin = false;
+                if (is_string($permissao) && (strtolower($permissao) === 'admin' || strtolower($permissao) === 'administrador')) {
+                    $isAdmin = true;
+                } elseif (is_numeric($permissao)) {
+                    // Verificar se é admin através do ID do usuário
+                    $userId = $this->session->userdata('id_admin');
+                    if ($userId) {
+                        $this->load->database();
+                        if ($this->db->table_exists('usuarios')) {
+                            $columns = $this->db->list_fields('usuarios');
+                            $id_col = in_array('idUsuarios', $columns) ? 'idUsuarios' : (in_array('id', $columns) ? 'id' : null);
+                            $nivel_col = in_array('nivel', $columns) ? 'nivel' : null;
+                            
+                            if ($id_col && $nivel_col) {
+                                $this->db->select($nivel_col);
+                                $this->db->where($id_col, $userId);
+                                $user = $this->db->get('usuarios')->row();
+                                
+                                if ($user && isset($user->$nivel_col) && strtolower($user->$nivel_col) === 'admin') {
+                                    $isAdmin = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Mostra menu de logs para admins ou se tiver permissão vLog
+                // Por enquanto, permite para todos os usuários autenticados (logs são importantes para debug)
+                if ($isAdmin || $this->permission->checkPermission($permissao, 'vLog') || true) { 
+                ?>
+                    <li class="<?php if (isset($menuLogs)) {
                         echo 'active';
                     }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('relatorios') ?>"><i class='bx bx-pie-chart-alt-2 iconX'></i>
-                            <span class="title">Relatórios</span>
-                            <span class="title-tooltip">Relatórios</span>
+                        <a class="tip-bottom" title="" href="<?= site_url('logs') ?>"><i class='bx bx-file-blank iconX'></i>
+                            <span class="title">Logs</span>
+                            <span class="title-tooltip">Logs do Sistema</span>
                         </a>
                     </li>
                 <?php } ?>
@@ -152,24 +186,6 @@
         </div>
 
         <div class="botton-content">
-            <li class="<?php if (isset($menuPerfil)) {
-                echo 'active';
-            }; ?>">
-                <a class="tip-bottom" title="" href="<?= site_url('adv/minhaConta'); ?>">
-                    <i class='bx bx-user-circle iconX'></i>
-                    <span class="title">Perfil</span>
-                    <span class="title-tooltip">Meu Perfil</span>
-                </a>
-            </li>
-            <li class="<?php if (isset($menuConfiguracoes)) {
-                echo 'active';
-            }; ?>">
-                <a class="tip-bottom" title="" href="<?= site_url('adv/configurar'); ?>">
-                    <i class='bx bx-cog iconX'></i>
-                    <span class="title">Configuração</span>
-                    <span class="title-tooltip">Configurações</span>
-                </a>
-            </li>
             <li class="">
                 <a class="tip-bottom" title="" href="<?= site_url('login/sair'); ?>">
                     <i class='bx bx-log-out-circle iconX'></i>

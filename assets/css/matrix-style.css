@@ -2419,7 +2419,7 @@ span.icon .checker {
 }
 
 .dataTables_paginate {
-  display     : none;
+  display     : block;
   line-height : 16px;
   text-align  : right;
   margin-top  : -14px;
@@ -2489,18 +2489,19 @@ div.dataTables_wrapper .ui-widget-header {
   padding: 5px;
 }
 
-.dataTables_filter {
-  color     : #878787;
-  font-size : 11px;
-  right     : 10px;
-  top       : 21px;
-  position  : absolute;
-  text-align: left;
+.dataTables_filter,
+.dataTables_filter input {
+  display: none !important;
 }
 
-.dataTables_filter input {
-  margin-bottom: 11px;
-  margin-left  : 5px;
+/* Mostrar paginação quando usar server-side processing */
+.dataTables_wrapper .dataTables_paginate {
+  display: block !important;
+}
+
+/* Esconder seletor de length - usa configuração do sistema */
+.dataTables_wrapper .dataTables_length {
+  display: none !important;
 }
 
 .table td {
@@ -3915,7 +3916,17 @@ form {
   }
 
   .dataTables_filter {
-    top: 10px;
+    display: none !important;
+  }
+  
+  /* Mostrar length e paginação quando usar server-side processing */
+  .dataTables_wrapper .dataTables_paginate {
+    display: block !important;
+  }
+  
+  /* Esconder seletor de length - usa configuração do sistema */
+  .dataTables_wrapper .dataTables_length {
+    display: none !important;
   }
 
   .dataTables_length {

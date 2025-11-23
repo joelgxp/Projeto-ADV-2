@@ -149,8 +149,9 @@ class Adv extends MY_Controller {
 
         if (!$this->upload->do_upload()) {
             $upload_error = $this->upload->display_errors();
-            print_r($upload_error);
-            exit();
+            log_message('error', 'Erro no upload: ' . $upload_error);
+            $this->session->set_flashdata('error', 'Erro ao fazer upload: ' . $upload_error);
+            return false;
         } else {
             $file_info = [$this->upload->data()];
 
@@ -185,8 +186,9 @@ class Adv extends MY_Controller {
 
         if (!$this->upload->do_upload()) {
             $upload_error = $this->upload->display_errors();
-            print_r($upload_error);
-            exit();
+            log_message('error', 'Erro no upload: ' . $upload_error);
+            $this->session->set_flashdata('error', 'Erro ao fazer upload: ' . $upload_error);
+            return false;
         } else {
             $file_info = [$this->upload->data()];
 
@@ -416,34 +418,12 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('app_theme', 'Tema do Sistema', 'required|trim');
         $this->form_validation->set_rules('email_automatico', 'Enviar Email Automático', 'required|trim');
         $this->form_validation->set_rules('notifica_whats', 'Notificação Whatsapp', 'required|trim');
-        $this->form_validation->set_rules('control_datatable', 'Controle de Visualização em DataTables', 'required|trim');
-        $this->form_validation->set_rules('control_2vias', 'Controle Impressão 2 Vias', 'required|trim');
-        $this->form_validation->set_rules('pix_key', 'Chave Pix', 'trim|valid_pix_key', [
-            'valid_pix_key' => 'Chave Pix inválida!',
-        ]);
 
         if ($this->form_validation->run() == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert">' . validation_errors() . '</div>' : false);
         } else {
             // Edição do .env
             $dataDotEnv = [
-                'IMPRIMIR_ANEXOS' => $this->input->post('imprmirAnexos'),
-                'PAYMENT_GATEWAYS_EFI_PRODUCTION' => $this->input->post('PAYMENT_GATEWAYS_EFI_PRODUCTION'),
-                'PAYMENT_GATEWAYS_EFI_CREDENTIAIS_CLIENT_ID' => $this->input->post('PAYMENT_GATEWAYS_EFI_CREDENTIAIS_CLIENT_ID'),
-                'PAYMENT_GATEWAYS_EFI_CREDENTIAIS_CLIENT_SECRET' => $this->input->post('PAYMENT_GATEWAYS_EFI_CREDENTIAIS_CLIENT_SECRET'),
-                'PAYMENT_GATEWAYS_EFI_BOLETO_EXPIRATION' => $this->input->post('PAYMENT_GATEWAYS_EFI_BOLETO_EXPIRATION'),
-                'PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_PUBLIC_KEY' => $this->input->post('PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_PUBLIC_KEY'),
-                'PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_ACCESS_TOKEN' => $this->input->post('PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_ACCESS_TOKEN'),
-                'PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_CLIENT_ID' => $this->input->post('PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_CLIENT_ID'),
-                'PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_CLIENT_SECRET' => $this->input->post('PAYMENT_GATEWAYS_MERCADO_PAGO_CREDENTIALS_CLIENT_SECRET'),
-                'PAYMENT_GATEWAYS_MERCADO_PAGO_BOLETO_EXPIRATION' => $this->input->post('PAYMENT_GATEWAYS_MERCADO_PAGO_BOLETO_EXPIRATION'),
-                'PAYMENT_GATEWAYS_ASAAS_PRODUCTION' => $this->input->post('PAYMENT_GATEWAYS_ASAAS_PRODUCTION'),
-                'PAYMENT_GATEWAYS_ASAAS_NOTIFY' => $this->input->post('PAYMENT_GATEWAYS_ASAAS_NOTIFY'),
-                'PAYMENT_GATEWAYS_ASAAS_CREDENTIAIS_API_KEY' => $this->input->post('PAYMENT_GATEWAYS_ASAAS_CREDENTIAIS_API_KEY'),
-                'PAYMENT_GATEWAYS_ASAAS_BOLETO_EXPIRATION' => $this->input->post('PAYMENT_GATEWAYS_ASAAS_BOLETO_EXPIRATION'),
-                'API_ENABLED' => $this->input->post('apiEnabled'),
-                'API_TOKEN_EXPIRE_TIME' => $this->input->post('apiExpireTime'),
-                'API_JWT_KEY' => $this->input->post('resetJwtToken'),
                 'EMAIL_PROTOCOL' => $this->input->post('EMAIL_PROTOCOL'),
                 'EMAIL_SMTP_HOST' => $this->input->post('EMAIL_SMTP_HOST'),
                 'EMAIL_SMTP_CRYPTO' => $this->input->post('EMAIL_SMTP_CRYPTO'),
@@ -463,9 +443,9 @@ class Adv extends MY_Controller {
                 'app_theme' => $this->input->post('app_theme'),
                 'email_automatico' => $this->input->post('email_automatico'),
                 'notifica_whats' => $this->input->post('notifica_whats'),
-                'control_datatable' => $this->input->post('control_datatable'),
-                'pix_key' => $this->input->post('pix_key'),
-                'control_2vias' => $this->input->post('control_2vias'),
+                'processo_notification' => $this->input->post('processo_notification'),
+                'prazo_notification' => $this->input->post('prazo_notification'),
+                'audiencia_notification' => $this->input->post('audiencia_notification'),
             ];
             if ($this->mapos_model->saveConfiguracao($data) == true) {
                 $this->session->set_flashdata('success', 'Configurações do sistema atualizadas com sucesso!');
@@ -695,17 +675,11 @@ class Adv extends MY_Controller {
         $env_file = file_get_contents($env_file_path);
 
         foreach ($data as $constante => $valor) {
-            if ($constante == 'API_JWT_KEY' && $valor == 'sim') {
-                $base64 = base64_encode(openssl_random_pseudo_bytes(32));
-                $valor = '"' . $base64 . '"';
-                $env_file = str_replace("$constante=" . '"' . $_ENV[$constante] . '"', "$constante={$valor}", $env_file);
+            if (isset($_ENV[$constante])) {
+                $env_file = str_replace("$constante={$_ENV[$constante]}", "$constante={$valor}", $env_file);
             } else {
-                if (isset($_ENV[$constante])) {
-                    $env_file = str_replace("$constante={$_ENV[$constante]}", "$constante={$valor}", $env_file);
-                } else {
-                    file_put_contents($env_file_path, $env_file . "\n{$constante}={$valor}\n");
-                    $env_file = file_get_contents($env_file_path);
-                }
+                file_put_contents($env_file_path, $env_file . "\n{$constante}={$valor}\n");
+                $env_file = file_get_contents($env_file_path);
             }
         }
         return file_put_contents($env_file_path, $env_file) ? true : false;

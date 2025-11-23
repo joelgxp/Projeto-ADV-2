@@ -93,16 +93,6 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align: right"><strong>Acesso à API</strong></td>
-                                    <td>
-                                        <?php if ($result->acesso_api == 1) : ?>
-                                            <span class="label label-success">Sim</span>
-                                        <?php else : ?>
-                                            <span class="label label-danger">Não</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <tr>
                                     <td style="text-align: right"><strong>Suporte Prioritário</strong></td>
                                     <td>
                                         <?php if ($result->suporte_prioritario == 1) : ?>

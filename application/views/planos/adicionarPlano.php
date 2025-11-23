@@ -69,10 +69,6 @@
                                     Acesso ao Portal do Cliente
                                 </label>
                                 <label class="checkbox">
-                                    <input type="checkbox" name="acesso_api" value="1" <?php echo set_checkbox('acesso_api', '1'); ?> />
-                                    Acesso à API
-                                </label>
-                                <label class="checkbox">
                                     <input type="checkbox" name="suporte_prioritario" value="1" <?php echo set_checkbox('suporte_prioritario', '1'); ?> />
                                     Suporte Prioritário
                                 </label>

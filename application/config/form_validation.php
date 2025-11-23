@@ -10,10 +10,16 @@ $config = [
             'rules' => 'required|trim',
         ],
         [
+            'field' => 'tipo_cliente',
+            'label' => 'Tipo de Cliente',
+            'rules' => 'required|trim|in_list[fisica,juridica]',
+        ],
+        [
             'field' => 'documento',
             'label' => 'CPF/CNPJ',
-            'rules' => 'trim|verific_cpf_cnpj|unique[clientes.documento.' . get_instance()->uri->segment(3) . '.idClientes]',
+            'rules' => 'trim|required|callback_validar_documento_obrigatorio|verific_cpf_cnpj|unique[clientes.documento.' . get_instance()->uri->segment(3) . '.idClientes]',
             'errors' => [
+                'validar_documento_obrigatorio' => 'O campo %s é obrigatório.',
                 'verific_cpf_cnpj' => 'O campo %s não é um CPF ou CNPJ válido.',
             ],
         ],
@@ -483,6 +489,28 @@ $config = [
             'field' => 'limite_documentos',
             'label' => 'Limite de Documentos',
             'rules' => 'trim|integer|greater_than_equal_to[0]',
+        ],
+    ],
+    'processos' => [
+        [
+            'field' => 'numeroProcesso',
+            'label' => 'Número de Processo',
+            'rules' => 'required|trim|callback_validar_numero_processo',
+        ],
+        [
+            'field' => 'status',
+            'label' => 'Status',
+            'rules' => 'required|trim',
+        ],
+        [
+            'field' => 'valorCausa',
+            'label' => 'Valor da Causa',
+            'rules' => 'trim',
+        ],
+        [
+            'field' => 'dataDistribuicao',
+            'label' => 'Data de Distribuição',
+            'rules' => 'trim',
         ],
     ],
 ];

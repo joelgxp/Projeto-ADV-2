@@ -263,10 +263,10 @@ class Mine extends CI_Controller
 
                     echo json_encode(['result' => true]);
                 } else {
-                    echo json_encode(['result' => false, 'message' => 'Os dados de acesso estão incorretos.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()]);
+                    echo json_encode(['result' => false, 'message' => 'Os dados de acesso estão incorretos.', 'ADV_TOKEN' => $this->security->get_csrf_hash()]);
                 }
             } else {
-                echo json_encode(['result' => false, 'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 'MAPOS_TOKEN' => $this->security->get_csrf_hash()]);
+                echo json_encode(['result' => false, 'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 'ADV_TOKEN' => $this->security->get_csrf_hash()]);
             }
         }
     }
@@ -493,7 +493,41 @@ class Mine extends CI_Controller
 
         $this->pagination->initialize($config);
 
-        $data['results'] = $this->processos_model->getProcessosByCliente($this->session->userdata('cliente_id'), $config['per_page'], $this->uri->segment(3));
+        // Aplicar filtros se fornecidos
+        $filters = [
+            'tipo_processo' => $this->input->get('tipo_processo'),
+            'status' => $this->input->get('status'),
+            'comarca' => $this->input->get('comarca'),
+            'usuarios_id' => $this->input->get('usuarios_id')
+        ];
+        
+        // Remove filtros vazios
+        $filters = array_filter($filters, function($value) {
+            return $value !== null && $value !== '';
+        });
+        
+        if (!empty($filters)) {
+            // Usar método com filtros
+            $data['results'] = $this->processos_model->getByClienteWithFilters(
+                $this->session->userdata('cliente_id'), 
+                $filters, 
+                $config['per_page'], 
+                $this->uri->segment(3)
+            );
+            // Recalcular total com filtros
+            $this->load->model('processos_model');
+            $total_com_filtros = count($this->processos_model->getByClienteWithFilters(
+                $this->session->userdata('cliente_id'), 
+                $filters, 
+                0, 
+                0
+            ));
+            $config['total_rows'] = $total_com_filtros;
+            $this->pagination->initialize($config);
+        } else {
+            $data['results'] = $this->processos_model->getProcessosByCliente($this->session->userdata('cliente_id'), $config['per_page'], $this->uri->segment(3));
+        }
+        
         $data['pagination'] = $this->pagination->create_links();
 
         $data['output'] = 'conecte/processos';

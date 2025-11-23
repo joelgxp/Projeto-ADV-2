@@ -73,11 +73,10 @@ $route['planos/excluir'] = 'planos/excluir';
 $route['consulta-processual'] = 'consultaProcessual/index';
 $route['consulta-processual/consultar'] = 'consultaProcessual/consultar';
 $route['consulta-processual/sincronizar/(:num)'] = 'consultaProcessual/sincronizar/$1';
+$route['consulta-processual/buscar-cliente'] = 'consultaProcessual/buscar_cliente';
+$route['consulta-processual/cadastrar-cliente-rapido'] = 'consultaProcessual/cadastrar_cliente_rapido';
+$route['consulta-processual/salvar-processo'] = 'consultaProcessual/salvar_processo';
 
-// Rotas da API
-if (filter_var($_ENV['API_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-    require APPPATH . 'config/routes_api.php';
-}
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */

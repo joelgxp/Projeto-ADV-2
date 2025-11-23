@@ -249,9 +249,9 @@
                 </div>
 
                 <div class="widget-box-statist">
-                    <h5 class="cardHeader">Estatísticas Financeira</h5>
+                    <h5 class="cardHeader">Estatísticas Financeiras</h5>
                     <div class="widget-content" style="padding:10px;margin:25px 0 0">
-                        <canvas id="statusOS"> </canvas>
+                        <canvas id="estatisticasFinanceiras"> </canvas>
                     </div>
                 </div>
             </div>
@@ -272,7 +272,7 @@
     };
 
     var ctx = document.getElementById('myChart').getContext('2d');
-    var StatusOS = document.getElementById('statusOS').getContext('2d');
+    var estatisticasFinanceiras = document.getElementById('estatisticasFinanceiras').getContext('2d');
 
     <?php
     // Função auxiliar para obter valor seguro do objeto financeiro_mes
@@ -417,7 +417,9 @@
         }
     });
 
-    var myChart = new Chart(statusOS, {
+    var statusFinanceiro = document.getElementById('estatisticasFinanceiras');
+    if (statusFinanceiro) {
+    var myChart = new Chart(statusFinanceiro, {
         data: {
             labels: [
                 'Receita total', 'Receita pendente',
@@ -481,6 +483,7 @@
             }
         }
     });
+    }
 
     function responsiveFonts() {
         myChart.update();

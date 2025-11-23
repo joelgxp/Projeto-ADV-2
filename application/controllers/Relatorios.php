@@ -288,8 +288,44 @@ class Relatorios extends MY_Controller
             redirect(base_url());
         }
 
+        $format = $this->input->get('format');
+
         $this->load->model('Financeiro_model');
-        $data['lancamentos'] = $this->Financeiro_model->get('lancamentos', '*', "tipo = 'honorario'", 0, 0, false, 'array');
+        $lancamentos = $this->Financeiro_model->get('lancamentos', '*', "tipo = 'honorario'", 0, 0, false, 'array');
+
+        if ($format == 'xls') {
+            $cabecalho = [
+                'ID' => 'integer',
+                'Descrição' => 'string',
+                'Valor' => 'price',
+                'Data Vencimento' => 'YYYY-MM-DD',
+                'Data Pagamento' => 'YYYY-MM-DD',
+                'Status' => 'string',
+                'Cliente' => 'string',
+            ];
+
+            $writer = new XLSXWriter();
+            $writer->writeSheetHeader('Sheet1', $cabecalho);
+            
+            foreach ($lancamentos as $lancamento) {
+                $writer->writeSheetRow('Sheet1', [
+                    $lancamento['idLancamentos'],
+                    $lancamento['descricao'],
+                    $lancamento['valor'],
+                    $lancamento['data_vencimento'],
+                    $lancamento['data_pagamento'] ?? '',
+                    $lancamento['baixado'] ? 'Pago' : 'Pendente',
+                    $lancamento['cliente_fornecedor'] ?? '',
+                ]);
+            }
+
+            $arquivo = $writer->writeToString();
+            $this->load->helper('download');
+            force_download('relatorio_honorarios.xlsx', $arquivo);
+            return;
+        }
+
+        $data['lancamentos'] = $lancamentos;
         $data['emitente'] = $this->Mapos_model->getEmitente();
         $data['title'] = 'Relatório de Honorários';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
@@ -297,6 +333,209 @@ class Relatorios extends MY_Controller
         $this->load->helper('mpdf');
         $html = $this->load->view('relatorios/imprimir/imprimirHonorarios', $data, true);
         pdf_create($html, 'relatorio_honorarios' . date('d/m/y'), true);
+    }
+
+    public function honorariosCustom()
+    {
+        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $dataInicial = $this->input->get('dataInicial');
+        $dataFinal = $this->input->get('dataFinal');
+        $situacao = $this->input->get('situacao');
+        $format = $this->input->get('format');
+
+        $this->load->model('Financeiro_model');
+        $where = "tipo = 'honorario'";
+        
+        if ($dataInicial) {
+            $where .= " AND data_vencimento >= '" . date('Y-m-d', strtotime(str_replace('/', '-', $dataInicial))) . "'";
+        }
+        if ($dataFinal) {
+            $where .= " AND data_vencimento <= '" . date('Y-m-d', strtotime(str_replace('/', '-', $dataFinal))) . "'";
+        }
+        if ($situacao !== '') {
+            $where .= " AND baixado = " . intval($situacao);
+        }
+
+        $lancamentos = $this->Financeiro_model->get('lancamentos', '*', $where, 0, 0, false, 'array');
+
+        if ($format == 'xls') {
+            $cabecalho = [
+                'ID' => 'integer',
+                'Descrição' => 'string',
+                'Valor' => 'price',
+                'Data Vencimento' => 'YYYY-MM-DD',
+                'Data Pagamento' => 'YYYY-MM-DD',
+                'Status' => 'string',
+                'Cliente' => 'string',
+            ];
+
+            $writer = new XLSXWriter();
+            $writer->writeSheetHeader('Sheet1', $cabecalho);
+            
+            foreach ($lancamentos as $lancamento) {
+                $writer->writeSheetRow('Sheet1', [
+                    $lancamento['idLancamentos'],
+                    $lancamento['descricao'],
+                    $lancamento['valor'],
+                    $lancamento['data_vencimento'],
+                    $lancamento['data_pagamento'] ?? '',
+                    $lancamento['baixado'] ? 'Pago' : 'Pendente',
+                    $lancamento['cliente_fornecedor'] ?? '',
+                ]);
+            }
+
+            $arquivo = $writer->writeToString();
+            $this->load->helper('download');
+            force_download('relatorio_honorarios_custom.xlsx', $arquivo);
+            return;
+        }
+
+        $data['lancamentos'] = $lancamentos;
+        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['title'] = 'Relatório de Honorários Customizado';
+        $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
+
+        $this->load->helper('mpdf');
+        $html = $this->load->view('relatorios/imprimir/imprimirHonorarios', $data, true);
+        pdf_create($html, 'relatorio_honorarios_custom' . date('d/m/y'), true);
+    }
+
+    public function custas()
+    {
+        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+        $this->data['view'] = 'relatorios/rel_custas';
+
+        return $this->layout();
+    }
+
+    public function custasRapid()
+    {
+        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $format = $this->input->get('format');
+
+        $this->load->model('Financeiro_model');
+        $lancamentos = $this->Financeiro_model->get('lancamentos', '*', "tipo = 'custa'", 0, 0, false, 'array');
+
+        if ($format == 'xls') {
+            $cabecalho = [
+                'ID' => 'integer',
+                'Descrição' => 'string',
+                'Valor' => 'price',
+                'Data Vencimento' => 'YYYY-MM-DD',
+                'Data Pagamento' => 'YYYY-MM-DD',
+                'Status' => 'string',
+                'Cliente' => 'string',
+            ];
+
+            $writer = new XLSXWriter();
+            $writer->writeSheetHeader('Sheet1', $cabecalho);
+            
+            foreach ($lancamentos as $lancamento) {
+                $writer->writeSheetRow('Sheet1', [
+                    $lancamento['idLancamentos'],
+                    $lancamento['descricao'],
+                    $lancamento['valor'],
+                    $lancamento['data_vencimento'],
+                    $lancamento['data_pagamento'] ?? '',
+                    $lancamento['baixado'] ? 'Pago' : 'Pendente',
+                    $lancamento['cliente_fornecedor'] ?? '',
+                ]);
+            }
+
+            $arquivo = $writer->writeToString();
+            $this->load->helper('download');
+            force_download('relatorio_custas.xlsx', $arquivo);
+            return;
+        }
+
+        $data['lancamentos'] = $lancamentos;
+        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['title'] = 'Relatório de Custas';
+        $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
+
+        $this->load->helper('mpdf');
+        $html = $this->load->view('relatorios/imprimir/imprimirCustas', $data, true);
+        pdf_create($html, 'relatorio_custas' . date('d/m/y'), true);
+    }
+
+    public function custasCustom()
+    {
+        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $dataInicial = $this->input->get('dataInicial');
+        $dataFinal = $this->input->get('dataFinal');
+        $situacao = $this->input->get('situacao');
+        $format = $this->input->get('format');
+
+        $this->load->model('Financeiro_model');
+        $where = "tipo = 'custa'";
+        
+        if ($dataInicial) {
+            $where .= " AND data_vencimento >= '" . date('Y-m-d', strtotime(str_replace('/', '-', $dataInicial))) . "'";
+        }
+        if ($dataFinal) {
+            $where .= " AND data_vencimento <= '" . date('Y-m-d', strtotime(str_replace('/', '-', $dataFinal))) . "'";
+        }
+        if ($situacao !== '') {
+            $where .= " AND baixado = " . intval($situacao);
+        }
+
+        $lancamentos = $this->Financeiro_model->get('lancamentos', '*', $where, 0, 0, false, 'array');
+
+        if ($format == 'xls') {
+            $cabecalho = [
+                'ID' => 'integer',
+                'Descrição' => 'string',
+                'Valor' => 'price',
+                'Data Vencimento' => 'YYYY-MM-DD',
+                'Data Pagamento' => 'YYYY-MM-DD',
+                'Status' => 'string',
+                'Cliente' => 'string',
+            ];
+
+            $writer = new XLSXWriter();
+            $writer->writeSheetHeader('Sheet1', $cabecalho);
+            
+            foreach ($lancamentos as $lancamento) {
+                $writer->writeSheetRow('Sheet1', [
+                    $lancamento['idLancamentos'],
+                    $lancamento['descricao'],
+                    $lancamento['valor'],
+                    $lancamento['data_vencimento'],
+                    $lancamento['data_pagamento'] ?? '',
+                    $lancamento['baixado'] ? 'Pago' : 'Pendente',
+                    $lancamento['cliente_fornecedor'] ?? '',
+                ]);
+            }
+
+            $arquivo = $writer->writeToString();
+            $this->load->helper('download');
+            force_download('relatorio_custas_custom.xlsx', $arquivo);
+            return;
+        }
+
+        $data['lancamentos'] = $lancamentos;
+        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['title'] = 'Relatório de Custas Customizado';
+        $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
+
+        $this->load->helper('mpdf');
+        $html = $this->load->view('relatorios/imprimir/imprimirCustas', $data, true);
+        pdf_create($html, 'relatorio_custas_custom' . date('d/m/y'), true);
     }
 
     // Métodos antigos de produtos, os, vendas e sku foram removidos

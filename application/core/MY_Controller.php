@@ -26,11 +26,13 @@ class MY_Controller extends CI_Controller
             'app_name' => 'Adv',
             'app_theme' => 'default',
             'os_notification' => 'cliente',
+            'processo_notification' => 'cliente',
+            'prazo_notification' => 'todos',
+            'audiencia_notification' => 'todos',
             'control_estoque' => '1',
             'notifica_whats' => '',
             'control_baixa' => '0',
             'control_editos' => '1',
-            'control_datatable' => '1',
             'pix_key' => '',
         ],
     ];
@@ -43,6 +45,42 @@ class MY_Controller extends CI_Controller
             redirect('login');
         }
         $this->load_configuration();
+    }
+
+    /**
+     * Trata erros do banco de dados de forma padronizada
+     * 
+     * @param mixed $result Resultado da operação no banco
+     * @param string $operacao Nome da operação (ex: 'adicionar cliente', 'atualizar processo')
+     * @param string $mensagem_sucesso Mensagem de sucesso personalizada
+     * @return array ['success' => bool, 'message' => string, 'error_details' => array|null]
+     */
+    protected function tratar_erro_banco($result, $operacao = 'operacao', $mensagem_sucesso = null)
+    {
+        if ($result !== false && $result !== null) {
+            return [
+                'success' => true,
+                'message' => $mensagem_sucesso ?: ucfirst($operacao) . ' realizado com sucesso!',
+                'error_details' => null
+            ];
+        }
+        
+        $error = $this->db->error();
+        $error_message = isset($error['message']) ? $error['message'] : 'Erro desconhecido ao ' . $operacao;
+        $error_code = isset($error['code']) ? $error['code'] : null;
+        
+        // Log do erro
+        log_message('error', 'Erro no banco de dados - ' . $operacao . ': ' . $error_message . ($error_code ? ' (Código: ' . $error_code . ')' : ''));
+        
+        return [
+            'success' => false,
+            'message' => 'Erro ao ' . $operacao . ': ' . htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'),
+            'error_details' => [
+                'code' => $error_code,
+                'message' => $error_message,
+                'operation' => $operacao
+            ]
+        ];
     }
 
     private function load_configuration()

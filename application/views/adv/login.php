@@ -54,10 +54,10 @@
               <div class="content">
                 <div id="newlog">
                   <div class="icon2">
-                    <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+                    <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
                   </div>
                   <div class="title01">
-                    <?= '<img src="' . base_url() . 'assets/img/logo-mapos-branco.png">'; ?>
+                    <?= '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
                   </div>
                 </div>
                 <div id="mcell">Versão: <?= $this->config->item('app_version'); ?></div>

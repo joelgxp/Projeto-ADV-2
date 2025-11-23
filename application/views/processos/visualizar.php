@@ -77,13 +77,19 @@
                                 <tr>
                                     <td style="text-align: right"><strong>Valor da Causa</strong></td>
                                     <td>
-                                        <?php echo $result->valorCausa ? 'R$ ' . number_format($result->valorCausa, 2, ',', '.') : '-' ?>
+                                        <?php 
+                                        $valorCausa = isset($result->valorCausa) ? $result->valorCausa : null;
+                                        echo $valorCausa ? 'R$ ' . number_format($valorCausa, 2, ',', '.') : '-';
+                                        ?>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="text-align: right"><strong>Data de Distribuição</strong></td>
                                     <td>
-                                        <?php echo $result->dataDistribuicao ? date('d/m/Y', strtotime($result->dataDistribuicao)) : '-' ?>
+                                        <?php 
+                                        $dataDistribuicao = isset($result->dataDistribuicao) ? $result->dataDistribuicao : null;
+                                        echo $dataDistribuicao ? date('d/m/Y', strtotime($dataDistribuicao)) : '-';
+                                        ?>
                                     </td>
                                 </tr>
                                 <tr>
@@ -92,6 +98,17 @@
                                         <?php echo $result->dataCadastro ? date('d/m/Y H:i', strtotime($result->dataCadastro)) : '-' ?>
                                     </td>
                                 </tr>
+                                <?php if (isset($result->ultimaConsultaAPI) && $result->ultimaConsultaAPI): ?>
+                                <tr>
+                                    <td style="text-align: right"><strong>Última Sincronização API</strong></td>
+                                    <td>
+                                        <?php echo date('d/m/Y H:i', strtotime($result->ultimaConsultaAPI)) ?>
+                                        <?php if (isset($result->proximaConsultaAPI) && $result->proximaConsultaAPI): ?>
+                                            <br><small style="color: #666;">Próxima: <?= date('d/m/Y H:i', strtotime($result->proximaConsultaAPI)) ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -181,10 +198,82 @@
                                 </tr>
                                 </tbody>
                             </table>
+                            
+                            <?php if ((isset($partes_ativo) && !empty($partes_ativo)) || (isset($partes_passivo) && !empty($partes_passivo))): ?>
+                                <div style="margin-top: 20px;">
+                                    <h6 style="color: #28a745; margin-bottom: 10px;">Polo Ativo</h6>
+                                    <?php if (isset($partes_ativo) && !empty($partes_ativo)): ?>
+                                        <table class="table table-bordered" style="border: 1px solid #ddd; margin-bottom: 20px;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Nome</th>
+                                                    <th>CPF/CNPJ</th>
+                                                    <th>Email</th>
+                                                    <th>Telefone</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($partes_ativo as $parte): ?>
+                                                    <tr>
+                                                        <td>
+                                                            <?php 
+                                                            if ($parte->clientes_id) {
+                                                                echo '<a href="' . base_url() . 'index.php/clientes/visualizar/' . $parte->clientes_id . '">' . htmlspecialchars($parte->nome ?? '-') . '</a>';
+                                                            } else {
+                                                                echo htmlspecialchars($parte->nome ?? '-');
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                        <td><?= htmlspecialchars($parte->cpf_cnpj ?? '-') ?></td>
+                                                        <td><?= htmlspecialchars($parte->email ?? '-') ?></td>
+                                                        <td><?= htmlspecialchars($parte->telefone ?? '-') ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    <?php else: ?>
+                                        <p style="color: #999; font-style: italic;">Nenhuma parte no polo ativo cadastrada.</p>
+                                    <?php endif; ?>
+                                    
+                                    <h6 style="color: #dc3545; margin-bottom: 10px; margin-top: 20px;">Polo Passivo</h6>
+                                    <?php if (isset($partes_passivo) && !empty($partes_passivo)): ?>
+                                        <table class="table table-bordered" style="border: 1px solid #ddd;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Nome</th>
+                                                    <th>CPF/CNPJ</th>
+                                                    <th>Email</th>
+                                                    <th>Telefone</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($partes_passivo as $parte): ?>
+                                                    <tr>
+                                                        <td>
+                                                            <?php 
+                                                            if ($parte->clientes_id) {
+                                                                echo '<a href="' . base_url() . 'index.php/clientes/visualizar/' . $parte->clientes_id . '">' . htmlspecialchars($parte->nome ?? '-') . '</a>';
+                                                            } else {
+                                                                echo htmlspecialchars($parte->nome ?? '-');
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                        <td><?= htmlspecialchars($parte->cpf_cnpj ?? '-') ?></td>
+                                                        <td><?= htmlspecialchars($parte->email ?? '-') ?></td>
+                                                        <td><?= htmlspecialchars($parte->telefone ?? '-') ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    <?php else: ?>
+                                        <p style="color: #999; font-style: italic;">Nenhuma parte no polo passivo cadastrada.</p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
-                <?php if ($result->observacoes) { ?>
+                <?php if (isset($result->observacoes) && $result->observacoes) { ?>
                 <div class="accordion-group widget-box">
                     <div class="accordion-heading">
                         <div class="widget-title">
@@ -196,7 +285,7 @@
                     </div>
                     <div class="collapse accordion-body" id="collapseGFour">
                         <div class="widget-content">
-                            <p><?php echo nl2br($result->observacoes) ?></p>
+                            <p><?php echo nl2br($result->observacoes); ?></p>
                         </div>
                     </div>
                 </div>
@@ -205,6 +294,16 @@
         </div>
         <!--Tab 2 - Movimentações-->
         <div id="tab2" class="tab-pane" style="min-height: 300px">
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'sProcesso')) { ?>
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <a href="<?= site_url('consulta-processual/sincronizar/' . (isset($result->idProcessos) ? $result->idProcessos : ($result->id ?? 0))) ?>" 
+                       class="button btn btn-mini btn-info" 
+                       onclick="return confirm('Deseja sincronizar as movimentações deste processo com a API CNJ?');">
+                        <span class="button__icon"><i class='bx bx-sync'></i></span>
+                        <span class="button__text2">Sincronizar com API CNJ</span>
+                    </a>
+                </div>
+            <?php } ?>
             <?php if (!$movimentacoes) { ?>
                 <table class="table table-bordered ">
                     <thead>
@@ -392,8 +491,14 @@
                         echo '<td>' . ($d->tipo_documento ?? '-') . '</td>';
                         echo '<td>' . $dataUpload . '</td>';
                         echo '<td>';
-                        if (file_exists(FCPATH . 'assets/documentos/' . $d->arquivo)) {
-                            echo '<a href="' . base_url() . 'assets/documentos/' . $d->arquivo . '" target="_blank" class="btn btn-mini btn-info" title="Download"><i class="bx bx-download"></i></a>';
+                        // Construir caminho do arquivo
+                        $data_upload = isset($d->dataUpload) ? date('Y-m', strtotime($d->dataUpload)) : date('Y-m');
+                        $file_path = FCPATH . 'assets/documentos_processuais/' . $data_upload . '/' . $d->arquivo;
+                        if (file_exists($file_path)) {
+                            $file_url = base_url() . 'assets/documentos_processuais/' . $data_upload . '/' . $d->arquivo;
+                            echo '<a href="' . $file_url . '" target="_blank" class="btn btn-mini btn-info" title="Download"><i class="bx bx-download"></i></a>';
+                        } else {
+                            echo '<span class="label label-warning">Arquivo não encontrado</span>';
                         }
                         echo '</td>';
                         echo '</tr>';
@@ -405,9 +510,17 @@
     </div>
     <div class="form-actions" style="padding: 20px;">
         <div class="span12">
-            <div class="span6 offset3" style="display:flex;justify-content: center">
+            <div class="span6 offset3" style="display:flex;justify-content: center; gap: 10px;">
                 <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eProcesso')) { ?>
-                    <a href="<?= base_url() ?>index.php/processos/editar/<?= $result->idProcessos ?>" class="button btn btn-success"><span class="button__icon"><i class='bx bx-edit'></i></span><span class="button__text2">Editar Processo</span></a>
+                    <a href="<?= base_url() ?>index.php/processos/editar/<?= isset($result->idProcessos) ? $result->idProcessos : ($result->id ?? 0) ?>" class="button btn btn-success"><span class="button__icon"><i class='bx bx-edit'></i></span><span class="button__text2">Editar Processo</span></a>
+                <?php } ?>
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'sProcesso')) { ?>
+                    <a href="<?= site_url('consulta-processual/sincronizar/' . (isset($result->idProcessos) ? $result->idProcessos : ($result->id ?? 0))) ?>" 
+                       class="button btn btn-info"
+                       onclick="return confirm('Deseja sincronizar as movimentações deste processo com a API CNJ?');">
+                        <span class="button__icon"><i class='bx bx-sync'></i></span>
+                        <span class="button__text2">Sincronizar API</span>
+                    </a>
                 <?php } ?>
                 <a href="<?= base_url() ?>index.php/processos" class="button btn btn-warning"><span class="button__icon"><i class='bx bx-arrow-back'></i></span><span class="button__text2">Voltar</span></a>
             </div>

@@ -16,8 +16,11 @@ class Tools extends CI_Controller
     {
         parent::__construct();
 
-        // can only be called from the command line
-        if (! $this->input->is_cli_request()) {
+        // Permitir acesso web apenas para métodos específicos
+        $allowedMethodsViaWeb = ['seed'];
+        $currentMethod = $this->router->method;
+        
+        if (! $this->input->is_cli_request() && !in_array($currentMethod, $allowedMethodsViaWeb)) {
             exit('Direct access is not allowed. This is a command line tool, use the terminal');
         }
 
@@ -90,11 +93,31 @@ class Tools extends CI_Controller
 
     public function seed($name = null)
     {
+        // Permitir execução via web para seeds específicos
+        $allowedSeedsViaWeb = ['PopularBanco'];
+        $isWebRequest = !$this->input->is_cli_request();
+        
+        if ($isWebRequest && $name && !in_array($name, $allowedSeedsViaWeb)) {
+            show_error('Este seed só pode ser executado via linha de comando.');
+            return;
+        }
+        
         if ($name) {
             $this->seeder->call($name);
 
-            echo 'Seeds run successfully' . PHP_EOL;
+            if ($isWebRequest) {
+                echo '<pre>Seed "' . $name . '" executado com sucesso!</pre>';
+                echo '<p><a href="' . base_url() . '">Voltar ao sistema</a></p>';
+            } else {
+                echo 'Seeds run successfully' . PHP_EOL;
+            }
 
+            return;
+        }
+
+        // Seeds padrão só via CLI
+        if ($isWebRequest) {
+            show_error('Para executar seeds padrão, use: tools/seed/NomeDoSeed');
             return;
         }
 

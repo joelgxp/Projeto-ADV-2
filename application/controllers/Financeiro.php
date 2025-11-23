@@ -164,6 +164,10 @@ class Financeiro extends MY_Controller
             if (set_value('idCliente')) {
                 $data['clientes_id'] = set_value('idCliente');
             }
+            // Vincular processo se informado
+            if ($this->input->post('processos_id')) {
+                $data['processos_id'] = $this->input->post('processos_id');
+            }
             // Inserção dos dados no banco
             if ($this->financeiro_model->add('lancamentos', $data) == true) {
                 $this->session->set_flashdata('success', 'Lançamento adicionado com sucesso!');

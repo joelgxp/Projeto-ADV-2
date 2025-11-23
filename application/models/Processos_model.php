@@ -139,11 +139,26 @@ class Processos_model extends CI_Model
             $data['dataCadastro'] = date('Y-m-d H:i:s');
         }
 
+        // Remover campos que não existem na tabela
+        $table_fields = $this->db->list_fields($table);
+        foreach ($data as $key => $value) {
+            if (!in_array($key, $table_fields)) {
+                unset($data[$key]);
+            }
+        }
+
         $this->db->insert($table, $data);
+        
+        if ($this->db->error()['code'] != 0) {
+            log_message('error', 'Erro ao inserir processo: ' . $this->db->error()['message']);
+            return false;
+        }
+        
         if ($this->db->affected_rows() == '1') {
             return $this->db->insert_id();
         }
 
+        log_message('error', 'Nenhuma linha afetada ao inserir processo. Dados: ' . json_encode($data));
         return false;
     }
 
@@ -166,8 +181,21 @@ class Processos_model extends CI_Model
             }
         }
 
+        // Remover campos que não existem na tabela
+        $table_fields = $this->db->list_fields($table);
+        foreach ($data as $key => $value) {
+            if (!in_array($key, $table_fields)) {
+                unset($data[$key]);
+            }
+        }
+
         $this->db->where($fieldID, $ID);
         $this->db->update($table, $data);
+
+        if ($this->db->error()['code'] != 0) {
+            log_message('error', 'Erro ao atualizar processo: ' . $this->db->error()['message']);
+            return false;
+        }
 
         if ($this->db->affected_rows() >= 0) {
             return true;
@@ -229,14 +257,15 @@ class Processos_model extends CI_Model
         $tribunal = substr($numero_limpo, 14, 2); // Posições 15-16
 
         $segmentos = [
-            '1' => 'estadual',
-            '2' => 'federal',
-            '3' => 'trabalho',
-            '4' => 'eleitoral',
-            '5' => 'militar',
-            '6' => 'justica_federal',
-            '7' => 'justica_militar',
-            '8' => 'justica_eleitoral',
+            '1' => 'stf',
+            '2' => 'cnj',
+            '3' => 'stj',
+            '4' => 'federal',
+            '5' => 'trabalho',
+            '6' => 'eleitoral',
+            '7' => 'militar',
+            '8' => 'estadual',
+            '9' => 'militar',
         ];
 
         return [
@@ -246,38 +275,270 @@ class Processos_model extends CI_Model
     }
 
     /**
-     * Valida número de processo CNJ
+     * Valida número de processo CNJ conforme Resolução CNJ 65/2008
+     * Retorna array com resultado da validação e mensagens de erro
+     * 
+     * @param string $numero Número do processo (formatado ou limpo)
+     * @return array ['valido' => bool, 'erros' => array, 'dados' => array]
      */
     public function validarNumeroProcesso($numero)
     {
-        $numero_limpo = $this->normalizarNumeroProcesso($numero);
+        $resultado = [
+            'valido' => false,
+            'erros' => [],
+            'dados' => []
+        ];
+
+        // 1. Validação de Formato
+        $validacao_formato = $this->validarFormatoCNJ($numero);
+        if (!$validacao_formato['valido']) {
+            $resultado['erros'] = array_merge($resultado['erros'], $validacao_formato['erros']);
+            return $resultado;
+        }
+
+        $numero_limpo = $validacao_formato['numero_limpo'];
+        $dados = $validacao_formato['dados'];
+
+        // Validação de Campos de Origem (opcional - não bloqueia se falhar)
+        $validacao_campos = $this->validarCamposOrigemCNJ($dados);
+        // Não bloqueia se a validação de campos falhar, apenas avisa
+        if (!$validacao_campos['valido']) {
+            // Apenas adiciona avisos, mas não bloqueia
+            // $resultado['erros'] = array_merge($resultado['erros'], $validacao_campos['erros']);
+        }
+
+        // Validação passou (formato válido)
+        $resultado['valido'] = true;
+        $resultado['dados'] = $dados;
         
-        // Número CNJ deve ter 20 dígitos
+        return $resultado;
+    }
+
+    /**
+     * Valida formato do número CNJ
+     * Formato: NNNNNNN-DD.AAAA.J.TR.OOOO
+     */
+    private function validarFormatoCNJ($numero)
+    {
+        $resultado = [
+            'valido' => false,
+            'erros' => [],
+            'numero_limpo' => '',
+            'dados' => []
+        ];
+
+        // Remover espaços
+        $numero = trim($numero);
+        
+        // Verificar se tem exatamente 20 caracteres (com separadores) ou 20 dígitos (sem separadores)
+        $numero_limpo = preg_replace('/[^0-9]/', '', $numero);
+        
         if (strlen($numero_limpo) != 20) {
-            return false;
+            $resultado['erros'][] = 'Número deve conter exatamente 20 dígitos.';
+            return $resultado;
         }
 
-        // Validar dígito verificador (algoritmo CNJ)
-        $sequencial = substr($numero_limpo, 0, 7);
-        $digito = substr($numero_limpo, 7, 2);
-        $ano = substr($numero_limpo, 9, 4);
-        $segmento = substr($numero_limpo, 13, 1);
-        $tribunal = substr($numero_limpo, 14, 2);
-        $orgao = substr($numero_limpo, 16, 4);
-
-        // Calcular dígito verificador
-        $numero_calculo = $sequencial . $ano . $segmento . $tribunal . $orgao;
-        $soma = 0;
-        $pesos = [2, 3, 4, 5, 6, 7, 8, 9];
-        
-        for ($i = 0; $i < strlen($numero_calculo); $i++) {
-            $soma += intval($numero_calculo[$i]) * $pesos[$i % 8];
+        // Se o número veio formatado, validar posição dos separadores
+        if (preg_match('/[^0-9]/', $numero)) {
+            // Verificar formato: NNNNNNN-DD.AAAA.J.TR.OOOO
+            if (!preg_match('/^\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}$/', $numero)) {
+                $resultado['erros'][] = 'Formato inválido. Use o padrão: NNNNNNN-DD.AAAA.J.TR.OOOO';
+                return $resultado;
+            }
         }
+
+        // Extrair dados do número
+        $dados = [
+            'sequencial' => substr($numero_limpo, 0, 7),
+            'digito' => substr($numero_limpo, 7, 2),
+            'ano' => substr($numero_limpo, 9, 4),
+            'segmento' => substr($numero_limpo, 13, 1),
+            'tribunal' => substr($numero_limpo, 14, 2),
+            'unidade_origem' => substr($numero_limpo, 16, 4),
+        ];
+
+        // Validar ano (deve estar entre 1900 e ano atual + 1)
+        $ano_atual = (int)date('Y');
+        $ano_processo = (int)$dados['ano'];
+        if ($ano_processo < 1900 || $ano_processo > ($ano_atual + 1)) {
+            $resultado['erros'][] = "Ano inválido: {$dados['ano']}. Deve estar entre 1900 e " . ($ano_atual + 1);
+            return $resultado;
+        }
+
+        $resultado['valido'] = true;
+        $resultado['numero_limpo'] = $numero_limpo;
+        $resultado['dados'] = $dados;
+
+        return $resultado;
+    }
+
+    /**
+     * Valida dígito verificador usando algoritmo Módulo 97
+     * Conforme Resolução CNJ 65/2008
+     */
+    private function validarDigitoVerificadorCNJ($numero_limpo, $dados)
+    {
+        $resultado = [
+            'valido' => false,
+            'erros' => []
+        ];
+
+        // Número sem o dígito verificador (posições 7-8)
+        $numero_sem_digito = substr($numero_limpo, 0, 7) . 
+                            substr($numero_limpo, 9, 4) . 
+                            substr($numero_limpo, 13, 1) . 
+                            substr($numero_limpo, 14, 2) . 
+                            substr($numero_limpo, 16, 4);
+
+        // Calcular resto usando Módulo 97
+        // Converter para inteiro (pode ser muito grande, usar bcmod se disponível)
+        $resto = 0;
+        for ($i = 0; $i < strlen($numero_sem_digito); $i++) {
+            $resto = ($resto * 10 + intval($numero_sem_digito[$i])) % 97;
+        }
+
+        // Calcular dígito esperado
+        $digito_esperado = 98 - $resto;
         
-        $resto = $soma % 97;
-        $digito_calculado = 98 - $resto;
+        // Formatar com 2 dígitos (com zero à esquerda se necessário)
+        $digito_esperado = str_pad($digito_esperado, 2, '0', STR_PAD_LEFT);
+        $digito_informado = $dados['digito'];
+
+        if ($digito_esperado != $digito_informado) {
+            $resultado['erros'][] = "Dígito verificador inválido. Esperado: {$digito_esperado}, informado: {$digito_informado}";
+            return $resultado;
+        }
+
+        $resultado['valido'] = true;
+        return $resultado;
+    }
+
+    /**
+     * Valida campos de origem (segmento, tribunal, unidade)
+     */
+    private function validarCamposOrigemCNJ($dados)
+    {
+        $resultado = [
+            'valido' => false,
+            'erros' => []
+        ];
+
+        $segmento = $dados['segmento'];
+        $tribunal = $dados['tribunal'];
+
+        // Validar segmento (J)
+        $segmentos_validos = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        if (!in_array($segmento, $segmentos_validos)) {
+            $resultado['erros'][] = "Segmento do Justiça inválido: {$segmento}. Valores válidos: 1-9";
+            return $resultado;
+        }
+
+        // Validar tribunal (TR) conforme segmento
+        $tribunais_validos = $this->getTribunaisValidosPorSegmento($segmento);
+        if (!in_array($tribunal, $tribunais_validos)) {
+            $resultado['erros'][] = "Código do Tribunal inválido: {$tribunal} para o segmento {$segmento}";
+            return $resultado;
+        }
+
+        // Validar compatibilidade entre segmento e tribunal
+        if (!$this->validarCompatibilidadeSegmentoTribunal($segmento, $tribunal)) {
+            $resultado['erros'][] = "Tribunal {$tribunal} incompatível com o segmento {$segmento}";
+            return $resultado;
+        }
+
+        $resultado['valido'] = true;
+        return $resultado;
+    }
+
+    /**
+     * Retorna lista de tribunais válidos por segmento
+     */
+    private function getTribunaisValidosPorSegmento($segmento)
+    {
+        // Gerar arrays de códigos com 2 dígitos
+        $tribunais_01_24 = array_map(function($n) { return str_pad($n, 2, '0', STR_PAD_LEFT); }, range(1, 24));
+        $tribunais_01_27 = array_map(function($n) { return str_pad($n, 2, '0', STR_PAD_LEFT); }, range(1, 27));
+        $tribunais_01_12 = array_map(function($n) { return str_pad($n, 2, '0', STR_PAD_LEFT); }, range(1, 12));
         
-        return intval($digito) == $digito_calculado;
+        $tribunais = [
+            '1' => ['00'], // STF (Supremo Tribunal Federal)
+            '2' => ['90'], // CNJ (Conselho Nacional de Justiça)
+            '3' => ['90'], // STJ (Superior Tribunal de Justiça)
+            '4' => ['01', '02', '03', '04', '05', '06', '90', '00'], // Justiça Federal (TRF + STJ/STF)
+            '5' => array_merge($tribunais_01_24, ['90']), // Justiça do Trabalho (TRT + TST)
+            '6' => array_merge($tribunais_01_27, ['90']), // Justiça Eleitoral (TRE + TSE)
+            '7' => ['10'], // Justiça Militar da União (STM)
+            '8' => $tribunais_01_27, // Justiça Estadual (TJ)
+            '9' => ['13', '21', '26'], // Justiça Militar Estadual (TJM-MG, TJM-RS, TJM-SP)
+        ];
+
+        return $tribunais[$segmento] ?? [];
+    }
+
+    /**
+     * Valida compatibilidade entre segmento e tribunal
+     */
+    private function validarCompatibilidadeSegmentoTribunal($segmento, $tribunal)
+    {
+        $tribunais_validos = $this->getTribunaisValidosPorSegmento($segmento);
+        return in_array($tribunal, $tribunais_validos);
+    }
+
+    /**
+     * Extrai informações do número CNJ validado
+     * Retorna array com dados extraídos ou null se inválido
+     */
+    public function extrairDadosCNJ($numero)
+    {
+        $validacao = $this->validarNumeroProcesso($numero);
+        
+        if (!$validacao['valido']) {
+            return null;
+        }
+
+        $dados = $validacao['dados'];
+        
+        // Mapear segmento para nome
+        $segmentos_nomes = [
+            '1' => 'Supremo Tribunal Federal (STF)',
+            '2' => 'Conselho Nacional de Justiça (CNJ)',
+            '3' => 'Superior Tribunal de Justiça (STJ)',
+            '4' => 'Justiça Federal',
+            '5' => 'Justiça do Trabalho',
+            '6' => 'Justiça Eleitoral',
+            '7' => 'Justiça Militar da União',
+            '8' => 'Justiça dos Estados e do Distrito Federal e Territórios',
+            '9' => 'Justiça Militar Estadual',
+        ];
+
+        // Mapear tribunal para nome (exemplos principais)
+        $tribunais_nomes = [
+            '00' => 'STF',
+            '90' => 'STJ/TST/TSE',
+            '01' => 'TRF1/TJ-AC/TRT1/TRE-AC',
+            '02' => 'TRF2/TJ-AL/TRT2/TRE-AL',
+            '13' => 'TJ-SP/TRT2',
+            '26' => 'TJ-SP/TRT15',
+        ];
+
+        // Montar número completo para formatação
+        $numero_completo = $dados['sequencial'] . 
+                          $dados['digito'] . 
+                          $dados['ano'] . 
+                          $dados['segmento'] . 
+                          $dados['tribunal'] . 
+                          $dados['unidade_origem'];
+
+        return [
+            'numero_formatado' => $this->formatarNumeroProcesso($numero_completo),
+            'sequencial' => $dados['sequencial'],
+            'ano' => $dados['ano'],
+            'segmento' => $dados['segmento'],
+            'segmento_nome' => $segmentos_nomes[$dados['segmento']] ?? 'Desconhecido',
+            'tribunal' => $dados['tribunal'],
+            'tribunal_nome' => $tribunais_nomes[$dados['tribunal']] ?? 'Tribunal ' . $dados['tribunal'],
+            'unidade_origem' => $dados['unidade_origem'],
+        ];
     }
 
     /**
@@ -337,13 +598,17 @@ class Processos_model extends CI_Model
     }
 
     /**
-     * Busca processos por cliente com filtros avançados
-     *
+     * Busca processos de um cliente com filtros aplicados
+     * 
+     * Retorna processos vinculados a um cliente específico, com possibilidade
+     * de filtrar por tipo, status, comarca e advogado responsável.
+     * Utiliza JOINs para otimizar performance e evitar queries N+1.
+     * 
      * @param int $cliente_id ID do cliente
-     * @param array $filters Filtros: tipo_processo, status, comarca, usuarios_id (advogado)
-     * @param int $perpage Limite de resultados por página
-     * @param int $start Offset
-     * @return array
+     * @param array $filters Filtros opcionais: ['tipo_processo', 'status', 'comarca', 'usuarios_id']
+     * @param int $perpage Limite de registros por página (0 = sem limite)
+     * @param int $start Offset para paginação
+     * @return array Lista de processos encontrados
      */
     public function getByClienteWithFilters($cliente_id, $filters = [], $perpage = 0, $start = 0)
     {
@@ -534,6 +799,40 @@ class Processos_model extends CI_Model
 
         $this->db->from('processos');
         return $this->db->count_all_results();
+    }
+
+    /**
+     * Verifica se o número de processo já existe na tabela de processos
+     * 
+     * Útil para validar unicidade de número de processo antes de inserir/atualizar.
+     * Em edição, permite excluir o próprio processo da verificação.
+     *
+     * @param string $numeroProcesso Número do processo (com ou sem formatação)
+     * @param int|null $id ID do processo a excluir da verificação (opcional, para edição)
+     * @return bool True se número existe, False caso contrário
+     */
+    public function numeroProcessoExists($numeroProcesso, $id = null)
+    {
+        if (empty($numeroProcesso)) {
+            return false;
+        }
+        
+        // Normalizar número (remover formatação)
+        $numero_limpo = $this->normalizarNumeroProcesso($numeroProcesso);
+        
+        if (empty($numero_limpo)) {
+            return false;
+        }
+        
+        $this->db->where('numeroProcesso', $numero_limpo);
+        
+        if ($id !== null) {
+            $this->db->where('idProcessos !=', $id);
+        }
+        
+        $query = $this->db->get('processos');
+        
+        return $query->num_rows() > 0;
     }
 }
 

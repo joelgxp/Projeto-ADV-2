@@ -133,94 +133,94 @@ if (!function_exists('obter_endpoint_tribunal')) {
     function obter_endpoint_tribunal($segmento, $tribunal)
     {
         $baseUrl = 'https://api-publica.datajud.cnj.jus.br';
-        
-        // Mapeamento de segmentos e tribunais para endpoints
-        $endpoints = [
-            // Tribunais Superiores (segmento 1, 2, 3, 4, 5, 6, 10)
-            '90' => 'api_publica_stf',
-            
-            // Justiça Federal (segmento 1)
-            '01' => 'api_publica_trf1',
-            '02' => 'api_publica_trf2',
-            '03' => 'api_publica_trf3',
-            '04' => 'api_publica_trf4',
-            '05' => 'api_publica_trf5',
-            '06' => 'api_publica_trf6',
-            
-            // Justiça Estadual (segmento 8)
-            '01' => 'api_publica_tjac',
-            '02' => 'api_publica_tjal',
-            '03' => 'api_publica_tjap',
-            '04' => 'api_publica_tjam',
-            '05' => 'api_publica_tjba',
-            '06' => 'api_publica_tjce',
-            '07' => 'api_publica_tjdft',
-            '08' => 'api_publica_tjes',
-            '09' => 'api_publica_tjgo',
-            '10' => 'api_publica_tjma',
-            '11' => 'api_publica_tjmt',
-            '12' => 'api_publica_tjms',
-            '13' => 'api_publica_tjmg',
-            '14' => 'api_publica_tjpa',
-            '15' => 'api_publica_tjpb',
-            '16' => 'api_publica_tjpr',
-            '17' => 'api_publica_tjpe',
-            '18' => 'api_publica_tjpi',
-            '19' => 'api_publica_tjrj',
-            '20' => 'api_publica_tjrn',
-            '21' => 'api_publica_tjrs',
-            '22' => 'api_publica_tjro',
-            '23' => 'api_publica_tjrr',
-            '24' => 'api_publica_tjsc',
-            '25' => 'api_publica_tjse',
-            '26' => 'api_publica_tjsp',
-            '27' => 'api_publica_tjto',
-            
-            // Justiça do Trabalho (segmento 1)
-            '01' => 'api_publica_trt1',
-            '02' => 'api_publica_trt2',
-            '03' => 'api_publica_trt3',
-            '04' => 'api_publica_trt4',
-            '05' => 'api_publica_trt5',
-            '06' => 'api_publica_trt6',
-            '07' => 'api_publica_trt7',
-            '08' => 'api_publica_trt8',
-            '09' => 'api_publica_trt9',
-            '10' => 'api_publica_trt10',
-            '11' => 'api_publica_trt11',
-            '12' => 'api_publica_trt12',
-            '13' => 'api_publica_trt13',
-            '14' => 'api_publica_trt14',
-            '15' => 'api_publica_trt15',
-            '16' => 'api_publica_trt16',
-            '17' => 'api_publica_trt17',
-            '18' => 'api_publica_trt18',
-            '19' => 'api_publica_trt19',
-            '20' => 'api_publica_trt20',
-            '21' => 'api_publica_trt21',
-            '22' => 'api_publica_trt22',
-            '23' => 'api_publica_trt23',
-            '24' => 'api_publica_trt24',
-        ];
-        
-        // Determina endpoint baseado no segmento
         $endpoint = null;
         
-        if ($segmento == '1' || $segmento == '2' || $segmento == '3' || $segmento == '4' || $segmento == '5' || $segmento == '6' || $segmento == '10') {
-            // Tribunais Superiores
+        // Segmento 1 = STF (Supremo Tribunal Federal)
+        if ($segmento == '1') {
             $endpoint = 'api_publica_stf';
-        } elseif ($segmento == '8') {
-            // Justiça Estadual - usa mapeamento específico
+        }
+        // Segmento 2 = CNJ (Conselho Nacional de Justiça)
+        elseif ($segmento == '2') {
+            $endpoint = 'api_publica_stf';
+        }
+        // Segmento 3 = STJ (Superior Tribunal de Justiça)
+        elseif ($segmento == '3') {
+            $endpoint = 'api_publica_stf';
+        }
+        // Segmento 4 = Justiça Federal
+        elseif ($segmento == '4') {
+            // Garante que o tribunal seja tratado como número inteiro (remove zeros à esquerda)
+            $tribunalNum = intval($tribunal);
+            if ($tribunalNum >= 1 && $tribunalNum <= 6) {
+                // TRF (Tribunais Regionais Federais)
+                // Remove zero à esquerda: 01 -> 1, 02 -> 2, etc.
+                $endpoint = 'api_publica_trf' . $tribunalNum;
+            } elseif ($tribunal == '90' || $tribunalNum == 90) {
+                // STJ (Superior Tribunal de Justiça)
+                $endpoint = 'api_publica_stf';
+            } elseif ($tribunal == '00' || $tribunalNum == 0) {
+                // STF (Supremo Tribunal Federal)
+                $endpoint = 'api_publica_stf';
+            }
+        }
+        // Segmento 5 = Justiça do Trabalho
+        elseif ($segmento == '5') {
+            // Garante que o tribunal seja tratado como número inteiro (remove zeros à esquerda)
+            $tribunalNum = intval($tribunal);
+            if ($tribunalNum >= 1 && $tribunalNum <= 24) {
+                // TRT (Tribunais Regionais do Trabalho) - sem zero à esquerda
+                $endpoint = 'api_publica_trt' . $tribunalNum;
+                // Log para debug
+                if (ENVIRONMENT === 'development') {
+                    log_message('debug', "Tribunal TRT: original='{$tribunal}', convertido={$tribunalNum}, endpoint='{$endpoint}'");
+                }
+            } elseif ($tribunal == '90' || $tribunalNum == 90) {
+                // TST (Tribunal Superior do Trabalho)
+                $endpoint = 'api_publica_stf';
+            }
+        }
+        // Segmento 6 = Justiça Eleitoral
+        elseif ($segmento == '6') {
+            if ($tribunal == '90') {
+                // TSE (Tribunal Superior Eleitoral)
+                $endpoint = 'api_publica_stf';
+            } elseif (intval($tribunal) >= 1 && intval($tribunal) <= 27) {
+                // TRE (Tribunais Regionais Eleitorais) - usar endpoint genérico
+                $endpoint = 'api_publica_stf';
+            }
+        }
+        // Segmento 7 = Justiça Militar da União
+        elseif ($segmento == '7') {
+            if ($tribunal == '10') {
+                // STM (Superior Tribunal Militar)
+                $endpoint = 'api_publica_stm';
+            } else {
+                $endpoint = 'api_publica_stf';
+            }
+        }
+        // Segmento 8 = Justiça Estadual
+        elseif ($segmento == '8') {
             $endpoint = obter_endpoint_justica_estadual($tribunal);
-        } elseif ($segmento == '1' && in_array($tribunal, ['01', '02', '03', '04', '05', '06'])) {
-            // Justiça Federal
-            $endpoint = 'api_publica_trf' . $tribunal;
-        } elseif ($segmento == '1' && intval($tribunal) >= 1 && intval($tribunal) <= 24) {
-            // Justiça do Trabalho
-            $endpoint = 'api_publica_trt' . $tribunal;
+        }
+        // Segmento 9 = Justiça Militar Estadual
+        elseif ($segmento == '9') {
+            if ($tribunal == '13') {
+                $endpoint = 'api_publica_tjmmg';
+            } elseif ($tribunal == '21') {
+                $endpoint = 'api_publica_tjmrs';
+            } elseif ($tribunal == '26') {
+                $endpoint = 'api_publica_tjmsp';
+            } else {
+                $endpoint = 'api_publica_stf';
+            }
+        }
+        // Tribunais Superiores (código 90 ou 00)
+        elseif ($tribunal == '90' || $tribunal == '00') {
+            $endpoint = 'api_publica_stf';
         }
         
         if (!$endpoint) {
+            log_message('error', "Endpoint não encontrado para segmento {$segmento} e tribunal {$tribunal}");
             return false;
         }
         

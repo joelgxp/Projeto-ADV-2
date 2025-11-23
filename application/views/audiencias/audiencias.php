@@ -67,11 +67,9 @@
                 </thead>
                 <tbody>
                     <?php
-                    if (!$results) {
-                        echo '<tr>
-                    <td colspan="7">Nenhuma Audiência Cadastrada</td>
-                  </tr>';
-                    } else {
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         foreach ($results as $r) {
                             echo '<tr>';
                             echo '<td>' . $r->idAudiencias . '</td>';
@@ -121,7 +119,10 @@
                             echo '</td>';
                             echo '</tr>';
                         }
-                    } ?>
+                    } else {
+                        echo '<tr><td colspan="7" class="dataTables_empty">Carregando dados...</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
         </div>

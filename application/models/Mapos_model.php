@@ -7,16 +7,59 @@ class Mapos_model extends CI_Model
         parent::__construct();
     }
 
+    /**
+     * Busca registros de uma tabela
+     * 
+     * @param string $table Nome da tabela
+     * @param string $fields Campos a selecionar
+     * @param string|array $where Condição WHERE (string simples ou array associativo)
+     * @param int $perpage Limite de registros
+     * @param int $start Offset
+     * @param bool $one Retornar apenas um registro
+     * @param string $array Tipo de retorno
+     * @return mixed Resultado da query
+     */
     public function get($table, $fields, $where = '', $perpage = 0, $start = 0, $one = false, $array = 'array')
     {
+        // Validar nome da tabela para prevenir SQL injection
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+            log_message('error', 'Mapos_model::get: Nome de tabela inválido: ' . $table);
+            return false;
+        }
+
         $this->db->select($fields);
         $this->db->from($table);
         $this->db->limit($perpage, $start);
+        
         if ($where) {
-            $this->db->where($where);
+            // Se $where for array, usar where() com array (mais seguro)
+            if (is_array($where)) {
+                $this->db->where($where);
+            } else {
+                // Se for string, validar que não contém SQL perigoso
+                // Permitir apenas strings simples sem caracteres perigosos
+                $where_clean = trim($where);
+                // Validar que não contém comandos SQL perigosos
+                $dangerous_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'EXEC', 'EXECUTE', '--', ';', '/*', '*/', 'UNION', 'SELECT'];
+                $where_upper = strtoupper($where_clean);
+                foreach ($dangerous_keywords as $keyword) {
+                    if (strpos($where_upper, $keyword) !== false) {
+                        log_message('error', 'Mapos_model::get: Tentativa de SQL injection detectada: ' . $where);
+                        return false;
+                    }
+                }
+                // Usar like() ou where() com escape adequado
+                // Por padrão, usar where() que já faz escape no CodeIgniter
+                $this->db->where($where_clean);
+            }
         }
 
         $query = $this->db->get();
+
+        if ($query === false) {
+            log_message('error', 'Mapos_model::get: Erro na query: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
 
         $result = ! $one ? $query->result() : $query->row();
 

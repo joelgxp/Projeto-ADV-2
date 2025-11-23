@@ -27,6 +27,22 @@ class Audiencias extends MY_Controller
             redirect(base_url());
         }
 
+        // Se for requisição AJAX do DataTables, retornar JSON
+        // Verificar se é requisição do DataTables (tem parâmetros específicos)
+        $hasDatatablesParams = (
+            $this->input->get('sEcho') !== false || 
+            $this->input->get('draw') !== false ||
+            $this->input->get('iDisplayStart') !== false ||
+            $this->input->get('start') !== false ||
+            $this->input->get('iDisplayLength') !== false ||
+            $this->input->get('length') !== false
+        );
+        
+        if ($this->input->is_ajax_request() && $hasDatatablesParams) {
+            $this->datatables_ajax();
+            return;
+        }
+
         $pesquisa = $this->input->get('pesquisa');
         $status = $this->input->get('status');
         $data_inicio = $this->input->get('data_inicio');
@@ -64,7 +80,8 @@ class Audiencias extends MY_Controller
             $where .= ($where ? ' AND ' : '') . "DATE(dataHora) <= '{$data_fim}'";
         }
 
-        $this->data['results'] = $this->audiencias_model->get('audiencias', '*', $where, $this->data['configuration']['per_page'], $this->uri->segment(3));
+        // Carregar apenas primeira página para fallback (quando JS desabilitado)
+        $this->data['results'] = $this->audiencias_model->get('audiencias', '*', $where, $this->data['configuration']['per_page'], 0);
         $this->data['status'] = $status;
         $this->data['data_inicio'] = $data_inicio;
         $this->data['data_fim'] = $data_fim;
@@ -72,6 +89,151 @@ class Audiencias extends MY_Controller
         $this->data['view'] = 'audiencias/audiencias';
 
         return $this->layout();
+    }
+
+    /**
+     * Retorna dados para DataTables (server-side processing)
+     */
+    private function datatables_ajax()
+    {
+        // DataTables 1.9.4 usa parâmetros diferentes
+        // sEcho deve ser retornado exatamente como foi enviado
+        $sEcho = $this->input->get('sEcho');
+        if ($sEcho === false || $sEcho === null) {
+            $sEcho = $this->input->get('draw') ?: 1;
+        }
+        $draw = intval($sEcho);
+        
+        $start = intval($this->input->get('iDisplayStart') ?: $this->input->get('start') ?: 0);
+        $length = intval($this->input->get('iDisplayLength') ?: $this->input->get('length') ?: 20);
+        
+        // Buscar termo de pesquisa
+        $search = '';
+        $search_param = $this->input->get('sSearch');
+        if ($search_param !== false && $search_param !== null && $search_param !== '') {
+            $search = $search_param;
+        } else {
+            $search_array = $this->input->get('search');
+            if (is_array($search_array) && isset($search_array['value'])) {
+                $search = $search_array['value'];
+            }
+        }
+        
+        // Total de registros sem filtro
+        $recordsTotal = $this->audiencias_model->count('audiencias');
+        
+        // Construir where para busca
+        $where = '';
+        if ($search) {
+            $where = $search; // O model trata como like
+        }
+        
+        // Buscar registros com paginação e filtro
+        $results = $this->audiencias_model->get('audiencias', '*', $where, $length, $start);
+        
+        // Total de registros com filtro aplicado
+        $recordsFiltered = $recordsTotal;
+        if ($search) {
+            // Resetar query builder
+            $this->db->reset_query();
+            
+            $this->db->from('audiencias');
+            
+            // Join com processos se necessário
+            if ($this->db->table_exists('processos')) {
+                $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+            }
+            
+            $this->db->group_start();
+            $this->db->like('audiencias.tipo', $search);
+            $this->db->or_like('audiencias.local', $search);
+            $this->db->or_like('audiencias.observacoes', $search);
+            if ($this->db->table_exists('processos')) {
+                $this->db->or_like('processos.numeroProcesso', $search);
+            }
+            $this->db->group_end();
+            
+            $recordsFiltered = $this->db->count_all_results();
+        }
+        
+        // Formatar dados para DataTables
+        $data = [];
+        if ($results) {
+            foreach ($results as $r) {
+                // Formatar data e hora
+                $dataHora = '';
+                if (isset($r->dataHora) && $r->dataHora) {
+                    $dataHora = date('d/m/Y H:i', strtotime($r->dataHora));
+                }
+                
+                // Status com cores
+                $status_labels = [
+                    'Agendada' => ['label' => 'Agendada', 'class' => 'label-info'],
+                    'Realizada' => ['label' => 'Realizada', 'class' => 'label-success'],
+                    'Cancelada' => ['label' => 'Cancelada', 'class' => 'label-danger'],
+                    'Adiada' => ['label' => 'Adiada', 'class' => 'label-warning'],
+                ];
+                $status = $r->status ?? 'Agendada';
+                $status_info = $status_labels[$status] ?? ['label' => $status, 'class' => 'label-default'];
+                
+                // Ações
+                $acoes = '';
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vAudiencia')) {
+                    $acoes .= '<a href="' . base_url() . 'index.php/audiencias/visualizar/' . $r->idAudiencias . '" style="margin-right: 1%" class="btn-nwe" title="Ver mais detalhes"><i class="bx bx-show bx-xs"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eAudiencia')) {
+                    $acoes .= '<a href="' . base_url() . 'index.php/audiencias/editar/' . $r->idAudiencias . '" style="margin-right: 1%" class="btn-nwe3" title="Editar Audiência"><i class="bx bx-edit bx-xs"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'dAudiencia')) {
+                    $acoes .= '<a href="#modal-excluir" role="button" data-toggle="modal" audiencia="' . $r->idAudiencias . '" style="margin-right: 1%" class="btn-nwe4" title="Excluir Audiência"><i class="bx bx-trash-alt bx-xs"></i></a>';
+                }
+                
+                // Formatar data com indicador de hoje/passada
+                $dataHoraFormatada = $dataHora;
+                if (isset($r->dataHora) && $r->dataHora) {
+                    $hoje = strtotime('today');
+                    $dataAud = strtotime(date('Y-m-d', strtotime($r->dataHora)));
+                    
+                    if ($dataAud == $hoje) {
+                        $dataHoraFormatada = '<span class="label label-info">' . $dataHora . ' (Hoje)</span>';
+                    } elseif ($dataAud < $hoje) {
+                        $dataHoraFormatada = '<span class="label label-default">' . $dataHora . ' (Passada)</span>';
+                    } else {
+                        $dataHoraFormatada = $dataHora;
+                    }
+                }
+                
+                $numeroProcessoLink = '-';
+                if (isset($r->numeroProcesso) && isset($r->processos_id)) {
+                    $numeroProcessoLink = '<a href="' . base_url() . 'index.php/processos/visualizar/' . $r->processos_id . '">' . $r->numeroProcesso . '</a>';
+                } elseif (isset($r->numeroProcesso)) {
+                    $numeroProcessoLink = $r->numeroProcesso;
+                }
+                
+                $data[] = [
+                    $r->idAudiencias,
+                    $numeroProcessoLink,
+                    $r->tipo ?? '-',
+                    $dataHoraFormatada,
+                    $r->local ?? '-',
+                    '<span class="label ' . $status_info['class'] . '">' . $status_info['label'] . '</span>',
+                    $acoes
+                ];
+            }
+        }
+        
+        // DataTables 1.9.4 usa formato diferente
+        // sEcho deve ser retornado exatamente como foi enviado (pode ser string)
+        $response = [
+            'sEcho' => $sEcho, // Manter original, não converter para int
+            'iTotalRecords' => intval($recordsTotal),
+            'iTotalDisplayRecords' => intval($recordsFiltered),
+            'aaData' => $data
+        ];
+        
+        $this->output
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function adicionar()

@@ -159,14 +159,55 @@ class Clientes_model extends CI_Model
 
     /**
      * Verifica se o e-mail já existe na tabela de clientes
+     * 
+     * Útil para validar unicidade de email antes de inserir/atualizar.
+     * Em edição, permite excluir o próprio cliente da verificação.
      *
-     * @param  string  $email
-     * @param  int     $id (opcional, para excluir o próprio cliente na edição)
-     * @return bool
+     * @param string $email Email a verificar
+     * @param int|null $id ID do cliente a excluir da verificação (opcional, para edição)
+     * @return bool True se email existe, False caso contrário
      */
     public function emailExists($email, $id = null)
     {
+        if (empty($email)) {
+            return false;
+        }
+        
         $this->db->where('email', $email);
+        
+        if ($id !== null) {
+            $this->db->where('idClientes !=', $id);
+        }
+        
+        $query = $this->db->get('clientes');
+        
+        return $query->num_rows() > 0;
+    }
+
+    /**
+     * Verifica se o documento (CPF/CNPJ) já existe na tabela de clientes
+     * 
+     * Útil para validar unicidade de documento antes de inserir/atualizar.
+     * Em edição, permite excluir o próprio cliente da verificação.
+     *
+     * @param string $documento Documento (CPF/CNPJ) a verificar (sem formatação)
+     * @param int|null $id ID do cliente a excluir da verificação (opcional, para edição)
+     * @return bool True se documento existe, False caso contrário
+     */
+    public function documentoExists($documento, $id = null)
+    {
+        if (empty($documento)) {
+            return false;
+        }
+        
+        // Limpar formatação do documento
+        $documento_limpo = preg_replace('/[^a-zA-Z0-9]/', '', $documento);
+        
+        if (empty($documento_limpo)) {
+            return false;
+        }
+        
+        $this->db->where('documento', $documento_limpo);
         
         if ($id !== null) {
             $this->db->where('idClientes !=', $id);

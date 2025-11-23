@@ -62,11 +62,9 @@
                 </thead>
                 <tbody>
                     <?php
-                    if (!$results) {
-                        echo '<tr>
-                    <td colspan="9">Nenhum Prazo Cadastrado</td>
-                  </tr>';
-                    } else {
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         foreach ($results as $r) {
                             echo '<tr>';
                             echo '<td>' . $r->idPrazos . '</td>';
@@ -122,7 +120,10 @@
                             echo '</td>';
                             echo '</tr>';
                         }
-                    } ?>
+                    } else {
+                        echo '<tr><td colspan="9" class="dataTables_empty">Carregando dados...</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
         </div>

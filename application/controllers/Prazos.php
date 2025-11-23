@@ -27,6 +27,22 @@ class Prazos extends MY_Controller
             redirect(base_url());
         }
 
+        // Se for requisição AJAX do DataTables, retornar JSON
+        // Verificar se é requisição do DataTables (tem parâmetros específicos)
+        $hasDatatablesParams = (
+            $this->input->get('sEcho') !== false || 
+            $this->input->get('draw') !== false ||
+            $this->input->get('iDisplayStart') !== false ||
+            $this->input->get('start') !== false ||
+            $this->input->get('iDisplayLength') !== false ||
+            $this->input->get('length') !== false
+        );
+        
+        if ($this->input->is_ajax_request() && $hasDatatablesParams) {
+            $this->datatables_ajax();
+            return;
+        }
+
         $pesquisa = $this->input->get('pesquisa');
         $status = $this->input->get('status');
 
@@ -49,12 +65,173 @@ class Prazos extends MY_Controller
             $where .= ($where ? ' AND ' : '') . "status = '{$status}'";
         }
 
-        $this->data['results'] = $this->prazos_model->get('prazos', '*', $where, $this->data['configuration']['per_page'], $this->uri->segment(3));
+        // Carregar apenas primeira página para fallback (quando JS desabilitado)
+        $this->data['results'] = $this->prazos_model->get('prazos', '*', $where, $this->data['configuration']['per_page'], 0);
         $this->data['status'] = $status;
 
         $this->data['view'] = 'prazos/prazos';
 
         return $this->layout();
+    }
+
+    /**
+     * Retorna dados para DataTables (server-side processing)
+     */
+    private function datatables_ajax()
+    {
+        // DataTables 1.9.4 usa parâmetros diferentes
+        // sEcho deve ser retornado exatamente como foi enviado
+        $sEcho = $this->input->get('sEcho');
+        if ($sEcho === false || $sEcho === null) {
+            $sEcho = $this->input->get('draw') ?: 1;
+        }
+        
+        $start = intval($this->input->get('iDisplayStart') ?: $this->input->get('start') ?: 0);
+        $length = intval($this->input->get('iDisplayLength') ?: $this->input->get('length') ?: 20);
+        
+        // Buscar termo de pesquisa
+        $search = '';
+        $search_param = $this->input->get('sSearch');
+        if ($search_param !== false && $search_param !== null && $search_param !== '') {
+            $search = $search_param;
+        } else {
+            $search_array = $this->input->get('search');
+            if (is_array($search_array) && isset($search_array['value'])) {
+                $search = $search_array['value'];
+            }
+        }
+        
+        // Total de registros sem filtro
+        $recordsTotal = $this->prazos_model->count('prazos');
+        
+        // Buscar filtro de status da URL
+        $status = $this->input->get('status');
+        
+        // Construir where para busca e status
+        $where = '';
+        if ($search) {
+            $where = $search; // O model trata como like
+        }
+        if ($status) {
+            $where .= ($where ? ' AND ' : '') . "status = '{$status}'";
+        }
+        
+        // Buscar registros com paginação e filtro
+        $results = $this->prazos_model->get('prazos', '*', $where, $length, $start);
+        
+        // Total de registros com filtro aplicado
+        $recordsFiltered = $recordsTotal;
+        if ($search || $status) {
+            // Resetar query builder
+            $this->db->reset_query();
+            
+            $this->db->from('prazos');
+            
+            // Join com processos se necessário
+            if ($this->db->table_exists('processos')) {
+                $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
+            }
+            
+            if ($search) {
+                $this->db->group_start();
+                $this->db->like('prazos.descricao', $search);
+                $this->db->or_like('prazos.tipo', $search);
+                if ($this->db->table_exists('processos')) {
+                    $this->db->or_like('processos.numeroProcesso', $search);
+                }
+                $this->db->group_end();
+            }
+            
+            if ($status) {
+                $this->db->where('prazos.status', $status);
+            }
+            
+            $recordsFiltered = $this->db->count_all_results();
+        }
+        
+        // Formatar dados para DataTables
+        $data = [];
+        if ($results) {
+            foreach ($results as $r) {
+                // Formatar datas
+                $dataPrazo = isset($r->dataPrazo) ? date('d/m/Y', strtotime($r->dataPrazo)) : '-';
+                
+                // Data de vencimento com destaque se vencido
+                $dataVencimento = isset($r->dataVencimento) ? date('d/m/Y', strtotime($r->dataVencimento)) : '-';
+                $vencido = isset($r->dataVencimento) && strtotime($r->dataVencimento) < strtotime('today') && ($r->status ?? '') == 'Pendente';
+                $vencendo = isset($r->dataVencimento) && strtotime($r->dataVencimento) <= strtotime('+3 days') && strtotime($r->dataVencimento) >= strtotime('today') && ($r->status ?? '') == 'Pendente';
+                
+                $dataVencimentoFormatada = $dataVencimento;
+                if ($vencido) {
+                    $dataVencimentoFormatada = '<span class="label label-important">' . $dataVencimento . ' (Vencido)</span>';
+                } elseif ($vencendo) {
+                    $dataVencimentoFormatada = '<span class="label label-warning">' . $dataVencimento . ' (Vencendo)</span>';
+                }
+                
+                // Status com cores
+                $status_labels = [
+                    'Pendente' => ['label' => 'Pendente', 'class' => 'label-warning'],
+                    'Cumprido' => ['label' => 'Cumprido', 'class' => 'label-success'],
+                    'Vencido' => ['label' => 'Vencido', 'class' => 'label-important'],
+                ];
+                $status = $r->status ?? 'Pendente';
+                $status_info = $status_labels[$status] ?? ['label' => $status, 'class' => 'label-default'];
+                
+                // Prioridade
+                $prioridade_labels = [
+                    'Baixa' => ['label' => 'Baixa', 'class' => 'label-default'],
+                    'Normal' => ['label' => 'Normal', 'class' => 'label-info'],
+                    'Alta' => ['label' => 'Alta', 'class' => 'label-warning'],
+                    'Urgente' => ['label' => 'Urgente', 'class' => 'label-important'],
+                ];
+                $prioridade = $r->prioridade ?? 'Normal';
+                $prioridade_info = $prioridade_labels[$prioridade] ?? ['label' => $prioridade, 'class' => 'label-default'];
+                
+                // Ações
+                $acoes = '';
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vPrazo')) {
+                    $acoes .= '<a href="' . base_url() . 'index.php/prazos/visualizar/' . $r->idPrazos . '" style="margin-right: 1%" class="btn-nwe" title="Ver mais detalhes"><i class="bx bx-show bx-xs"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'ePrazo')) {
+                    $acoes .= '<a href="' . base_url() . 'index.php/prazos/editar/' . $r->idPrazos . '" style="margin-right: 1%" class="btn-nwe3" title="Editar Prazo"><i class="bx bx-edit bx-xs"></i></a>';
+                }
+                if ($this->permission->checkPermission($this->session->userdata('permissao'), 'dPrazo')) {
+                    $acoes .= '<a href="#modal-excluir" role="button" data-toggle="modal" prazo="' . $r->idPrazos . '" style="margin-right: 1%" class="btn-nwe4" title="Excluir Prazo"><i class="bx bx-trash-alt bx-xs"></i></a>';
+                }
+                
+                $numeroProcessoLink = '-';
+                if (isset($r->numeroProcesso) && isset($r->processos_id)) {
+                    $numeroProcessoLink = '<a href="' . base_url() . 'index.php/processos/visualizar/' . $r->processos_id . '">' . $r->numeroProcesso . '</a>';
+                } elseif (isset($r->numeroProcesso)) {
+                    $numeroProcessoLink = $r->numeroProcesso;
+                }
+                
+                $data[] = [
+                    $r->idPrazos,
+                    $numeroProcessoLink,
+                    $r->tipo ?? '-',
+                    $r->descricao ?? '-',
+                    $dataPrazo,
+                    $dataVencimentoFormatada,
+                    '<span class="label ' . $status_info['class'] . '">' . $status_info['label'] . '</span>',
+                    '<span class="label ' . $prioridade_info['class'] . '">' . $prioridade_info['label'] . '</span>',
+                    $acoes
+                ];
+            }
+        }
+        
+        // DataTables 1.9.4 usa formato diferente
+        // sEcho deve ser retornado exatamente como foi enviado (pode ser string)
+        $response = [
+            'sEcho' => $sEcho, // Manter original, não converter para int
+            'iTotalRecords' => intval($recordsTotal),
+            'iTotalDisplayRecords' => intval($recordsFiltered),
+            'aaData' => $data
+        ];
+        
+        $this->output
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function adicionar()

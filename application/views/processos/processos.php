@@ -54,11 +54,9 @@
                 </thead>
                 <tbody>
                     <?php
-                    if (!$results) {
-                        echo '<tr>
-                    <td colspan="9">Nenhum Processo Cadastrado</td>
-                  </tr>';
-                    } else {
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         $this->load->model('processos_model');
                         foreach ($results as $r) {
                             $numeroFormatado = $this->processos_model->formatarNumeroProcesso($r->numeroProcesso);
@@ -96,14 +94,17 @@
                             echo '</td>';
                             echo '</tr>';
                         }
-                    } ?>
+                    } else {
+                        echo '<tr><td colspan="9" class="dataTables_empty">Carregando dados...</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
 
         </div>
     </div>
 </div>
-<?php echo $this->pagination->create_links(); ?>
+<!-- Paginação removida - DataTables gerencia via server-side processing -->
 
 <!-- Modal -->
 <div id="modal-excluir" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"

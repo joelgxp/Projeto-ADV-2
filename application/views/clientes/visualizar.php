@@ -30,30 +30,159 @@
                         <div class="widget-content">
                             <table class="table table-bordered" style="border: 1px solid #ddd">
                                 <tbody>
-                                <tr>
-                                    <td style="text-align: right; width: 30%"><strong>Nome</strong></td>
-                                    <td>
-                                        <?php echo $result->nomeCliente ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align: right"><strong>Documento</strong></td>
-                                    <td>
-                                        <?php echo $result->documento ?>
-                                    </td>
-                                </tr>
+                                <?php if ($result->pessoa_fisica == 1) : ?>
+                                    <tr>
+                                        <td style="text-align: right; width: 30%"><strong>Nome Completo</strong></td>
+                                        <td><?php echo $result->nomeCliente ?></td>
+                                    </tr>
+                                    <?php if (isset($result->rg) && $result->rg) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>RG</strong></td>
+                                        <td><?php echo $result->rg ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>CPF</strong></td>
+                                        <td><?php echo $result->documento ?></td>
+                                    </tr>
+                                    <?php if (isset($result->data_nascimento) && $result->data_nascimento) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Data de Nascimento</strong></td>
+                                        <td><?php echo date('d/m/Y', strtotime($result->data_nascimento)) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->estado_civil) && $result->estado_civil) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Estado Civil</strong></td>
+                                        <td><?php echo ucfirst(str_replace('_', ' ', $result->estado_civil)) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->nacionalidade) && $result->nacionalidade) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Nacionalidade</strong></td>
+                                        <td><?php echo $result->nacionalidade ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->profissao) && $result->profissao) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Profissão</strong></td>
+                                        <td><?php echo $result->profissao ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->nome_mae) && $result->nome_mae) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Nome da Mãe</strong></td>
+                                        <td><?php echo $result->nome_mae ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->nome_pai) && $result->nome_pai) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Nome do Pai</strong></td>
+                                        <td><?php echo $result->nome_pai ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->dependentes) && $result->dependentes) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Dependentes</strong></td>
+                                        <td><?php echo nl2br($result->dependentes) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->foto) && $result->foto) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Foto/Documento</strong></td>
+                                        <td>
+                                            <a href="<?php echo base_url() . $result->foto; ?>" target="_blank">
+                                                <img src="<?php echo base_url() . $result->foto; ?>" style="max-width: 150px; max-height: 150px;" alt="Foto">
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->documentos_adicionais) && $result->documentos_adicionais) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Documentos Adicionais</strong></td>
+                                        <td><?php echo nl2br($result->documentos_adicionais) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                <?php else : ?>
+                                    <tr>
+                                        <td style="text-align: right; width: 30%"><strong>Razão Social</strong></td>
+                                        <td><?php echo isset($result->razao_social) && $result->razao_social ? $result->razao_social : $result->nomeCliente ?></td>
+                                    </tr>
+                                    <?php if (isset($result->nome_fantasia) && $result->nome_fantasia) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Nome Fantasia</strong></td>
+                                        <td><?php echo $result->nome_fantasia ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>CNPJ</strong></td>
+                                        <td><?php echo $result->documento ?></td>
+                                    </tr>
+                                    <?php if (isset($result->inscricao_estadual) && $result->inscricao_estadual) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Inscrição Estadual</strong></td>
+                                        <td><?php echo $result->inscricao_estadual ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->inscricao_municipal) && $result->inscricao_municipal) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Inscrição Municipal</strong></td>
+                                        <td><?php echo $result->inscricao_municipal ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->data_constituicao) && $result->data_constituicao) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Data de Constituição</strong></td>
+                                        <td><?php echo date('d/m/Y', strtotime($result->data_constituicao)) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->cnae) && $result->cnae) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>CNAE</strong></td>
+                                        <td><?php echo $result->cnae ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->ramo_atividade) && $result->ramo_atividade) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Ramo de Atividade</strong></td>
+                                        <td><?php echo $result->ramo_atividade ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->site) && $result->site) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Site</strong></td>
+                                        <td><a href="<?php echo $result->site; ?>" target="_blank"><?php echo $result->site; ?></a></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->redes_sociais) && $result->redes_sociais) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Redes Sociais</strong></td>
+                                        <td><?php echo nl2br($result->redes_sociais) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->representantes_legais) && $result->representantes_legais) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Representantes Legais</strong></td>
+                                        <td><?php echo nl2br($result->representantes_legais) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <?php if (isset($result->socios) && $result->socios) : ?>
+                                    <tr>
+                                        <td style="text-align: right"><strong>Sócios</strong></td>
+                                        <td><?php echo nl2br($result->socios) ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 <tr>
                                     <td style="text-align: right"><strong>Data de Cadastro</strong></td>
-                                    <td>
-                                        <?php echo date('d/m/Y', strtotime($result->dataCadastro)) ?>
-                                    </td>
+                                    <td><?php echo date('d/m/Y', strtotime($result->dataCadastro)) ?></td>
                                 </tr>
+                                <?php if (isset($result->observacoes) && $result->observacoes) : ?>
                                 <tr>
-                                    <td style="text-align: right"><strong>Tipo do Cliente</strong></td>
-                                    <td>
-                                        <?php echo $result->fornecedor == true ? 'Fornecedor' : 'Cliente'; ?>
-                                    </td>
+                                    <td style="text-align: right"><strong>Observações Gerais</strong></td>
+                                    <td><?php echo nl2br($result->observacoes) ?></td>
                                 </tr>
+                                <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -72,12 +201,6 @@
                         <div class="widget-content">
                             <table class="table table-bordered" style="border: 1px solid #ddd">
                                 <tbody>
-                                <tr>
-                                    <td style="text-align: right; width: 30%"><strong>Contato:</strong></td>
-                                    <td>
-                                        <?php echo $result->contato ?>
-                                    </td>
-                                </tr>
                                 <tr>
                                     <td style="text-align: right; width: 30%"><strong>Telefone</strong></td>
                                     <td>

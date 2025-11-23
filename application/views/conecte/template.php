@@ -49,10 +49,10 @@
     <nav id="sidebar">
         <div id="newlog">
             <div class="icon2">
-                <img src="<?php echo base_url() ?>assets/img/logo-two.png">
+                <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
             </div>
             <div class="title1">
-                <img src="<?= base_url() ?>assets/img/logo-mapos-branco.png">
+                <img src="<?= base_url() ?>assets/img/logo-adv-branco.svg" onerror="this.src='<?= base_url() ?>assets/img/logo-adv-branco.png'">
             </div>
         </div>
         <a href="#" class="visible-phone">

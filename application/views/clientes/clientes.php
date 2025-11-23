@@ -43,60 +43,52 @@
                     <tr>
                         <th>Cod.</th>
                         <th>Nome</th>
-                        <th>Contato</th>
                         <th>CPF/CNPJ</th>
                         <th>Telefone</th>
                         <th>Celular</th>
                         <th>Email</th>
-                        <th>Tipo</th> <!-- Nova coluna para Fornecedor/Cliente -->
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-                    if (!$results) {
-                        echo '<tr>
-                    <td colspan="9">Nenhum Cliente Cadastrado</td>
-                  </tr>';
+                    // Com server-side processing, o tbody fica vazio - DataTables preenche via AJAX
+                    // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
+                    if (isset($results) && $results && !$this->input->is_ajax_request()) {
+                        foreach ($results as $r) {
+                            echo '<tr>';
+                            echo '<td>' . htmlspecialchars($r->idClientes, ENT_QUOTES, 'UTF-8') . '</td>';
+                            echo '<td><a href="' . base_url() . 'index.php/clientes/visualizar/' . htmlspecialchars($r->idClientes, ENT_QUOTES, 'UTF-8') . '" style="margin-right: 1%">' . htmlspecialchars($r->nomeCliente, ENT_QUOTES, 'UTF-8') . '</a></td>';
+                            echo '<td>' . htmlspecialchars($r->documento ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
+                            echo '<td>' . ($r->telefone ? htmlspecialchars($r->telefone, ENT_QUOTES, 'UTF-8') : '-') . '</td>';
+                            echo '<td>' . ($r->celular ? htmlspecialchars($r->celular, ENT_QUOTES, 'UTF-8') : '-') . '</td>';
+                            echo '<td>' . ($r->email ? htmlspecialchars($r->email, ENT_QUOTES, 'UTF-8') : '-') . '</td>';
+
+                            echo '<td style="white-space: nowrap;">';
+                            if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCliente')) {
+                                echo '<a href="' . base_url() . 'index.php/clientes/visualizar/' . htmlspecialchars($r->idClientes, ENT_QUOTES, 'UTF-8') . '" style="margin-right: 5px" class="btn-nwe" title="Ver mais detalhes"><i class="bx bx-show bx-xs"></i></a>';
+                                echo '<a href="' . base_url() . 'index.php/mine?e=' . urlencode($r->email ?? '') . '" target="new" style="margin-right: 5px" class="btn-nwe2" title="Área do cliente"><i class="bx bx-key bx-xs"></i></a>';
+                            }
+                            if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) {
+                                echo '<a href="' . base_url() . 'index.php/clientes/editar/' . htmlspecialchars($r->idClientes, ENT_QUOTES, 'UTF-8') . '" style="margin-right: 5px" class="btn-nwe3" title="Editar Cliente"><i class="bx bx-edit bx-xs"></i></a>';
+                            }
+                            if ($this->permission->checkPermission($this->session->userdata('permissao'), 'dCliente')) {
+                                echo '<a href="#modal-excluir" role="button" data-toggle="modal" cliente="' . htmlspecialchars($r->idClientes, ENT_QUOTES, 'UTF-8') . '" style="margin-right: 5px" class="btn-nwe4" title="Excluir Cliente"><i class="bx bx-trash-alt bx-xs"></i></a>';
+                            }
+                            echo '</td>';
+                            echo '</tr>';
+                        }
+                    } else {
+                        echo '<tr><td colspan="7" class="dataTables_empty">Carregando dados...</td></tr>';
                     }
-                    foreach ($results as $r) {
-                        echo '<tr>';
-                        echo '<td>' . $r->idClientes . '</td>';
-                        echo '<td><a href="' . base_url() . 'index.php/clientes/visualizar/' . $r->idClientes . '" style="margin-right: 1%">' . $r->nomeCliente . '</a></td>';
-                        echo '<td>' . $r->contato . '</td>';
-                        echo '<td>' . $r->documento . '</td>';
-                        echo '<td>' . $r->telefone . '</td>';
-                        echo '<td>' . $r->celular . '</td>';
-                        echo '<td>' . $r->email . '</td>';
-
-                        // Verifica se é Fornecedor ou Cliente
-                        if ($r->fornecedor == 1) {
-                            echo '<td><span class="label label-primary">Fornecedor</span></td>';
-                        } else {
-                            echo '<td><span class="label label-success">Cliente</span></td>';
-                        }
-
-                        echo '<td>';
-                        if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCliente')) {
-                            echo '<a href="' . base_url() . 'index.php/clientes/visualizar/' . $r->idClientes . '" style="margin-right: 1%" class="btn-nwe" title="Ver mais detalhes"><i class="bx bx-show bx-xs"></i></a>';
-                            echo '<a href="' . base_url() . 'index.php/mine?e=' . $r->email . '" target="new" style="margin-right: 1%" class="btn-nwe2" title="Área do cliente"><i class="bx bx-key bx-xs"></i></a>';
-                        }
-                        if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) {
-                            echo '<a href="' . base_url() . 'index.php/clientes/editar/' . $r->idClientes . '" style="margin-right: 1%" class="btn-nwe3" title="Editar Cliente"><i class="bx bx-edit bx-xs"></i></a>';
-                        }
-                        if ($this->permission->checkPermission($this->session->userdata('permissao'), 'dCliente')) {
-                            echo '<a href="#modal-excluir" role="button" data-toggle="modal" cliente="' . $r->idClientes . '" style="margin-right: 1%" class="btn-nwe4" title="Excluir Cliente"><i class="bx bx-trash-alt bx-xs"></i></a>';
-                        }
-                        echo '</td>';
-                        echo '</tr>';
-                    } ?>
+                    ?>
                 </tbody>
             </table>
 
         </div>
     </div>
 </div>
-<?php echo $this->pagination->create_links(); ?>
+<!-- Paginação removida - DataTables gerencia via server-side processing -->
 
 <!-- Modal -->
 <div id="modal-excluir" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"

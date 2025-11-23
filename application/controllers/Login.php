@@ -52,7 +52,25 @@ class Login extends CI_Controller
                     // Adaptar campos baseado na estrutura da tabela
                     $user_email = isset($user->email) ? $user->email : (isset($user->usuario) ? $user->usuario : '');
                     $user_id = isset($user->idUsuarios) ? $user->idUsuarios : (isset($user->id) ? $user->id : 0);
+                    $nivel_usuario = isset($user->nivel) ? strtolower($user->nivel) : null;
                     $user_permissao = isset($user->permissoes_id) ? $user->permissoes_id : (isset($user->nivel) ? $user->nivel : 1);
+
+                    // Detecta se perfil vinculado é administrador pelo nome na tabela permissoes
+                    $permissao_nome = null;
+                    if (isset($user->permissoes_id) && $user->permissoes_id && $this->db->table_exists('permissoes')) {
+                        $this->db->select('nome');
+                        $this->db->where('idPermissao', $user->permissoes_id);
+                        $this->db->limit(1);
+                        $perm = $this->db->get('permissoes')->row();
+                        if ($perm && isset($perm->nome)) {
+                            $permissao_nome = strtolower($perm->nome);
+                        }
+                    }
+
+                    if (($nivel_usuario === 'admin') || ($permissao_nome && in_array($permissao_nome, ['admin', 'administrador']))) {
+                        $user_permissao = 'admin';
+                        $nivel_usuario = 'admin';
+                    }
                     $user_image = isset($user->url_image_user) ? $user->url_image_user : '';
                     
                     $session_admin_data = [
@@ -61,7 +79,8 @@ class Login extends CI_Controller
                         'url_image_user_admin' => $user_image,
                         'id_admin' => $user_id,
                         'permissao' => $user_permissao,
-                        'logado' => true
+                        'logado' => true,
+                        'nivel_admin' => $nivel_usuario
                     ];
                     $this->session->set_userdata($session_admin_data);
                     log_info('Efetuou login no sistema');

@@ -58,12 +58,6 @@ class Migration_criar_tabela_planos extends CI_Migration
                 'default' => 1,
                 'comment' => 'Permite acesso ao portal do cliente',
             ],
-            'acesso_api' => [
-                'type' => 'TINYINT',
-                'constraint' => 1,
-                'default' => 0,
-                'comment' => 'Permite acesso à API',
-            ],
             'suporte_prioritario' => [
                 'type' => 'TINYINT',
                 'constraint' => 1,
@@ -106,7 +100,6 @@ class Migration_criar_tabela_planos extends CI_Migration
                 'limite_audiencias' => 20,
                 'limite_documentos' => 100,
                 'acesso_portal' => 1,
-                'acesso_api' => 0,
                 'suporte_prioritario' => 0,
                 'relatorios_avancados' => 0,
                 'status' => 1,
