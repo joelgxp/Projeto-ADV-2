@@ -448,20 +448,33 @@ class Sistema_model extends CI_Model
         
         $this->db->from('audiencias');
         
-        // Filtros de data
-        if ($start) {
-            $this->db->where('DATE(audiencias.dataHora) >=', $start);
-        }
-        if ($end) {
-            $this->db->where('DATE(audiencias.dataHora) <=', $end);
+        // Verificar se a coluna dataHora existe antes de usar
+        $has_dataHora = in_array('dataHora', $audiencias_columns);
+        
+        // Filtros de data (apenas se a coluna existir)
+        if ($has_dataHora) {
+            if ($start) {
+                // Remover timezone se presente (ex: 2025-10-26T00:00:00-03:00)
+                $start_clean = preg_replace('/T.*$/', '', $start);
+                $this->db->where('DATE(audiencias.dataHora) >=', $start_clean);
+            }
+            if ($end) {
+                // Remover timezone se presente
+                $end_clean = preg_replace('/T.*$/', '', $end);
+                $this->db->where('DATE(audiencias.dataHora) <=', $end_clean);
+            }
+            $this->db->order_by('audiencias.dataHora', 'ASC');
+        } else {
+            // Se não tiver dataHora, ordenar por dataCadastro se existir
+            if (in_array('dataCadastro', $audiencias_columns)) {
+                $this->db->order_by('audiencias.dataCadastro', 'ASC');
+            }
         }
 
         // Filtro de status se fornecido
         if (!empty($status) && in_array('status', $audiencias_columns)) {
             $this->db->where('audiencias.status', $status);
         }
-        
-        $this->db->order_by('audiencias.dataHora', 'ASC');
 
         $query = $this->db->get();
         if ($query === false) {
