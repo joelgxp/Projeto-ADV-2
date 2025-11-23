@@ -64,6 +64,12 @@ class Migration_criar_tabela_planos extends CI_Migration
                 'default' => 0,
                 'comment' => 'Suporte prioritário',
             ],
+            'acesso_api' => [
+                'type' => 'TINYINT',
+                'constraint' => 1,
+                'default' => 0,
+                'comment' => 'Acesso à API',
+            ],
             'relatorios_avancados' => [
                 'type' => 'TINYINT',
                 'constraint' => 1,
@@ -89,55 +95,62 @@ class Migration_criar_tabela_planos extends CI_Migration
         $this->dbforge->add_key('idPlanos', true);
         $this->dbforge->create_table('planos', true);
 
-        // Inserir planos padrão
-        $planos_padrao = [
-            [
-                'nome' => 'Básico',
-                'descricao' => 'Plano básico com funcionalidades essenciais',
-                'valor_mensal' => 0.00,
-                'limite_processos' => 10,
-                'limite_prazos' => 50,
-                'limite_audiencias' => 20,
-                'limite_documentos' => 100,
-                'acesso_portal' => 1,
-                'suporte_prioritario' => 0,
-                'relatorios_avancados' => 0,
-                'status' => 1,
-                'dataCadastro' => date('Y-m-d H:i:s'),
-            ],
-            [
-                'nome' => 'Profissional',
-                'descricao' => 'Plano profissional com recursos avançados',
-                'valor_mensal' => 99.90,
-                'limite_processos' => 50,
-                'limite_prazos' => 200,
-                'limite_audiencias' => 100,
-                'limite_documentos' => 500,
-                'acesso_portal' => 1,
-                'acesso_api' => 1,
-                'suporte_prioritario' => 1,
-                'relatorios_avancados' => 1,
-                'status' => 1,
-                'dataCadastro' => date('Y-m-d H:i:s'),
-            ],
-            [
-                'nome' => 'Enterprise',
-                'descricao' => 'Plano enterprise com recursos ilimitados',
-                'valor_mensal' => 299.90,
-                'limite_processos' => 0,
-                'limite_prazos' => 0,
-                'limite_audiencias' => 0,
-                'limite_documentos' => 0,
-                'acesso_portal' => 1,
-                'acesso_api' => 1,
-                'suporte_prioritario' => 1,
-                'relatorios_avancados' => 1,
-                'status' => 1,
-                'dataCadastro' => date('Y-m-d H:i:s'),
-            ],
-        ];
+        // Inserir planos padrão apenas se a tabela estiver vazia
+        $count = $this->db->count_all('planos');
+        if ($count == 0) {
+            $planos_padrao = [
+                [
+                    'nome' => 'Básico',
+                    'descricao' => 'Plano básico com funcionalidades essenciais',
+                    'valor_mensal' => 0.00,
+                    'limite_processos' => 10,
+                    'limite_prazos' => 50,
+                    'limite_audiencias' => 20,
+                    'limite_documentos' => 100,
+                    'acesso_portal' => 1,
+                    'acesso_api' => 0,
+                    'suporte_prioritario' => 0,
+                    'relatorios_avancados' => 0,
+                    'status' => 1,
+                    'dataCadastro' => date('Y-m-d H:i:s'),
+                ],
+                [
+                    'nome' => 'Profissional',
+                    'descricao' => 'Plano profissional com recursos avançados',
+                    'valor_mensal' => 99.90,
+                    'limite_processos' => 50,
+                    'limite_prazos' => 200,
+                    'limite_audiencias' => 100,
+                    'limite_documentos' => 500,
+                    'acesso_portal' => 1,
+                    'acesso_api' => 1,
+                    'suporte_prioritario' => 1,
+                    'relatorios_avancados' => 1,
+                    'status' => 1,
+                    'dataCadastro' => date('Y-m-d H:i:s'),
+                ],
+                [
+                    'nome' => 'Enterprise',
+                    'descricao' => 'Plano enterprise com recursos ilimitados',
+                    'valor_mensal' => 299.90,
+                    'limite_processos' => 0,
+                    'limite_prazos' => 0,
+                    'limite_audiencias' => 0,
+                    'limite_documentos' => 0,
+                    'acesso_portal' => 1,
+                    'acesso_api' => 1,
+                    'suporte_prioritario' => 1,
+                    'relatorios_avancados' => 1,
+                    'status' => 1,
+                    'dataCadastro' => date('Y-m-d H:i:s'),
+                ],
+            ];
 
-        $this->db->insert_batch('planos', $planos_padrao);
+            $this->db->insert_batch('planos', $planos_padrao);
+            echo "✅ Planos padrão inseridos com sucesso!\n";
+        } else {
+            echo "⚠️  Tabela 'planos' já possui registros. Pulando inserção de planos padrão.\n";
+        }
 
         // Adicionar coluna planos_id na tabela clientes se não existir
         if (!$this->db->field_exists('planos_id', 'clientes')) {
