@@ -775,6 +775,86 @@ class Mine extends CI_Controller
         }
     }
 
+    /**
+     * Recuperar email usando CPF/CNPJ
+     */
+    public function recuperarEmail()
+    {
+        $this->load->library('form_validation');
+        
+        $this->form_validation->set_rules('documento', 'CPF/CNPJ', 'required|trim');
+        
+        if ($this->form_validation->run() == false) {
+            $this->load->view('conecte/recuperar_email');
+            return;
+        }
+        
+        $documento = $this->input->post('documento');
+        // Remover formatação do documento
+        $documento = preg_replace('/[^0-9]/', '', $documento);
+        
+        // Buscar cliente por CPF/CNPJ
+        $this->db->where('documento', $documento);
+        $cliente = $this->db->get('clientes')->row();
+        
+        if (!$cliente) {
+            $this->session->set_flashdata('error', 'CPF/CNPJ não encontrado no sistema.');
+            $this->load->view('conecte/recuperar_email');
+            return;
+        }
+        
+        // Enviar email com o email cadastrado
+        $this->enviarEmailRecuperacao($cliente->idClientes, $cliente->email, $cliente->nomeCliente);
+        
+        $this->session->set_flashdata('success', 'Um email com seu endereço de email cadastrado foi enviado para ' . $cliente->email);
+        redirect(base_url() . 'index.php/mine');
+    }
+
+    private function enviarEmailRecuperacao($idClientes, $email, $nome)
+    {
+        $this->load->model('sistema_model');
+        $this->load->model('clientes_model', '', true);
+        $this->load->model('email_model');
+        
+        $dados = [];
+        $dados['emitente'] = $this->sistema_model->getEmitente();
+        $dados['cliente'] = $this->clientes_model->getById($idClientes);
+        $dados['email_cadastrado'] = $email;
+        
+        $emitente = $dados['emitente'];
+        
+        if ($emitente == null) {
+            log_message('error', 'Emitente não configurado. Não foi possível enviar email de recuperação.');
+            return false;
+        }
+        
+        $html = $this->load->view('conecte/emails/recuperar_email', $dados, true);
+        
+        $assunto = 'Recuperação de Email - ' . $this->config->item('app_name');
+        
+        $headers = [
+            'From' => "\"$emitente->nome\" <$emitente->email>",
+            'Subject' => $assunto,
+            'Return-Path' => '',
+        ];
+        
+        $email_data = [
+            'to' => $email,
+            'message' => $html,
+            'status' => 'pending',
+            'date' => date('Y-m-d H:i:s'),
+            'headers' => serialize($headers),
+        ];
+        
+        if ($this->email_model->add('email_queue', $email_data)) {
+            log_message('info', "Email de recuperação adicionado à fila para: {$email} (Cliente ID: {$idClientes})");
+            return true;
+        } else {
+            log_message('error', "Falha ao adicionar email de recuperação à fila para: {$email}");
+            return false;
+        }
+    }
+
     private function enviarRecuperarSenha($idClientes, $clienteEmail, $assunto, $token)
     {
         $dados = [];

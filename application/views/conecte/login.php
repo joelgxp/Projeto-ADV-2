@@ -18,6 +18,28 @@
     <script src="<?php echo base_url() ?>assets/js/jquery.mask.min.js"></script>
     <script src="<?php echo base_url() ?>assets/js/funcoes.js"></script>
     <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        .links-recuperacao {
+            margin-top: 20px !important;
+            text-align: center !important;
+            padding: 15px 0 !important;
+            width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+        }
+        .links-recuperacao a {
+            color: #ffffff !important;
+            text-decoration: underline !important;
+            font-size: 14px !important;
+            display: block !important;
+            margin-bottom: 8px !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .links-recuperacao a:hover {
+            color: #fa9c8e !important;
+        }
+    </style>
     <!-- Script webeddy.com.br -->
     <script>
         function formatar(mascara, documento) {
@@ -83,9 +105,10 @@ $parse_cpfcnpj = $this->input->get('c');
 
                                     <button style="margin: 0" class="btn btn-info btn-large"> Acessar</button>
                                     <a href="<?= site_url('mine/cadastrar') ?>" class="btn btn-success btn-large">Cadastrar-me</a>
-                                    <div class="links-uteis"><a href="<?= site_url('mine/resetarSenha') ?>">
-                                            <p style="margin:0px 0 18px">Esqueceu a senha?</p>
-                                        </a></div>
+                                    <div class="links-recuperacao">
+                                        <a href="<?= site_url('mine/resetarSenha') ?>">Esqueceu a senha?</a>
+                                        <a href="<?= site_url('mine/recuperarEmail') ?>">Esqueceu o email?</a>
+                                    </div>
                                     <div class="links-uteis"><a href="https://github.com/RamonSilva20/mapos">
                                             <p><?= date('Y'); ?> &copy; Ramon Silva</p>
                                         </a></div>
