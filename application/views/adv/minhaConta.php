@@ -150,7 +150,7 @@
         <div class="widget-content">
             <div class="row-fluid">
                 <div class="span12" style="min-height: 260px">
-                    <form id="formSenha" action="<?= site_url('mapos/alterarSenha'); ?>" method="post">
+                    <form id="formSenha" action="<?= site_url('adv/alterarSenha'); ?>" method="post">
 
                         <div class="span12" style="margin-left: 0">
                             <label for="">Senha Atual</label>
@@ -175,7 +175,7 @@
 </div>
 
 <div id="modalImageUser" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <form action="<?= site_url('mapos/uploadUserImage'); ?>" id="formImageUser" enctype="multipart/form-data" method="post" class="form-horizontal">
+    <form action="<?= site_url('adv/uploadUserImage'); ?>" id="formImageUser" enctype="multipart/form-data" method="post" class="form-horizontal">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
             <h3 id="">MapOS - Atualizar Imagem do Usuario</h3>

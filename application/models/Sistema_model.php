@@ -1,6 +1,12 @@
 <?php
 
-class Mapos_model extends CI_Model
+/**
+ * Sistema_model
+ * 
+ * Model principal do sistema jurídico
+ * Contém métodos genéricos e específicos para o sistema de advocacia
+ */
+class Sistema_model extends CI_Model
 {
     public function __construct()
     {
@@ -23,7 +29,7 @@ class Mapos_model extends CI_Model
     {
         // Validar nome da tabela para prevenir SQL injection
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-            log_message('error', 'Mapos_model::get: Nome de tabela inválido: ' . $table);
+            log_message('error', 'Sistema_model::get: Nome de tabela inválido: ' . $table);
             return false;
         }
 
@@ -37,19 +43,15 @@ class Mapos_model extends CI_Model
                 $this->db->where($where);
             } else {
                 // Se for string, validar que não contém SQL perigoso
-                // Permitir apenas strings simples sem caracteres perigosos
                 $where_clean = trim($where);
-                // Validar que não contém comandos SQL perigosos
                 $dangerous_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'EXEC', 'EXECUTE', '--', ';', '/*', '*/', 'UNION', 'SELECT'];
                 $where_upper = strtoupper($where_clean);
                 foreach ($dangerous_keywords as $keyword) {
                     if (strpos($where_upper, $keyword) !== false) {
-                        log_message('error', 'Mapos_model::get: Tentativa de SQL injection detectada: ' . $where);
+                        log_message('error', 'Sistema_model::get: Tentativa de SQL injection detectada: ' . $where);
                         return false;
                     }
                 }
-                // Usar like() ou where() com escape adequado
-                // Por padrão, usar where() que já faz escape no CodeIgniter
                 $this->db->where($where_clean);
             }
         }
@@ -57,7 +59,7 @@ class Mapos_model extends CI_Model
         $query = $this->db->get();
 
         if ($query === false) {
-            log_message('error', 'Mapos_model::get: Erro na query: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            log_message('error', 'Sistema_model::get: Erro na query: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
             return false;
         }
 
@@ -66,6 +68,9 @@ class Mapos_model extends CI_Model
         return $result;
     }
 
+    /**
+     * Busca usuário por ID
+     */
     public function getById($id)
     {
         // Detectar estrutura da tabela
@@ -94,6 +99,9 @@ class Mapos_model extends CI_Model
         return $query->row();
     }
 
+    /**
+     * Altera senha do usuário logado
+     */
     public function alterarSenha($senha)
     {
         $this->db->set('senha', password_hash($senha, PASSWORD_DEFAULT));
@@ -107,11 +115,14 @@ class Mapos_model extends CI_Model
         return false;
     }
 
+    /**
+     * Pesquisa global no sistema
+     */
     public function pesquisar($termo)
     {
         $data = [];
         
-        // buscando clientes
+        // Buscando clientes
         if ($this->db->table_exists('clientes')) {
             $this->db->like('nomeCliente', $termo);
             $this->db->or_like('telefone', $termo);
@@ -124,7 +135,7 @@ class Mapos_model extends CI_Model
             $data['clientes'] = [];
         }
 
-        // buscando processos
+        // Buscando processos
         if ($this->db->table_exists('processos')) {
             $this->db->like('numeroProcesso', $termo);
             $this->db->or_like('classe', $termo);
@@ -136,7 +147,7 @@ class Mapos_model extends CI_Model
             $data['processos'] = [];
         }
 
-        // buscando prazos
+        // Buscando prazos
         if ($this->db->table_exists('prazos')) {
             $this->db->like('descricao', $termo);
             $this->db->or_like('tipo', $termo);
@@ -147,7 +158,7 @@ class Mapos_model extends CI_Model
             $data['prazos'] = [];
         }
 
-        // buscando audiências
+        // Buscando audiências
         if ($this->db->table_exists('audiencias')) {
             $this->db->like('tipo', $termo);
             $this->db->or_like('local', $termo);
@@ -159,7 +170,7 @@ class Mapos_model extends CI_Model
             $data['audiencias'] = [];
         }
 
-        //buscando serviços jurídicos
+        // Buscando serviços jurídicos
         $tableName = $this->db->table_exists('servicos_juridicos') ? 'servicos_juridicos' : ($this->db->table_exists('servicos') ? 'servicos' : null);
         if ($tableName) {
             $this->db->like('nome', $termo);
@@ -174,13 +185,15 @@ class Mapos_model extends CI_Model
         return $data;
     }
 
+    /**
+     * Métodos CRUD genéricos
+     */
     public function add($table, $data)
     {
         $this->db->insert($table, $data);
         if ($this->db->affected_rows() == '1') {
             return true;
         }
-
         return false;
     }
 
@@ -192,7 +205,6 @@ class Mapos_model extends CI_Model
         if ($this->db->affected_rows() >= 0) {
             return true;
         }
-
         return false;
     }
 
@@ -203,7 +215,6 @@ class Mapos_model extends CI_Model
         if ($this->db->affected_rows() == '1') {
             return true;
         }
-
         return false;
     }
 
@@ -212,247 +223,18 @@ class Mapos_model extends CI_Model
         return $this->db->count_all($table);
     }
 
-    public function getOsOrcamentos()
-    {
-        $this->db->select('os.*, clientes.nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Orçamento');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsOrcamentos: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-    
-    public function getOsAbertas()
-    {
-        $this->db->select('os.*, clientes.nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Aberto');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsAbertas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsFinalizadas()
-    {
-        $this->db->select('os.*, clientes.nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Finalizado');
-        $this->db->order_by('os.idOs', 'DESC');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsFinalizadas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsAprovadas()
-    {
-        $this->db->select('os.*, clientes.nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Aprovado');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsAprovadas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsAguardandoPecas()
-    {
-        $this->db->select('os.*, clientes.nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.idClientes = os.clientes_id');
-        $this->db->where('os.status', 'Aguardando Peças');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsAguardandoPecas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsAndamento()
-    {
-        // Verificar se as tabelas existem
-        if (!$this->db->table_exists('os') || !$this->db->table_exists('clientes')) {
-            log_message('error', 'Tabelas os ou clientes não existem');
-            return [];
-        }
-        
-        // Detectar estrutura das tabelas
-        $os_columns = $this->db->list_fields('os');
-        $clientes_columns = $this->db->list_fields('clientes');
-        
-        // Detectar colunas
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
-        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        
-        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col) {
-            log_message('error', 'Estrutura de tabelas incompatível para getOsAndamento');
-            return [];
-        }
-        
-        $this->db->select('os.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
-        
-        // Verificar se coluna status existe
-        if (in_array('status', $os_columns)) {
-            $this->db->where('os.status', 'Em Andamento');
-        }
-        
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query getOsAndamento: ' . ($error['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsStatus($status)
-    {
-        // Verificar se as tabelas existem
-        if (!$this->db->table_exists('os')) {
-            log_message('error', 'Tabela os não existe');
-            return [];
-        }
-        
-        if (!$this->db->table_exists('clientes')) {
-            log_message('error', 'Tabela clientes não existe');
-            return [];
-        }
-        
-        // Detectar estrutura das tabelas
-        $os_columns = $this->db->list_fields('os');
-        $clientes_columns = $this->db->list_fields('clientes');
-        
-        // Detectar coluna de ID de clientes
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $os_clientes_id_col = in_array('clientes_id', $os_columns) ? 'clientes_id' : null;
-        
-        // Detectar coluna de nome do cliente
-        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        
-        // Detectar coluna de ID da OS
-        $os_id_col = in_array('idOs', $os_columns) ? 'idOs' : (in_array('id', $os_columns) ? 'id' : null);
-        
-        if (!$clientes_id_col || !$os_clientes_id_col || !$nome_cliente_col || !$os_id_col) {
-            log_message('error', 'Estrutura de tabelas incompatível para getOsStatus');
-            return [];
-        }
-        
-        $this->db->select('os.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
-        $this->db->from('os');
-        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = os.' . $os_clientes_id_col);
-        
-        // Verificar se coluna status existe
-        if (in_array('status', $os_columns)) {
-            $this->db->where_in('os.status', $status);
-        }
-        
-        $this->db->order_by('os.' . $os_id_col, 'DESC');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query getOsStatus: ' . ($error['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-    
-    public function getVendasStatus($vstatus)
-    {
-        // Verificar se as tabelas existem
-        if (!$this->db->table_exists('vendas')) {
-            log_message('error', 'Tabela vendas não existe');
-            return [];
-        }
-        
-        if (!$this->db->table_exists('clientes')) {
-            log_message('error', 'Tabela clientes não existe');
-            return [];
-        }
-        
-        // Detectar estrutura das tabelas
-        $vendas_columns = $this->db->list_fields('vendas');
-        $clientes_columns = $this->db->list_fields('clientes');
-        
-        // Detectar coluna de ID de clientes
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $vendas_clientes_id_col = in_array('clientes_id', $vendas_columns) ? 'clientes_id' : null;
-        
-        // Detectar coluna de nome do cliente
-        $nome_cliente_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        
-        // Detectar coluna de ID da venda
-        $vendas_id_col = in_array('idVendas', $vendas_columns) ? 'idVendas' : (in_array('id', $vendas_columns) ? 'id' : null);
-        
-        if (!$clientes_id_col || !$vendas_clientes_id_col || !$nome_cliente_col || !$vendas_id_col) {
-            log_message('error', 'Estrutura de tabelas incompatível para getVendasStatus');
-            return [];
-        }
-        
-        $this->db->select('vendas.*, clientes.' . $nome_cliente_col . ' as nomeCliente');
-        $this->db->from('vendas');
-        $this->db->join('clientes', 'clientes.' . $clientes_id_col . ' = vendas.' . $vendas_clientes_id_col);
-        
-        // Verificar se coluna status existe
-        if (in_array('status', $vendas_columns)) {
-            $this->db->where_in('vendas.status', $vstatus);
-        }
-        
-        $this->db->order_by('vendas.' . $vendas_id_col, 'DESC');
-        $this->db->limit(10);
-
-        $query = $this->db->get();
-        if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query getVendasStatus: ' . ($error['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
+    /**
+     * Métodos Financeiros
+     */
     public function getLancamentos()
     {
-        // Verificar se a tabela existe
         if (!$this->db->table_exists('lancamentos')) {
             log_message('error', 'Tabela lancamentos não existe');
             return [];
         }
         
-        // Verificar quais colunas existem
         $columns = $this->db->list_fields('lancamentos');
         
-        // Adaptar select baseado nas colunas disponíveis
         $select_fields = [];
         $possible_fields = ['idLancamentos', 'tipo', 'cliente_fornecedor', 'descricao', 'data_vencimento', 'forma_pgto', 'valor_desconto', 'baixado'];
         
@@ -470,12 +252,10 @@ class Mapos_model extends CI_Model
         $this->db->select(implode(', ', $select_fields));
         $this->db->from('lancamentos');
         
-        // Verificar se coluna baixado existe antes de usar
         if (in_array('baixado', $columns)) {
             $this->db->where('baixado', 0);
         }
         
-        // Verificar qual coluna usar para ordenação
         $order_column = in_array('idLancamentos', $columns) ? 'idLancamentos' : (in_array('id', $columns) ? 'id' : null);
         if ($order_column) {
             $this->db->order_by($order_column, 'DESC');
@@ -487,88 +267,6 @@ class Mapos_model extends CI_Model
         if ($query === false) {
             $error = $this->db->error();
             log_message('error', 'Erro na query getLancamentos: ' . ($error['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function calendario($start, $end, $status = null)
-    {
-        // Verificar se a tabela de audiências existe
-        if (!$this->db->table_exists('audiencias')) {
-            log_message('error', 'Tabela audiencias não existe para calendario');
-            return [];
-        }
-        
-        // Detectar estrutura das tabelas
-        $audiencias_columns = $this->db->list_fields('audiencias');
-        
-        // Construir SELECT - começar com audiencias.*
-        $this->db->select('audiencias.*');
-        
-        // Join com processos se a tabela existir
-        if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
-            
-            // Join com clientes através de processos
-            if ($this->db->table_exists('clientes')) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-                
-                if ($clientes_id_col && $clientes_nome_col) {
-                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-                }
-            }
-        }
-        
-        $this->db->from('audiencias');
-        
-        // Filtros de data
-        if ($start) {
-            $this->db->where('DATE(audiencias.dataHora) >=', $start);
-        }
-        if ($end) {
-            $this->db->where('DATE(audiencias.dataHora) <=', $end);
-        }
-
-        // Filtro de status se fornecido
-        if (!empty($status) && in_array('status', $audiencias_columns)) {
-            $this->db->where('audiencias.status', $status);
-        }
-        
-        $this->db->order_by('audiencias.dataHora', 'ASC');
-
-        $query = $this->db->get();
-        if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query calendario: ' . ($error['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getProdutosMinimo()
-    {
-        $sql = 'SELECT * FROM produtos WHERE estoque <= estoqueMinimo AND estoqueMinimo > 0 LIMIT 10';
-
-        $query = $this->db->query($sql);
-        if ($query === false) {
-            log_message('error', 'Erro na query getProdutosMinimo: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return [];
-        }
-        return $query->result();
-    }
-
-    public function getOsEstatisticas()
-    {
-        $sql = 'SELECT status, COUNT(status) as total FROM os GROUP BY status ORDER BY status';
-
-        $query = $this->db->query($sql);
-        if ($query === false) {
-            log_message('error', 'Erro na query getOsEstatisticas: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
             return [];
         }
         return $query->result();
@@ -703,6 +401,77 @@ class Mapos_model extends CI_Model
         return $query->row();
     }
 
+    /**
+     * Métodos de Calendário
+     */
+    public function calendario($start, $end, $status = null)
+    {
+        if (!$this->db->table_exists('audiencias')) {
+            log_message('error', 'Tabela audiencias não existe para calendario');
+            return [];
+        }
+        
+        $audiencias_columns = $this->db->list_fields('audiencias');
+        
+        $this->db->select('audiencias.*');
+        
+        // Join com processos se a tabela existir
+        if ($this->db->table_exists('processos')) {
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
+            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
+            
+            // Join com clientes através de processos
+            if ($this->db->table_exists('clientes')) {
+                $clientes_columns = $this->db->list_fields('clientes');
+                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+                
+                if ($clientes_id_col && $clientes_nome_col) {
+                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+                }
+            }
+        }
+        
+        $this->db->from('audiencias');
+        
+        // Filtros de data
+        if ($start) {
+            $this->db->where('DATE(audiencias.dataHora) >=', $start);
+        }
+        if ($end) {
+            $this->db->where('DATE(audiencias.dataHora) <=', $end);
+        }
+
+        // Filtro de status se fornecido
+        if (!empty($status) && in_array('status', $audiencias_columns)) {
+            $this->db->where('audiencias.status', $status);
+        }
+        
+        $this->db->order_by('audiencias.dataHora', 'ASC');
+
+        $query = $this->db->get();
+        if ($query === false) {
+            $error = $this->db->error();
+            log_message('error', 'Erro na query calendario: ' . ($error['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        return $query->result();
+    }
+
+    /**
+     * Métodos de Emitente
+     */
     public function getEmitente()
     {
         $query = $this->db->get('emitente');
@@ -765,12 +534,13 @@ class Mapos_model extends CI_Model
         return $this->db->update('usuarios');
     }
 
+    /**
+     * Verifica credenciais de login
+     */
     public function check_credentials($email)
     {
-        // Detectar estrutura da tabela
         $columns = $this->db->list_fields('usuarios');
         
-        // Detectar coluna de email/usuario
         $email_column = null;
         if (in_array('email', $columns)) {
             $email_column = 'email';
@@ -781,7 +551,6 @@ class Mapos_model extends CI_Model
             return false;
         }
         
-        // Detectar coluna de situação
         $situacao_column = null;
         $situacao_value = 1;
         if (in_array('situacao', $columns)) {
@@ -789,7 +558,6 @@ class Mapos_model extends CI_Model
         } elseif (in_array('ativo', $columns)) {
             $situacao_column = 'ativo';
         }
-        // Se não encontrar coluna de situação, não filtra por ela
         
         $this->db->where($email_column, $email);
         if ($situacao_column) {
@@ -799,9 +567,7 @@ class Mapos_model extends CI_Model
 
         $query = $this->db->get('usuarios');
         
-        // Verificar se a query foi executada com sucesso
         if ($query === false) {
-            // Log do erro do banco de dados
             $error = $this->db->error();
             log_message('error', 'Erro na query check_credentials: ' . ($error['message'] ?? 'Erro desconhecido'));
             return false;
@@ -811,7 +577,7 @@ class Mapos_model extends CI_Model
     }
 
     /**
-     * Busca processos por status
+     * Métodos de Processos Jurídicos
      */
     public function getProcessosByStatus($status)
     {
@@ -819,7 +585,6 @@ class Mapos_model extends CI_Model
             return [];
         }
 
-        // Detectar estrutura das tabelas
         $processos_columns = $this->db->list_fields('processos');
         $status_col = in_array('status', $processos_columns) ? 'status' : null;
         
@@ -830,7 +595,6 @@ class Mapos_model extends CI_Model
 
         $this->db->select('processos.*');
         
-        // Join com clientes se a tabela existir
         if ($this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -856,7 +620,7 @@ class Mapos_model extends CI_Model
     }
 
     /**
-     * Busca prazos vencidos
+     * Métodos de Prazos
      */
     public function getPrazosVencidos()
     {
@@ -866,13 +630,21 @@ class Mapos_model extends CI_Model
 
         $this->db->select('prazos.*');
         
-        // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
             $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
         }
         
-        // Join com clientes
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -898,9 +670,6 @@ class Mapos_model extends CI_Model
         return $query->result();
     }
 
-    /**
-     * Busca prazos próximos (próximos 7 dias)
-     */
     public function getPrazosProximos()
     {
         if (!$this->db->table_exists('prazos')) {
@@ -909,13 +678,21 @@ class Mapos_model extends CI_Model
 
         $this->db->select('prazos.*');
         
-        // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
             $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
         }
         
-        // Join com clientes
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -943,7 +720,7 @@ class Mapos_model extends CI_Model
     }
 
     /**
-     * Busca audiências de hoje
+     * Métodos de Audiências
      */
     public function getAudienciasHoje()
     {
@@ -953,13 +730,21 @@ class Mapos_model extends CI_Model
 
         $this->db->select('audiencias.*');
         
-        // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
-        // Join com clientes
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -985,9 +770,6 @@ class Mapos_model extends CI_Model
         return $query->result();
     }
 
-    /**
-     * Busca próximas audiências (próximos 7 dias)
-     */
     public function getAudienciasProximas()
     {
         if (!$this->db->table_exists('audiencias')) {
@@ -996,13 +778,21 @@ class Mapos_model extends CI_Model
 
         $this->db->select('audiencias.*');
         
-        // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
-        // Join com clientes
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -1029,9 +819,6 @@ class Mapos_model extends CI_Model
         return $query->result();
     }
 
-    /**
-     * Busca audiências agendadas
-     */
     public function getAudienciasAgendadas()
     {
         if (!$this->db->table_exists('audiencias')) {
@@ -1040,13 +827,21 @@ class Mapos_model extends CI_Model
 
         $this->db->select('audiencias.*');
         
-        // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
+            } else {
+                $selects = [];
+                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
+                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
+                if (!empty($selects)) {
+                    $this->db->select(implode(', ', $selects));
+                }
+            }
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
-        // Join com clientes
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
             $clientes_columns = $this->db->list_fields('clientes');
             $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
@@ -1073,7 +868,7 @@ class Mapos_model extends CI_Model
     }
 
     /**
-     * Busca estatísticas de processos
+     * Estatísticas
      */
     public function getEstatisticasProcessos()
     {
@@ -1093,9 +888,6 @@ class Mapos_model extends CI_Model
 
     /**
      * Salvar configurações do sistema
-     *
-     * @param  array  $data
-     * @return bool
      */
     public function saveConfiguracao($data)
     {
@@ -1112,3 +904,4 @@ class Mapos_model extends CI_Model
         return true;
     }
 }
+

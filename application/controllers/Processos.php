@@ -202,8 +202,8 @@ class Processos extends MY_Controller
         $this->load->model('clientes_model');
         $this->data['clientes'] = $this->clientes_model->get('clientes', '*', '', 0, 0, false);
         
-        $this->load->model('mapos_model');
-        $this->data['usuarios'] = $this->mapos_model->get('usuarios', '*', '', 0, 0, false);
+        $this->load->model('sistema_model');
+        $this->data['usuarios'] = $this->sistema_model->get('usuarios', '*', '', 0, 0, false);
 
         // Regras de validação
         $this->form_validation->set_rules('numeroProcesso', 'Número de Processo', 'required|trim|callback_validar_numero_processo');
@@ -311,8 +311,8 @@ class Processos extends MY_Controller
         $this->load->model('clientes_model');
         $this->data['clientes'] = $this->clientes_model->get('clientes', '*', '', 0, 0, false);
         
-        $this->load->model('mapos_model');
-        $this->data['usuarios'] = $this->mapos_model->get('usuarios', '*', '', 0, 0, false);
+        $this->load->model('sistema_model');
+        $this->data['usuarios'] = $this->sistema_model->get('usuarios', '*', '', 0, 0, false);
 
         // Regras de validação
         $this->form_validation->set_rules('numeroProcesso', 'Número de Processo', 'required|trim|callback_validar_numero_processo');

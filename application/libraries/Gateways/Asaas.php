@@ -18,7 +18,7 @@ class Asaas extends BasePaymentGateway
         $this->ci->load->model('Os_model');
         $this->ci->load->model('vendas_model');
         $this->ci->load->model('cobrancas_model');
-        $this->ci->load->model('mapos_model');
+        $this->ci->load->model('sistema_model');
         $this->ci->load->model('email_model');
         $this->ci->load->model('clientes_model');
 
@@ -53,7 +53,7 @@ class Asaas extends BasePaymentGateway
             throw new \Exception('Cobrança não existe!');
         }
 
-        $emitente = $this->ci->mapos_model->getEmitente();
+        $emitente = $this->ci->sistema_model->getEmitente();
         if (! $emitente) {
             throw new \Exception('Emitente não configurado!');
         }

@@ -422,7 +422,7 @@ class Mine extends CI_Controller
 
         if (! $this->uri->segment(3) || ! is_numeric($this->uri->segment(3))) {
             $this->session->set_flashdata('error', 'Item não pode ser encontrado, parâmetro não foi passado corretamente.');
-            redirect('mapos');
+            redirect('adv');
         }
 
         if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'eCobranca')) {
@@ -444,7 +444,7 @@ class Mine extends CI_Controller
 
         if (! $this->uri->segment(3) || ! is_numeric($this->uri->segment(3))) {
             $this->session->set_flashdata('error', 'Item não pode ser encontrado, parâmetro não foi passado corretamente.');
-            redirect('mapos');
+            redirect('adv');
         }
 
         if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'eCobranca')) {
@@ -778,10 +778,10 @@ class Mine extends CI_Controller
     private function enviarRecuperarSenha($idClientes, $clienteEmail, $assunto, $token)
     {
         $dados = [];
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
         $this->load->model('clientes_model', '', true);
 
-        $dados['emitente'] = $this->mapos_model->getEmitente();
+        $dados['emitente'] = $this->sistema_model->getEmitente();
         $dados['cliente'] = $this->clientes_model->getById($idClientes);
         $dados['resets_de_senha'] = json_decode($token);
 
@@ -818,10 +818,10 @@ class Mine extends CI_Controller
     private function enviarEmailBoasVindas($id)
     {
         $dados = [];
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
         $this->load->model('clientes_model', '', true);
 
-        $dados['emitente'] = $this->mapos_model->getEmitente();
+        $dados['emitente'] = $this->sistema_model->getEmitente();
         $dados['cliente'] = $this->clientes_model->getById($id);
 
         $emitente = $dados['emitente'];
@@ -851,11 +851,11 @@ class Mine extends CI_Controller
     private function enviarEmailTecnicoNotificaClienteNovo($id)
     {
         $dados = [];
-        $this->load->model('mapos_model');
+        $this->load->model('sistema_model');
         $this->load->model('clientes_model', '', true);
         $this->load->model('usuarios_model');
 
-        $dados['emitente'] = $this->mapos_model->getEmitente();
+        $dados['emitente'] = $this->sistema_model->getEmitente();
         $dados['cliente'] = $this->clientes_model->getById($id);
 
         $emitente = $dados['emitente'];

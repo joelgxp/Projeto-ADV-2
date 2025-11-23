@@ -18,7 +18,24 @@ class Audiencias_model extends CI_Model
 
         // Join com processos
         if ($this->db->table_exists('processos')) {
-            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto, processos.status as statusProcesso');
+            // Verificar se a coluna numeroProcesso existe antes de selecioná-la
+            $processos_columns = $this->db->list_fields('processos');
+            $selects = [];
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $selects[] = 'processos.numeroProcesso';
+            }
+            if (in_array('classe', $processos_columns)) {
+                $selects[] = 'processos.classe';
+            }
+            if (in_array('assunto', $processos_columns)) {
+                $selects[] = 'processos.assunto';
+            }
+            if (in_array('status', $processos_columns)) {
+                $selects[] = 'processos.status as statusProcesso';
+            }
+            if (!empty($selects)) {
+                $this->db->select(implode(', ', $selects));
+            }
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
 
@@ -60,7 +77,10 @@ class Audiencias_model extends CI_Model
                     $this->db->or_like('audiencias.local', $where);
                     $this->db->or_like('audiencias.observacoes', $where);
                     if ($this->db->table_exists('processos')) {
-                        $this->db->or_like('processos.numeroProcesso', $where);
+                        $processos_columns = $this->db->list_fields('processos');
+                        if (in_array('numeroProcesso', $processos_columns)) {
+                            $this->db->or_like('processos.numeroProcesso', $where);
+                        }
                     }
                     $this->db->group_end();
                 }
@@ -247,7 +267,12 @@ class Audiencias_model extends CI_Model
         $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
         
         if ($clientes_id_col) {
-            $this->db->select('audiencias.*, processos.numeroProcesso');
+            $this->db->select('audiencias.*');
+            // Verificar se a coluna numeroProcesso existe antes de selecioná-la
+            $processos_columns = $this->db->list_fields('processos');
+            if (in_array('numeroProcesso', $processos_columns)) {
+                $this->db->select('processos.numeroProcesso');
+            }
             $this->db->from('audiencias');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
             $this->db->where('processos.clientes_id', $cliente_id);
@@ -307,7 +332,22 @@ class Audiencias_model extends CI_Model
             return [];
         }
 
-        $this->db->select('audiencias.*, processos.numeroProcesso, processos.classe, processos.assunto');
+        $this->db->select('audiencias.*');
+        // Verificar se as colunas existem antes de selecioná-las
+        $processos_columns = $this->db->list_fields('processos');
+        $selects = [];
+        if (in_array('numeroProcesso', $processos_columns)) {
+            $selects[] = 'processos.numeroProcesso';
+        }
+        if (in_array('classe', $processos_columns)) {
+            $selects[] = 'processos.classe';
+        }
+        if (in_array('assunto', $processos_columns)) {
+            $selects[] = 'processos.assunto';
+        }
+        if (!empty($selects)) {
+            $this->db->select(implode(', ', $selects));
+        }
         $this->db->from('audiencias');
         $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         $this->db->where("processos.clientes_id", $cliente_id);
