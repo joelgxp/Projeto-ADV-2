@@ -39,15 +39,20 @@ class Audiencias_model extends CI_Model
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
 
-        // Join com clientes através de processos
+        // Join com clientes através de processos (verificar se coluna clientes_id existe)
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+            $processos_columns = $this->db->list_fields('processos');
+            $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
             
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+            if ($processos_has_clientes_id) {
+                $clientes_columns = $this->db->list_fields('clientes');
+                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
+                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+                
+                if ($clientes_id_col && $clientes_nome_col) {
+                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
+                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+                }
             }
         }
 
@@ -262,14 +267,24 @@ class Audiencias_model extends CI_Model
             return [];
         }
 
-        // Detectar coluna de ID de clientes
+        // Detectar coluna de ID de clientes e verificar se processos.clientes_id existe
+        if (!$this->db->table_exists('processos') || !$this->db->table_exists('clientes')) {
+            return [];
+        }
+        
+        $processos_columns = $this->db->list_fields('processos');
+        $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
+        
+        if (!$processos_has_clientes_id) {
+            return [];
+        }
+        
         $clientes_columns = $this->db->list_fields('clientes');
         $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
         
         if ($clientes_id_col) {
             $this->db->select('audiencias.*');
             // Verificar se a coluna numeroProcesso existe antes de selecioná-la
-            $processos_columns = $this->db->list_fields('processos');
             if (in_array('numeroProcesso', $processos_columns)) {
                 $this->db->select('processos.numeroProcesso');
             }
@@ -348,6 +363,16 @@ class Audiencias_model extends CI_Model
         if (!empty($selects)) {
             $this->db->select(implode(', ', $selects));
         }
+        // Verificar se processos.clientes_id existe
+        if (!$this->db->table_exists('processos')) {
+            return [];
+        }
+        
+        $processos_columns = $this->db->list_fields('processos');
+        if (!in_array('clientes_id', $processos_columns)) {
+            return [];
+        }
+        
         $this->db->from('audiencias');
         $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         $this->db->where("processos.clientes_id", $cliente_id);
