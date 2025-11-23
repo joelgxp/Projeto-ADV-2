@@ -467,12 +467,69 @@ class Adv extends MY_Controller {
             redirect(base_url());
         }
 
-        $this->load->library('migration');
+        try {
+            // Verificar se tabela migrations existe, se não, criar
+            if (!$this->db->table_exists('migrations')) {
+                $this->db->query("CREATE TABLE IF NOT EXISTS migrations (version BIGINT(20) NOT NULL)");
+                log_message('info', 'Tabela migrations criada automaticamente');
+            }
 
-        if ($this->migration->latest() === false) {
-            $this->session->set_flashdata('error', $this->migration->error_string());
-        } else {
-            $this->session->set_flashdata('success', 'Banco de dados atualizado com sucesso!');
+            // Verificar se diretório de migrations existe
+            $migrationPath = APPPATH . 'database/migrations/';
+            if (!is_dir($migrationPath)) {
+                $this->session->set_flashdata('error', 'Diretório de migrations não encontrado: ' . $migrationPath);
+                log_message('error', 'Diretório de migrations não encontrado: ' . $migrationPath);
+                redirect(site_url('adv/configurar'));
+            }
+
+            // Verificar permissões do diretório
+            if (!is_readable($migrationPath)) {
+                $this->session->set_flashdata('error', 'Sem permissão de leitura no diretório de migrations');
+                log_message('error', 'Sem permissão de leitura: ' . $migrationPath);
+                redirect(site_url('adv/configurar'));
+            }
+
+            $this->load->library('migration');
+
+            // Executar migrations com tratamento de erro detalhado
+            $result = $this->migration->latest();
+
+            if ($result === false) {
+                $error = $this->migration->error_string();
+                
+                // Log detalhado do erro
+                log_message('error', 'Erro ao executar migrations: ' . $error);
+                
+                // Verificar erro do banco também
+                $db_error = $this->db->error();
+                if (!empty($db_error['message'])) {
+                    log_message('error', 'Erro do banco: ' . $db_error['message']);
+                    $error .= ' | Erro do banco: ' . $db_error['message'];
+                }
+
+                // Mensagem mais amigável
+                $errorMessage = 'Erro ao atualizar banco de dados. ';
+                $errorMessage .= 'Verifique os logs em application/logs/ para mais detalhes. ';
+                $errorMessage .= 'Erro: ' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
+                
+                $this->session->set_flashdata('error', $errorMessage);
+            } else {
+                $this->session->set_flashdata('success', 'Banco de dados atualizado com sucesso!');
+                log_message('info', 'Migrations executadas com sucesso');
+            }
+
+        } catch (Exception $e) {
+            $errorMsg = 'Exceção ao executar migrations: ' . $e->getMessage();
+            log_message('error', $errorMsg);
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            $this->session->set_flashdata('error', 'Erro inesperado: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '. Verifique os logs.');
+        } catch (Error $e) {
+            $errorMsg = 'Erro fatal ao executar migrations: ' . $e->getMessage();
+            log_message('error', $errorMsg);
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            $this->session->set_flashdata('error', 'Erro fatal: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '. Verifique os logs.');
         }
 
         return redirect(site_url('adv/configurar'));
