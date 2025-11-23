@@ -643,15 +643,29 @@ class Adv extends MY_Controller {
             // Buscar prazos se tipoEvento for 'prazo' ou vazio
             if ($tipoEvento == 'prazo' || $tipoEvento == '') {
                 if ($this->db->table_exists('prazos')) {
-                    $this->db->select('prazos.*, processos.numeroProcesso, processos.classe');
+                    // Verificar se processos.numeroProcesso existe antes de selecionar
+                    $processos_columns = $this->db->list_fields('processos');
+                    $selects = ['prazos.*'];
+                    if (in_array('numeroProcesso', $processos_columns)) {
+                        $selects[] = 'processos.numeroProcesso';
+                    }
+                    if (in_array('classe', $processos_columns)) {
+                        $selects[] = 'processos.classe';
+                    }
+                    
+                    $this->db->select(implode(', ', $selects));
                     $this->db->from('prazos');
                     $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
                     
-                    if ($start) {
-                        $this->db->where('DATE(prazos.dataVencimento) >=', $start);
+                    // Limpar timezone das datas se presente
+                    $start_clean = $start ? preg_replace('/T.*$/', '', $start) : null;
+                    $end_clean = $end ? preg_replace('/T.*$/', '', $end) : null;
+                    
+                    if ($start_clean) {
+                        $this->db->where('DATE(prazos.dataVencimento) >=', $start_clean);
                     }
-                    if ($end) {
-                        $this->db->where('DATE(prazos.dataVencimento) <=', $end);
+                    if ($end_clean) {
+                        $this->db->where('DATE(prazos.dataVencimento) <=', $end_clean);
                     }
                     
                     $this->db->where('prazos.status', 'pendente');
@@ -714,10 +728,26 @@ class Adv extends MY_Controller {
             }
         } catch (Exception $e) {
             log_message('error', 'Erro no método calendario: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
             return $this->output
                 ->set_content_type('application/json')
                 ->set_status_header(500)
-                ->set_output(json_encode(['error' => 'Erro ao buscar eventos do calendário: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                ->set_output(json_encode([
+                    'error' => 'Erro ao buscar eventos do calendário.',
+                    'message' => $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        } catch (Error $e) {
+            log_message('error', 'Erro fatal no método calendario: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(500)
+                ->set_output(json_encode([
+                    'error' => 'Erro fatal ao buscar eventos do calendário.',
+                    'message' => $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
 
         return $this->output
