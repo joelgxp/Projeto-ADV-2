@@ -24,7 +24,7 @@ class MY_Controller extends CI_Controller
             'last_tag_open' => '<li>',
             'last_tag_close' => '</li>',
             'app_name' => 'Adv',
-            'app_theme' => 'default',
+            'app_theme' => 'white',
             'os_notification' => 'cliente',
             'processo_notification' => 'cliente',
             'prazo_notification' => 'todos',

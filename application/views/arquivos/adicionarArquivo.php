@@ -45,11 +45,11 @@
 
                     <div class="form-actions">
                         <div class="span12">
-                            <div class="span6 offset3" style="display:flex;justify-content: center">
-                                <button type="submit" class="button btn btn-mini btn-success" style="max-width: 160px">
-                                  <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Adicionar</span></a></button>
-                                <a href="<?= base_url() ?>index.php/arquivos" class="button btn btn-mini btn-warning" style="max-width: 160px">
-                                  <span class="button__icon"><i class="bx bx-undo"></i></span><span class="button__text2">Voltar</span></a>
+                            <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+                                <button type="submit" class="button btn btn-mini btn-success" style="display:inline-flex;max-width: 160px">
+                                  <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Adicionar</span></button>
+                                <a href="<?= base_url() ?>index.php/arquivos" class="button btn btn-mini btn-warning" style="display:inline-flex;max-width: 160px">
+                                  <span class="button__icon"><i class="bx bx-x"></i></span><span class="button__text2">Cancelar</span></a>
                             </div>
                         </div>
                     </div>

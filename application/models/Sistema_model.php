@@ -73,22 +73,16 @@ class Sistema_model extends CI_Model
      */
     public function getById($id)
     {
-        // Detectar estrutura da tabela
-        $columns = $this->db->list_fields('usuarios');
-        $id_column = in_array('idUsuarios', $columns) ? 'idUsuarios' : (in_array('id', $columns) ? 'id' : 'idUsuarios');
-        
         $this->db->from('usuarios');
         $this->db->select('usuarios.*');
         
-        // Tentar join com permissoes se a estrutura permitir
-        if (in_array('permissoes_id', $columns) && $this->db->table_exists('permissoes')) {
+        // Join com permissoes
+        if ($this->db->table_exists('permissoes')) {
             $this->db->select('permissoes.nome as permissao');
             $this->db->join('permissoes', 'permissoes.idPermissao = usuarios.permissoes_id', 'left');
-        } elseif (in_array('nivel', $columns)) {
-            $this->db->select('usuarios.nivel as permissao');
         }
         
-        $this->db->where($id_column, $id);
+        $this->db->where('usuarios.idUsuarios', $id);
         $this->db->limit(1);
 
         $query = $this->db->get();
@@ -233,33 +227,10 @@ class Sistema_model extends CI_Model
             return [];
         }
         
-        $columns = $this->db->list_fields('lancamentos');
-        
-        $select_fields = [];
-        $possible_fields = ['idLancamentos', 'tipo', 'cliente_fornecedor', 'descricao', 'data_vencimento', 'forma_pgto', 'valor_desconto', 'baixado'];
-        
-        foreach ($possible_fields as $field) {
-            if (in_array($field, $columns)) {
-                $select_fields[] = $field;
-            }
-        }
-        
-        if (empty($select_fields)) {
-            log_message('error', 'Nenhuma coluna válida encontrada na tabela lancamentos');
-            return [];
-        }
-        
-        $this->db->select(implode(', ', $select_fields));
+        $this->db->select('idLancamentos, tipo, cliente_fornecedor, descricao, data_vencimento, forma_pgto, baixado');
         $this->db->from('lancamentos');
-        
-        if (in_array('baixado', $columns)) {
-            $this->db->where('baixado', 0);
-        }
-        
-        $order_column = in_array('idLancamentos', $columns) ? 'idLancamentos' : (in_array('id', $columns) ? 'id' : null);
-        if ($order_column) {
-            $this->db->order_by($order_column, 'DESC');
-        }
+        $this->db->where('baixado', 0);
+        $this->db->order_by('idLancamentos', 'DESC');
         
         $this->db->limit(10);
 
@@ -274,9 +245,9 @@ class Sistema_model extends CI_Model
 
     public function getEstatisticasFinanceiro()
     {
-        $sql = "SELECT SUM(CASE WHEN baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) as total_receita,
+        $sql = "SELECT SUM(CASE WHEN baixado = 1 AND tipo = 'receita' THEN valor END) as total_receita,
                        SUM(CASE WHEN baixado = 1 AND tipo = 'despesa' THEN valor END) as total_despesa,
-                       SUM(CASE WHEN baixado = 0 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) as total_receita_pendente,
+                       SUM(CASE WHEN baixado = 0 AND tipo = 'receita' THEN valor END) as total_receita_pendente,
                        SUM(CASE WHEN baixado = 0 AND tipo = 'despesa' THEN valor END) as total_despesa_pendente FROM lancamentos";
         
         $query = $this->db->query($sql);
@@ -297,29 +268,29 @@ class Sistema_model extends CI_Model
 
         $sql = "
             SELECT
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 1) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JAN_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 1) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_JAN_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 1) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JAN_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 2) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_FEV_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 2) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_FEV_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 2) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_FEV_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 3) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAR_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 3) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_MAR_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 3) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_MAR_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 4) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_ABR_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 4) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_ABR_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 4) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_ABR_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 5) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAI_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 5) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_MAI_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 5) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_MAI_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 6) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUN_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 6) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_JUN_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 6) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JUN_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 7) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUL_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 7) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_JUL_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 7) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JUL_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 8) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_AGO_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 8) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_AGO_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 8) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_AGO_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 9) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_SET_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 9) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_SET_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 9) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_SET_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 10) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_OUT_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 10) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_OUT_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 10) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_OUT_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 11) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_NOV_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 11) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_NOV_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 11) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_NOV_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 12) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_DEZ_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 12) AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_DEZ_REC,
                 SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 12) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_DEZ_DES
             FROM lancamentos
             WHERE EXTRACT(YEAR FROM data_pagamento) = ?
@@ -341,7 +312,7 @@ class Sistema_model extends CI_Model
         }
         $sql = '
             SELECT
-                SUM(CASE WHEN (EXTRACT(DAY FROM data_pagamento) = ' . date('d') . ') AND EXTRACT(MONTH FROM data_pagamento) = ' . date('m') . " AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_" . date('m') . '_REC,
+                SUM(CASE WHEN (EXTRACT(DAY FROM data_pagamento) = ' . date('d') . ') AND EXTRACT(MONTH FROM data_pagamento) = ' . date('m') . " AND baixado = 1 AND tipo = 'receita' THEN valor END) AS VALOR_" . date('m') . '_REC,
                 SUM(CASE WHEN (EXTRACT(DAY FROM data_pagamento) = ' . date('d') . ') AND EXTRACT(MONTH FROM data_pagamento) = ' . date('m') . " AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_" . date('m') . '_DES
             FROM lancamentos
             WHERE EXTRACT(YEAR FROM data_pagamento) = ?
@@ -406,53 +377,29 @@ class Sistema_model extends CI_Model
      */
     public function calendario($start, $end, $status = null)
     {
-        if (!$this->db->table_exists('audiencias')) {
-            log_message('error', 'Tabela audiencias não existe para calendario');
-            return [];
-        }
-        
-        $audiencias_columns = $this->db->list_fields('audiencias');
-        
-        $this->db->select('audiencias.*');
-        
-        // Join com processos se a tabela existir
-        if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
+        try {
+            if (!$this->db->table_exists('audiencias')) {
+                log_message('error', 'Tabela audiencias não existe para calendario');
+                return [];
+            }
+            
+            $this->db->select('audiencias.*');
+            
+            // Join com processos
+            if ($this->db->table_exists('processos')) {
                 $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
-            $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
-            
-            // Join com clientes através de processos (verificar se coluna clientes_id existe)
-            $processos_columns = $this->db->list_fields('processos');
-            $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
-            
-            if ($processos_has_clientes_id && $this->db->table_exists('clientes')) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
+                $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
                 
-                if ($clientes_id_col && $clientes_nome_col) {
-                    $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
+                // Join com clientes através de processos
+                if ($this->db->table_exists('clientes')) {
+                    $this->db->select('clientes.nomeCliente as nomeCliente');
+                    $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
                 }
             }
-        }
-        
-        $this->db->from('audiencias');
-        
-        // Verificar se a coluna dataHora existe antes de usar
-        $has_dataHora = in_array('dataHora', $audiencias_columns);
-        
-        // Filtros de data (apenas se a coluna existir)
-        if ($has_dataHora) {
+            
+            $this->db->from('audiencias');
+            
+            // Filtros de data
             if ($start) {
                 // Remover timezone se presente (ex: 2025-10-26T00:00:00-03:00)
                 $start_clean = preg_replace('/T.*$/', '', $start);
@@ -463,26 +410,35 @@ class Sistema_model extends CI_Model
                 $end_clean = preg_replace('/T.*$/', '', $end);
                 $this->db->where('DATE(audiencias.dataHora) <=', $end_clean);
             }
+            
             $this->db->order_by('audiencias.dataHora', 'ASC');
-        } else {
-            // Se não tiver dataHora, ordenar por dataCadastro se existir
-            if (in_array('dataCadastro', $audiencias_columns)) {
-                $this->db->order_by('audiencias.dataCadastro', 'ASC');
+
+            // Filtro de status
+            if (!empty($status)) {
+                $this->db->where('audiencias.status', $status);
             }
-        }
 
-        // Filtro de status se fornecido
-        if (!empty($status) && in_array('status', $audiencias_columns)) {
-            $this->db->where('audiencias.status', $status);
-        }
-
-        $query = $this->db->get();
-        if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query calendario: ' . ($error['message'] ?? 'Erro desconhecido'));
+            $query = $this->db->get();
+            if ($query === false) {
+                $error = $this->db->error();
+                log_message('error', 'Erro na query calendario: ' . ($error['message'] ?? 'Erro desconhecido'));
+                log_message('error', 'Query SQL: ' . $this->db->last_query());
+                return [];
+            }
+            
+            $result = $query->result();
+            log_message('debug', 'Calendario retornou ' . count($result) . ' audiências');
+            return $result;
+            
+        } catch (Exception $e) {
+            log_message('error', 'Exceção no método calendario: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return [];
+        } catch (Error $e) {
+            log_message('error', 'Erro fatal no método calendario: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return [];
         }
-        return $query->result();
     }
 
     /**
@@ -555,30 +511,8 @@ class Sistema_model extends CI_Model
      */
     public function check_credentials($email)
     {
-        $columns = $this->db->list_fields('usuarios');
-        
-        $email_column = null;
-        if (in_array('email', $columns)) {
-            $email_column = 'email';
-        } elseif (in_array('usuario', $columns)) {
-            $email_column = 'usuario';
-        } else {
-            log_message('error', 'Coluna de email/usuario não encontrada na tabela usuarios');
-            return false;
-        }
-        
-        $situacao_column = null;
-        $situacao_value = 1;
-        if (in_array('situacao', $columns)) {
-            $situacao_column = 'situacao';
-        } elseif (in_array('ativo', $columns)) {
-            $situacao_column = 'ativo';
-        }
-        
-        $this->db->where($email_column, $email);
-        if ($situacao_column) {
-            $this->db->where($situacao_column, $situacao_value);
-        }
+        $this->db->where('email', $email);
+        $this->db->where('situacao', 1);
         $this->db->limit(1);
 
         $query = $this->db->get('usuarios');
@@ -601,33 +535,16 @@ class Sistema_model extends CI_Model
             return [];
         }
 
-        $processos_columns = $this->db->list_fields('processos');
-        $status_col = in_array('status', $processos_columns) ? 'status' : null;
-        
-        if (!$status_col) {
-            log_message('error', 'Coluna status não encontrada na tabela processos');
-            return [];
-        }
-
         $this->db->select('processos.*');
         
-        // Verificar se a coluna clientes_id existe antes de fazer o join
-        $processos_columns = $this->db->list_fields('processos');
-        $processos_has_clientes_id = in_array('clientes_id', $processos_columns);
-        
-        if ($processos_has_clientes_id && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+        // Join com clientes através de processos
+        if ($this->db->table_exists('clientes')) {
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('processos');
-        $this->db->where('processos.' . $status_col, $status);
+        $this->db->where('processos.status', $status);
         $this->db->order_by('processos.dataCadastro', 'DESC');
         $this->db->limit(10);
 
@@ -651,29 +568,13 @@ class Sistema_model extends CI_Model
         $this->db->select('prazos.*');
         
         if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
             $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
         }
         
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('prazos');
@@ -699,29 +600,13 @@ class Sistema_model extends CI_Model
         $this->db->select('prazos.*');
         
         if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
             $this->db->join('processos', 'processos.idProcessos = prazos.processos_id', 'left');
         }
         
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('prazos');
@@ -751,29 +636,13 @@ class Sistema_model extends CI_Model
         $this->db->select('audiencias.*');
         
         if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('audiencias');
@@ -799,29 +668,13 @@ class Sistema_model extends CI_Model
         $this->db->select('audiencias.*');
         
         if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('audiencias');
@@ -848,29 +701,13 @@ class Sistema_model extends CI_Model
         $this->db->select('audiencias.*');
         
         if ($this->db->table_exists('processos')) {
-            $processos_columns = $this->db->list_fields('processos');
-            if (in_array('numeroProcesso', $processos_columns)) {
-                $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
-            } else {
-                $selects = [];
-                if (in_array('classe', $processos_columns)) $selects[] = 'processos.classe';
-                if (in_array('assunto', $processos_columns)) $selects[] = 'processos.assunto';
-                if (!empty($selects)) {
-                    $this->db->select(implode(', ', $selects));
-                }
-            }
+            $this->db->select('processos.numeroProcesso, processos.classe, processos.assunto');
             $this->db->join('processos', 'processos.idProcessos = audiencias.processos_id', 'left');
         }
         
         if ($this->db->table_exists('processos') && $this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
         
         $this->db->from('audiencias');
@@ -913,11 +750,37 @@ class Sistema_model extends CI_Model
     {
         try {
             foreach ($data as $key => $valor) {
-                $this->db->set('valor', $valor);
+                // Verificar se a configuração já existe
                 $this->db->where('config', $key);
-                $this->db->update('configuracoes');
+                $exists = $this->db->get('configuracoes')->row();
+                
+                if ($exists) {
+                    // Se existe, atualizar
+                    $this->db->set('valor', $valor);
+                    $this->db->where('config', $key);
+                    $result = $this->db->update('configuracoes');
+                    
+                    if ($this->db->error()['code'] != 0) {
+                        log_message('error', 'Erro ao atualizar configuração ' . $key . ': ' . $this->db->error()['message']);
+                        return false;
+                    }
+                } else {
+                    // Se não existe, inserir
+                    $result = $this->db->insert('configuracoes', [
+                        'config' => $key,
+                        'valor' => $valor
+                    ]);
+                    
+                    if ($this->db->error()['code'] != 0) {
+                        log_message('error', 'Erro ao inserir configuração ' . $key . ': ' . $this->db->error()['message']);
+                        return false;
+                    }
+                }
+                
+                log_message('info', 'Configuração ' . $key . ' salva com valor: ' . $valor);
             }
         } catch (Exception $e) {
+            log_message('error', 'Erro ao salvar configuração: ' . $e->getMessage());
             return false;
         }
 

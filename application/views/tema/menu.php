@@ -152,16 +152,15 @@
                     if ($userId) {
                         $this->load->database();
                         if ($this->db->table_exists('usuarios')) {
-                            $columns = $this->db->list_fields('usuarios');
-                            $id_col = in_array('idUsuarios', $columns) ? 'idUsuarios' : (in_array('id', $columns) ? 'id' : null);
-                            $nivel_col = in_array('nivel', $columns) ? 'nivel' : null;
+                            $this->db->select('permissoes_id');
+                            $this->db->where('idUsuarios', $userId);
+                            $user = $this->db->get('usuarios')->row();
                             
-                            if ($id_col && $nivel_col) {
-                                $this->db->select($nivel_col);
-                                $this->db->where($id_col, $userId);
-                                $user = $this->db->get('usuarios')->row();
-                                
-                                if ($user && isset($user->$nivel_col) && strtolower($user->$nivel_col) === 'admin') {
+                            if ($user && $user->permissoes_id) {
+                                // Verificar se é admin através da permissão
+                                $this->db->where('idPermissao', $user->permissoes_id);
+                                $permissao_obj = $this->db->get('permissoes')->row();
+                                if ($permissao_obj && strtolower($permissao_obj->nome) === 'administrador') {
                                     $isAdmin = true;
                                 }
                             }

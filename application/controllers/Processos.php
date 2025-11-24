@@ -107,12 +107,7 @@ class Processos extends MY_Controller
             
             // Join com clientes se necessário
             if ($this->db->table_exists('clientes')) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-                if ($clientes_id_col && $clientes_nome_col) {
-                    $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-                }
+                $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
             }
             
             $this->db->group_start();
@@ -121,8 +116,8 @@ class Processos extends MY_Controller
             $this->db->or_like('processos.assunto', $search);
             $this->db->or_like('processos.comarca', $search);
             $this->db->or_like('processos.tribunal', $search);
-            if (isset($clientes_nome_col) && $clientes_nome_col) {
-                $this->db->or_like("clientes.{$clientes_nome_col}", $search);
+            if ($this->db->table_exists('clientes')) {
+                $this->db->or_like('clientes.nomeCliente', $search);
             }
             $this->db->group_end();
             
@@ -612,19 +607,8 @@ class Processos extends MY_Controller
         $this->load->model('clientes_model');
         
         // Buscar clientes por nome, CPF/CNPJ ou email
-        $clientes_columns = $this->db->list_fields('clientes');
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        
-        if (!$clientes_id_col || !$clientes_nome_col) {
-            $this->output
-                ->set_content_type('application/json')
-                ->set_output(json_encode([]));
-            return;
-        }
-
         $this->db->group_start();
-        $this->db->like($clientes_nome_col, $termo);
+        $this->db->like('nomeCliente', $termo);
         $this->db->or_like('documento', $termo);
         $this->db->or_like('email', $termo);
         $this->db->group_end();
@@ -636,8 +620,8 @@ class Processos extends MY_Controller
         $resultado = [];
         foreach ($clientes as $cliente) {
             $resultado[] = [
-                'id' => $cliente->$clientes_id_col,
-                'nome' => $cliente->$clientes_nome_col,
+                'id' => $cliente->idClientes,
+                'nome' => $cliente->nomeCliente,
                 'documento' => isset($cliente->documento) ? $cliente->documento : '',
                 'email' => isset($cliente->email) ? $cliente->email : '',
                 'telefone' => isset($cliente->telefone) ? $cliente->telefone : '',
@@ -812,10 +796,7 @@ class Processos extends MY_Controller
                 if ($this->upload->do_upload('documento')) {
                     $upload_data = $this->upload->data();
                     
-                    // Detectar ID do usuário
-                    $usuarios_columns = $this->db->list_fields('usuarios');
-                    $usuarios_id_col = in_array('idUsuarios', $usuarios_columns) ? 'idUsuarios' : (in_array('id', $usuarios_columns) ? 'id' : null);
-                    $usuario_id = $usuarios_id_col ? $this->session->userdata($usuarios_id_col) : $this->session->userdata('id');
+                    $usuario_id = $this->session->userdata('idUsuarios');
                     
                     $documento_data = [
                         'processos_id' => $processos_id,

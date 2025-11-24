@@ -53,8 +53,8 @@ class Cobrancas_model extends CI_Model
 
     public function getByProcesso($processo_id)
     {
-        if (!$this->db->table_exists('cobrancas') || !$this->db->table_exists('processos')) {
-            return false;
+        if (!$this->db->table_exists('cobrancas')) {
+            return [];
         }
         
         $this->db->select('cobrancas.*, clientes.*, processos.numeroProcesso, processos.classe, processos.assunto');
@@ -68,7 +68,7 @@ class Cobrancas_model extends CI_Model
         
         if ($query === false) {
             log_message('error', 'Erro na query getByProcesso: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return false;
+            return [];
         }
         
         return $query->result();

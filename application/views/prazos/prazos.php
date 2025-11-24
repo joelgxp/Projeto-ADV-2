@@ -20,27 +20,48 @@
                     </span>
                 </a>
             </div>
+            <form class="span9" method="get" action="<?= base_url() ?>index.php/prazos"
+                style="display: flex; justify-content: flex-end;">
+                <div class="span2">
+                    <select name="status" class="span12">
+                        <option value="">Todos os Status</option>
+                        <option value="Pendente" <?= $status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
+                        <option value="Cumprido" <?= $status == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
+                        <option value="Vencido" <?= $status == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
+                    </select>
+                </div>
+                <div class="span3">
+                    <input type="text" name="pesquisa" id="pesquisa"
+                        placeholder="Buscar por Descrição, Tipo, Processo..." class="span12"
+                        value="<?= $this->input->get('pesquisa') ?>">
+                </div>
+                <div class="span1">
+                    <button class="button btn btn-mini btn-warning" style="min-width: 30px">
+                        <span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
+                </div>
+            </form>
+        <?php } else { ?>
+            <form class="span12" method="get" action="<?= base_url() ?>index.php/prazos"
+                style="display: flex; justify-content: flex-end;">
+                <div class="span2">
+                    <select name="status" class="span12">
+                        <option value="">Todos os Status</option>
+                        <option value="Pendente" <?= $status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
+                        <option value="Cumprido" <?= $status == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
+                        <option value="Vencido" <?= $status == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
+                    </select>
+                </div>
+                <div class="span3">
+                    <input type="text" name="pesquisa" id="pesquisa"
+                        placeholder="Buscar por Descrição, Tipo, Processo..." class="span12"
+                        value="<?= $this->input->get('pesquisa') ?>">
+                </div>
+                <div class="span1">
+                    <button class="button btn btn-mini btn-warning" style="min-width: 30px">
+                        <span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
+                </div>
+            </form>
         <?php } ?>
-        <form class="span9" method="get" action="<?= base_url() ?>index.php/prazos"
-            style="display: flex; justify-content: flex-end;">
-            <div class="span2">
-                <select name="status" class="span12">
-                    <option value="">Todos os Status</option>
-                    <option value="Pendente" <?= $status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
-                    <option value="Cumprido" <?= $status == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
-                    <option value="Vencido" <?= $status == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
-                </select>
-            </div>
-            <div class="span3">
-                <input type="text" name="pesquisa" id="pesquisa"
-                    placeholder="Buscar por Descrição, Tipo, Processo..." class="span12"
-                    value="<?= $this->input->get('pesquisa') ?>">
-            </div>
-            <div class="span1">
-                <button class="button btn btn-mini btn-warning" style="min-width: 30px">
-                    <span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
-            </div>
-        </form>
     </div>
 
     <div class="widget-box">
@@ -142,7 +163,7 @@
             <h5 style="text-align: center">Deseja realmente excluir este prazo?</h5>
         </div>
         <div class="modal-footer" style="display:flex;justify-content: center">
-            <button class="button btn btn-warning" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i class="bx bx-x"></i></span><span class="button__text2">Cancelar</span></button>
+            <button type="button" class="button btn btn-warning" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i class="bx bx-x"></i></span><span class="button__text2">Cancelar</span></button>
             <button class="button btn btn-danger"><span class="button__icon"><i class='bx bx-trash'></i></span> <span class="button__text2">Excluir</span></button>
         </div>
     </form>

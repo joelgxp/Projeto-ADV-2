@@ -1,24 +1,68 @@
-<div class="new122">
-    <div class="widget-title" style="margin: -20px 0 0">
-        <span class="icon">
-            <i class="fas fa-money-bill-wave"></i>
-        </span>
-        <h5>Relatório de Honorários</h5>
+<div class="row-fluid" style="margin-top: 0">
+    <div class="span4">
+        <div class="widget-box">
+            <div class="widget-title">
+                <span class="icon">
+                    <i class="fas fa-gavel"></i>
+                </span>
+                <h5>Relatórios Rápidos</h5>
+            </div>
+            <div class="widget-content">
+                <ul style="flex-direction: row;" class="site-stats">
+                    <li><a href="<?php echo base_url() ?>index.php/relatorios/honorariosRapid" target="_blank"><i
+                                    class="fas fa-gavel"></i> <small>Todos os Honorários - pdf</small></a></li>
+                    <li><a href="<?php echo base_url() ?>index.php/relatorios/honorariosRapid?format=xls" target="_blank"><i
+                                    class="fas fa-gavel"></i> <small>Todos os Honorários - xls</small></a></li>
+                </ul>
+            </div>
+        </div>
     </div>
-    <div class="widget-box">
-        <div class="widget-content nopadding tab-content">
-            <div class="span12" style="padding: 20px;">
-                <form action="<?php echo base_url() ?>index.php/relatorios/honorariosRapid" method="get" target="_blank">
-                    <div class="control-group">
-                        <label class="control-label">Relatório Rápido de Honorários</label>
-                        <div class="controls">
-                            <button type="submit" class="button btn btn-mini btn-success">
-                                <span class="button__icon"><i class='bx bx-file'></i></span>
-                                <span class="button__text2">Gerar Relatório de Honorários</span>
+
+    <div class="span8">
+        <div class="widget-box">
+            <div class="widget-title">
+                <span class="icon">
+                    <i class="fas fa-gavel"></i>
+                </span>
+                <h5>Relatórios Customizáveis</h5>
+            </div>
+            <div class="widget-content">
+                <div class="span12 well">
+                    <form target="_blank" action="<?php echo base_url() ?>index.php/relatorios/honorariosCustom"
+                          method="get">
+                        <div class="span6">
+                            <label for="dataInicial">Vencimento de:</label>
+                            <input type="date" id="dataInicial" name="dataInicial" class="span12"/>
+                        </div>
+                        <div class="span6">
+                            <label for="dataFinal">até:</label>
+                            <input type="date" id="dataFinal" name="dataFinal" class="span12"/>
+                        </div>
+                        <div class="span12 well" style="margin-left: 0">
+                            <div class="span6">
+                                <label for="situacao">Situação:</label>
+                                <select id="situacao" name="situacao" class="span12">
+                                    <option value="">Todas</option>
+                                    <option value="0">Pendente</option>
+                                    <option value="1">Pago</option>
+                                </select>
+                            </div>
+                            <div class="span6">
+                                <label for="format">Tipo de impressão:</label>
+                                <select id="format" name="format" class="span12">
+                                    <option value="">PDF</option>
+                                    <option value="xls">XLS</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="span12" style="margin-top: 10px;">
+                            <button type="submit" class="button btn btn-inverse">
+                                <span class="button__icon"><i class="bx bx-printer"></i></span>
+                                <span class="button__text2">Imprimir</span>
                             </button>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

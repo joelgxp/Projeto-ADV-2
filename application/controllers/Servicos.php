@@ -110,10 +110,7 @@ class Servicos extends MY_Controller
             $this->db->like('nome', $search);
             $this->db->or_like('descricao', $search);
             if ($this->db->table_exists($tableName)) {
-                $columns = $this->db->list_fields($tableName);
-                if (in_array('tipo_servico', $columns)) {
-                    $this->db->or_like('tipo_servico', $search);
-                }
+                $this->db->or_like('tipo_servico', $search);
             }
             $this->db->group_end();
             

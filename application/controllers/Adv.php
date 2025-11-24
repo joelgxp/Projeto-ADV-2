@@ -416,8 +416,13 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('app_name', 'Nome do Sistema', 'required|trim');
         $this->form_validation->set_rules('per_page', 'Registros por página', 'required|numeric|trim');
         $this->form_validation->set_rules('app_theme', 'Tema do Sistema', 'required|trim');
-        $this->form_validation->set_rules('email_automatico', 'Enviar Email Automático', 'required|trim');
-        $this->form_validation->set_rules('notifica_whats', 'Notificação Whatsapp', 'required|trim');
+        // Campos opcionais - só validar se foram enviados
+        if ($this->input->post('email_automatico') !== false) {
+            $this->form_validation->set_rules('email_automatico', 'Enviar Email Automático', 'trim');
+        }
+        if ($this->input->post('notifica_whats') !== false) {
+            $this->form_validation->set_rules('notifica_whats', 'Notificação Whatsapp', 'trim');
+        }
 
         if ($this->form_validation->run() == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert">' . validation_errors() . '</div>' : false);
@@ -441,12 +446,24 @@ class Adv extends MY_Controller {
                 'app_name' => $this->input->post('app_name'),
                 'per_page' => $this->input->post('per_page'),
                 'app_theme' => $this->input->post('app_theme'),
-                'email_automatico' => $this->input->post('email_automatico'),
-                'notifica_whats' => $this->input->post('notifica_whats'),
-                'processo_notification' => $this->input->post('processo_notification'),
-                'prazo_notification' => $this->input->post('prazo_notification'),
-                'audiencia_notification' => $this->input->post('audiencia_notification'),
             ];
+            
+            // Campos opcionais - só adiciona se foram enviados
+            if ($this->input->post('email_automatico') !== false && $this->input->post('email_automatico') !== null) {
+                $data['email_automatico'] = $this->input->post('email_automatico');
+            }
+            if ($this->input->post('notifica_whats') !== false && $this->input->post('notifica_whats') !== null) {
+                $data['notifica_whats'] = $this->input->post('notifica_whats');
+            }
+            if ($this->input->post('processo_notification') !== false && $this->input->post('processo_notification') !== null) {
+                $data['processo_notification'] = $this->input->post('processo_notification');
+            }
+            if ($this->input->post('prazo_notification') !== false && $this->input->post('prazo_notification') !== null) {
+                $data['prazo_notification'] = $this->input->post('prazo_notification');
+            }
+            if ($this->input->post('audiencia_notification') !== false && $this->input->post('audiencia_notification') !== null) {
+                $data['audiencia_notification'] = $this->input->post('audiencia_notification');
+            }
             if ($this->sistema_model->saveConfiguracao($data) == true) {
                 $this->session->set_flashdata('success', 'Configurações do sistema atualizadas com sucesso!');
                 redirect(site_url('adv/configurar'));
@@ -586,10 +603,18 @@ class Adv extends MY_Controller {
 
             // Buscar audiências se tipoEvento for 'audiencia' ou vazio
             if ($tipoEvento == 'audiencia' || $tipoEvento == '') {
-                $allAudiencias = $this->sistema_model->calendario($start, $end, null);
-                
-                if ($allAudiencias === false) {
-                    log_message('error', 'Erro ao buscar audiências no calendário');
+                try {
+                    $allAudiencias = $this->sistema_model->calendario($start, $end, null);
+                    
+                    if ($allAudiencias === false || !is_array($allAudiencias)) {
+                        log_message('error', 'Erro ao buscar audiências no calendário - retorno inválido: ' . gettype($allAudiencias));
+                        $allAudiencias = [];
+                    }
+                } catch (Exception $e) {
+                    log_message('error', 'Exceção ao buscar audiências: ' . $e->getMessage());
+                    $allAudiencias = [];
+                } catch (Error $e) {
+                    log_message('error', 'Erro fatal ao buscar audiências: ' . $e->getMessage());
                     $allAudiencias = [];
                 }
                 
@@ -643,15 +668,7 @@ class Adv extends MY_Controller {
             // Buscar prazos se tipoEvento for 'prazo' ou vazio
             if ($tipoEvento == 'prazo' || $tipoEvento == '') {
                 if ($this->db->table_exists('prazos')) {
-                    // Verificar se processos.numeroProcesso existe antes de selecionar
-                    $processos_columns = $this->db->list_fields('processos');
-                    $selects = ['prazos.*'];
-                    if (in_array('numeroProcesso', $processos_columns)) {
-                        $selects[] = 'processos.numeroProcesso';
-                    }
-                    if (in_array('classe', $processos_columns)) {
-                        $selects[] = 'processos.classe';
-                    }
+                    $selects = ['prazos.*', 'processos.numeroProcesso', 'processos.classe'];
                     
                     $this->db->select(implode(', ', $selects));
                     $this->db->from('prazos');
@@ -750,10 +767,28 @@ class Adv extends MY_Controller {
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
 
+        // Garantir que $events é sempre um array
+        if (!is_array($events)) {
+            log_message('error', 'Events não é um array: ' . gettype($events));
+            $events = [];
+        }
+
+        log_message('debug', 'Retornando ' . count($events) . ' eventos do calendário');
+        
+        // Tentar codificar JSON e verificar erros
+        $json = json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            $jsonError = json_last_error_msg();
+            log_message('error', 'Erro ao codificar JSON: ' . $jsonError);
+            log_message('error', 'JSON Error Code: ' . json_last_error());
+            $events = []; // Retornar array vazio em caso de erro
+            $json = json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        
         return $this->output
             ->set_content_type('application/json')
             ->set_status_header(200)
-            ->set_output(json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            ->set_output($json);
     }
 
     private function editDontEnv(array $data)

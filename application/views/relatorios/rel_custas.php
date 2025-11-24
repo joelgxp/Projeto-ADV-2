@@ -50,10 +50,20 @@
                         </div>
                     </div>
 
-                    <div class="span12" style="margin-left: 0">
-                        <button type="submit" class="button btn btn-primary">
-                            <span class="button__icon"><i class='bx bx-file-blank'></i></span>
-                            <span class="button__text2">Gerar Relatório</span>
+                    <div class="span12 well" style="margin-left: 0">
+                        <div class="span6">
+                            <label for="">Tipo de impressão:</label>
+                            <select name="format" class="span12">
+                                <option value="">PDF</option>
+                                <option value="xls">XLS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="span12" style="margin-top: 10px;">
+                        <button type="submit" class="button btn btn-inverse">
+                            <span class="button__icon"><i class="bx bx-printer"></i></span>
+                            <span class="button__text2">Imprimir</span>
                         </button>
                     </div>
                 </form>

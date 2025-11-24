@@ -113,7 +113,11 @@ var ClienteForm = {
         $('.campos-pf').toggleClass('is-hidden', tipo === 'juridica');
         $('.campos-pj').toggleClass('is-hidden', tipo !== 'juridica');
 
+        // Habilitar/desabilitar campos de acordo com o tipo
+        // Campos PF: habilitados apenas quando tipo é 'fisica'
         $('#documento_pf').prop('disabled', tipo === 'juridica');
+        
+        // Campos PJ: habilitados apenas quando tipo é 'juridica'
         $('#documento_pj').prop('disabled', tipo !== 'juridica');
         $('#razao_social').prop('disabled', tipo !== 'juridica');
 
@@ -156,6 +160,14 @@ var ClienteForm = {
         this.setupCNPJ();
         this.setupValidation();
         this.setupDocumentoValidation();
+        
+        // Garantir que os campos estejam habilitados corretamente após inicialização
+        // Especialmente importante no modo de edição
+        var self = this;
+        setTimeout(function() {
+            var tipoAtual = self.getTipoCliente();
+            self.toggleCampos(tipoAtual);
+        }, 200);
     },
 
     /**

@@ -25,24 +25,18 @@
             <div class="widget-content">
                 <div class="span12 well">
                     <form target="_blank" action="<?php echo base_url() ?>index.php/relatorios/servicosCustom" method="get">
-                        <div class="span12 well">
-                            <div class="span6">
-                                <label for="">Preço de:</label>
-                                <input type="text" name="precoInicial" class="span12 money" />
-                            </div>
-                            <div class="span6">
-                                <label for="">até:</label>
-                                <input type="text" name="precoFinal" class="span12 money" />
-                            </div>
+                        <div class="span6">
+                            <label for="">Preço de:</label>
+                            <input type="text" name="precoInicial" class="span12 money" />
                         </div>
-                        <div class="span12" style="display:flex;justify-content: center">
-                            <button type="reset" class="button btn btn-warning">
-                                <span class="button__icon"><i class="bx bx-brush-alt"></i></span>
-                                <span class="button__text">Limpar</span>
-                            </button>
-                            <button class="button btn btn-inverse">
+                        <div class="span6">
+                            <label for="">até:</label>
+                            <input type="text" name="precoFinal" class="span12 money" />
+                        </div>
+                        <div class="span12" style="margin-top: 10px;">
+                            <button type="submit" class="button btn btn-inverse">
                                 <span class="button__icon"><i class="bx bx-printer"></i></span>
-                                <span class="button__text">Imprimir</span>
+                                <span class="button__text2">Imprimir</span>
                             </button>
                         </div>
                     </form>
