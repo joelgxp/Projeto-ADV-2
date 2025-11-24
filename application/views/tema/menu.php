@@ -106,17 +106,6 @@
                     </li>
                 <?php } ?>
 
-                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vArquivo')) { ?>
-                    <li class="<?php if (isset($menuArquivos)) {
-                        echo 'active';
-                    }; ?>">
-                        <a class="tip-bottom" title="" href="<?= site_url('arquivos') ?>"><i class='bx bx-box iconX'></i>
-                            <span class="title">Arquivos</span>
-                            <span class="title-tooltip">Arquivos</span>
-                        </a>
-                    </li>
-                <?php } ?>
-
                 <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vLancamento')) { ?>
                     <li class="<?php if (isset($menuLancamentos)) {
                         echo 'active';

@@ -22,62 +22,10 @@ class Cobrancas extends MY_Controller
 
     public function adicionar()
     {
-        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'aCobranca')) {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(403)
-                ->set_output(json_encode(['message' => 'Você não tem permissão para adicionar cobrança!']));
-        }
-
-        $this->load->library('form_validation');
-        if ($this->form_validation->run('cobrancas') == false) {
-            return $this->output
-                ->set_content_type('application/json')
-                ->set_status_header(400)
-                ->set_output(json_encode(['message' => validation_errors()]));
-        } else {
-            $id = $this->input->post('id');
-            $tipo = $this->input->post('tipo');
-            $formaPagamento = $this->input->post('forma_pagamento');
-            $gatewayDePagamento = $this->input->post('gateway_de_pagamento');
-
-            $this->load->model('Os_model');
-            $this->load->model('vendas_model');
-            $cobranca = $tipo === 'os'
-                ? $this->Os_model->getCobrancas($this->input->post('id'))
-                : $this->vendas_model->getCobrancas($this->input->post('id'));
-            if ($cobranca) {
-                return $this->output
-                    ->set_content_type('application/json')
-                    ->set_status_header(400)
-                    ->set_output(json_encode(['message' => 'Já existe cobrança!']));
-            }
-
-            $this->load->library("Gateways/$gatewayDePagamento", null, 'PaymentGateway');
-
-            try {
-                $cobranca = $this->PaymentGateway->gerarCobranca(
-                    $id,
-                    $tipo,
-                    $formaPagamento
-                );
-
-                return $this->output
-                    ->set_content_type('application/json')
-                    ->set_status_header(200)
-                    ->set_output(json_encode($cobranca));
-            } catch (\Exception $e) {
-                $expMsg = $e->getMessage();
-                if ($expMsg == 'unauthorized: Must provide your access_token to proceed' || $expMsg == 'Unauthorized') {
-                    $expMsg = 'Por favor configurar os dados da API em Config/payment_gatways.php';
-                }
-
-                return $this->output
-                    ->set_content_type('application/json')
-                    ->set_status_header(500)
-                    ->set_output(json_encode(['message' => $expMsg]));
-            }
-        }
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_status_header(501)
+            ->set_output(json_encode(['message' => 'Funcionalidade de payment gateways foi removida.']));
     }
 
     public function gerenciar()
@@ -110,7 +58,6 @@ class Cobrancas extends MY_Controller
         }
 
         $this->load->library('pagination');
-        $this->load->config('payment_gateways');
 
         $this->data['configuration']['base_url'] = site_url('cobrancas/cobrancas/');
         $this->data['configuration']['total_rows'] = $this->cobrancas_model->count('cobrancas');
@@ -176,17 +123,12 @@ class Cobrancas extends MY_Controller
             // Aplicar filtros de busca
             $this->db->group_start();
             $this->db->like('idCobranca', $search);
-            $this->db->or_like('payment_gateway', $search);
             $this->db->or_like('payment_method', $search);
             $this->db->or_like('status', $search);
             $this->db->group_end();
             
             $recordsFiltered = $this->db->count_all_results();
         }
-        
-        // Carregar configuração de gateways
-        $this->load->config('payment_gateways');
-        $payment_gateways = $this->config->item('payment_gateways');
         
         // Formatar dados para DataTables
         $data = [];
@@ -195,12 +137,8 @@ class Cobrancas extends MY_Controller
                 // Formatar data de vencimento
                 $dataVencimento = isset($r->expire_at) ? date('d/m/Y', strtotime($r->expire_at)) : '-';
                 
-                // Status usando função helper
-                $cobrancaStatus = getCobrancaTransactionStatus(
-                    $payment_gateways,
-                    $r->payment_gateway ?? '',
-                    $r->status ?? ''
-                );
+                // Status simples
+                $cobrancaStatus = ucfirst($r->status ?? 'pendente');
                 
                 // Formatar valor (total está em centavos)
                 $valor = isset($r->total) ? 'R$ ' . number_format($r->total / 100, 2, ',', '.') : '-';
@@ -231,7 +169,6 @@ class Cobrancas extends MY_Controller
                 
                 $data[] = [
                     $r->idCobranca ?? '-',
-                    $r->payment_gateway ?? '-',
                     $r->payment_method ?? '-',
                     $dataVencimento,
                     $referencia,
@@ -339,7 +276,6 @@ class Cobrancas extends MY_Controller
             redirect(base_url());
         }
         $this->load->model('cobrancas_model');
-        $this->load->config('payment_gateways');
 
         $this->data['result'] = $this->cobrancas_model->getById($this->uri->segment(3));
         if ($this->data['result'] == null) {

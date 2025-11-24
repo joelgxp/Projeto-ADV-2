@@ -43,7 +43,8 @@ if (! function_exists('getMoneyAsCents')) {
 if (! function_exists('getCobrancaTransactionStatus')) {
     function getCobrancaTransactionStatus($paymentGatewaysConfig, $paymentGateway, $status)
     {
-        return $paymentGatewaysConfig[$paymentGateway]['transaction_status'][$status];
+        // Funcionalidade de payment gateways foi removida
+        return ucfirst($status ?? 'pendente');
     }
 }
 

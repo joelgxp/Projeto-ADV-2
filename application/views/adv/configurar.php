@@ -247,7 +247,7 @@
         </div>
         <div class="modal-footer" style="display:flex;justify-content: center">
           <button type="button" class="button btn btn-mini btn-danger" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i class='bx bx-x' ></i></span> <span class="button__text2">Cancelar</span></button>
-          <button id="update-mapos" type="button" class="button btn btn-warning"><span class="button__icon"><i class="bx bx-sync"></i></span><span class="button__text2">Atualizar</span></button>
+          <button id="update-adv" type="button" class="button btn btn-warning"><span class="button__icon"><i class="bx bx-sync"></i></span><span class="button__text2">Atualizar</span></button>
         </div>
     </form>
 </div>
@@ -274,7 +274,7 @@
     $('#update-database').click(function() {
         window.location = "<?= site_url('adv/atualizarBanco') ?>"
     });
-    $('#update-mapos').click(function() {
+    $('#update-adv').click(function() {
         window.location = "<?= site_url('adv/atualizarAdv') ?>"
     });
     $(document).ready(function() {

@@ -134,7 +134,6 @@ CREATE TABLE IF NOT EXISTS `planos` (
 -- Tabela de clientes (adaptada para contexto jurídico)
 CREATE TABLE IF NOT EXISTS `clientes` (
     `idClientes` INT(11) NOT NULL AUTO_INCREMENT,
-    `asaas_id` VARCHAR(255) DEFAULT NULL,
     `nomeCliente` VARCHAR(255) NOT NULL,
     `sexo` VARCHAR(20) NULL,
     `pessoa_fisica` BOOLEAN NOT NULL DEFAULT 1,
@@ -345,7 +344,6 @@ CREATE TABLE IF NOT EXISTS `cobrancas` (
     `expire_at` DATE NULL DEFAULT NULL COMMENT 'Data de expiração (para gateways de pagamento)',
     `data_pagamento` DATE NULL DEFAULT NULL,
     `status` VARCHAR(20) NOT NULL DEFAULT 'pendente' COMMENT 'pendente, pago, cancelado',
-    `payment_gateway` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Gateway de pagamento usado',
     `payment_method` VARCHAR(20) NULL DEFAULT NULL COMMENT 'Método de pagamento',
     `charge_id` VARCHAR(255) NULL DEFAULT NULL COMMENT 'ID externo do gateway',
     `barcode` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Código de barras (boleto)',

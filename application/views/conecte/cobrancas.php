@@ -27,11 +27,7 @@
                     }
                     foreach ($results as $r) {
                         $dataVenda = date(('d/m/Y'), strtotime($r->expire_at));
-                        $cobrancaStatus = getCobrancaTransactionStatus(
-                            $this->config->item('payment_gateways'),
-                            $r->payment_gateway,
-                            $r->status
-                        );
+                        $cobrancaStatus = ucfirst($r->status ?? 'pendente');
 
                         echo '<tr>';
                         echo '<td>' . $r->charge_id . '</td>';

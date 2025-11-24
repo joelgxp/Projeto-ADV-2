@@ -278,8 +278,8 @@ class Tools extends CI_Controller
             $columns = $this->db->list_fields('usuarios');
             echo "Colunas disponíveis na tabela: " . implode(', ', $columns) . "\n\n";
             
-            // Detectar estrutura da tabela (MapOS padrão vs estrutura customizada)
-            $is_mapos_structure = in_array('idUsuarios', $columns) && in_array('email', $columns);
+            // Detectar estrutura da tabela (Adv padrão vs estrutura customizada)
+            $is_adv_structure = in_array('idUsuarios', $columns) && in_array('email', $columns);
             $is_custom_structure = in_array('id', $columns) && in_array('usuario', $columns);
             
             // Verificar qual coluna usar para email/usuario
@@ -405,8 +405,8 @@ class Tools extends CI_Controller
                     $data['cep'] = '01024-900';
                 }
             } else {
-                // Estrutura padrão MapOS
-                echo "📋 Detectada estrutura padrão MapOS\n\n";
+                // Estrutura padrão Adv
+                echo "📋 Detectada estrutura padrão Adv\n\n";
                 
                 $colunas_map = [
                     'nome' => 'Admin',
@@ -610,7 +610,7 @@ class Tools extends CI_Controller
             $campos_pf = ['rg', 'filiacao', 'profissao', 'sexo', 'pessoa_fisica'];
             $campos_pj = ['razao_social', 'inscricao_estadual', 'inscricao_municipal', 'representantes_legais', 'socios', 'ramo_atividade'];
             $campos_juridicos = ['oab', 'tipo_cliente', 'observacoes_juridicas'];
-            $campos_adicionais = ['emails_adicionais', 'telefones_adicionais', 'senha', 'fornecedor', 'asaas_id'];
+            $campos_adicionais = ['emails_adicionais', 'telefones_adicionais', 'senha', 'fornecedor'];
             
             $basicos = [];
             $endereco = [];

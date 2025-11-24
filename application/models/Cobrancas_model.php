@@ -118,61 +118,25 @@ class Cobrancas_model extends CI_Model
 
     public function atualizarStatus($idCobranca)
     {
-        $cobranca = $this->getById($idCobranca);
-        if (empty($cobranca)) {
-            return $this->session->set_flashdata('error', 'Cobrança não existe!');
-        }
-
-        $gatewayDePagamento = $cobranca->payment_gateway;
-        $this->load->library("Gateways/$gatewayDePagamento", null, 'PaymentGateway');
-
-        $result = $this->PaymentGateway->atualizarDados($cobranca->idCobranca);
-
-        return $result;
+        $this->session->set_flashdata('error', 'Funcionalidade de payment gateways foi removida.');
+        return false;
     }
 
     public function confirmarPagamento($idCobranca)
     {
-        $cobranca = $this->getById($idCobranca);
-        if (empty($cobranca)) {
-            return $this->session->set_flashdata('error', 'Cobrança não existe!');
-        }
-
-        $gatewayDePagamento = $cobranca->payment_gateway;
-        $this->load->library("Gateways/$gatewayDePagamento", null, 'PaymentGateway');
-
-        $result = $this->PaymentGateway->confirmarPagamento($cobranca->idCobranca);
-
-        return $result;
+        $this->session->set_flashdata('error', 'Funcionalidade de payment gateways foi removida.');
+        return false;
     }
 
     public function cancelarPagamento($idCobranca)
     {
-        $cobranca = $this->getById($idCobranca);
-        if (empty($cobranca)) {
-            return $this->session->set_flashdata('error', 'Cobrança não existe!');
-        }
-
-        $gatewayDePagamento = $cobranca->payment_gateway;
-        $this->load->library("Gateways/$gatewayDePagamento", null, 'PaymentGateway');
-
-        $result = $this->PaymentGateway->cancelar($cobranca->idCobranca);
-
-        return $result;
+        $this->session->set_flashdata('error', 'Funcionalidade de payment gateways foi removida.');
+        return false;
     }
 
     public function enviarEmail($idCobranca)
     {
-        $cobranca = $this->getById($idCobranca);
-        if (empty($cobranca)) {
-            return $this->session->set_flashdata('error', 'Cobrança não existe!');
-        }
-
-        $gatewayDePagamento = $cobranca->payment_gateway;
-        $this->load->library("Gateways/$gatewayDePagamento", null, 'PaymentGateway');
-
-        $result = $this->PaymentGateway->enviarPorEmail($cobranca->idCobranca);
-
-        return $result;
+        $this->session->set_flashdata('error', 'Funcionalidade de payment gateways foi removida.');
+        return false;
     }
 }
