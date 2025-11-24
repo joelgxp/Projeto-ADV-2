@@ -46,8 +46,9 @@
                         <div class="span12">
                             <label for="">Tipo de cliente:</label>
                             <select name="tipocliente" class="span12">
-                                <option value="0">Cliente</option>
-                                <option value="1">Fornecedor</option>
+                                <option value="">Todos</option>
+                                <option value="fisica">Pessoa Física</option>
+                                <option value="juridica">Pessoa Jurídica</option>
                             </select>
                         </div>
                     </div>

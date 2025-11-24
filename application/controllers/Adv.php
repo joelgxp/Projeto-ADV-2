@@ -416,8 +416,13 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('app_name', 'Nome do Sistema', 'required|trim');
         $this->form_validation->set_rules('per_page', 'Registros por página', 'required|numeric|trim');
         $this->form_validation->set_rules('app_theme', 'Tema do Sistema', 'required|trim');
-        $this->form_validation->set_rules('email_automatico', 'Enviar Email Automático', 'required|trim');
-        $this->form_validation->set_rules('notifica_whats', 'Notificação Whatsapp', 'required|trim');
+        // Campos opcionais - só validar se foram enviados
+        if ($this->input->post('email_automatico') !== false) {
+            $this->form_validation->set_rules('email_automatico', 'Enviar Email Automático', 'trim');
+        }
+        if ($this->input->post('notifica_whats') !== false) {
+            $this->form_validation->set_rules('notifica_whats', 'Notificação Whatsapp', 'trim');
+        }
 
         if ($this->form_validation->run() == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert">' . validation_errors() . '</div>' : false);
@@ -441,12 +446,24 @@ class Adv extends MY_Controller {
                 'app_name' => $this->input->post('app_name'),
                 'per_page' => $this->input->post('per_page'),
                 'app_theme' => $this->input->post('app_theme'),
-                'email_automatico' => $this->input->post('email_automatico'),
-                'notifica_whats' => $this->input->post('notifica_whats'),
-                'processo_notification' => $this->input->post('processo_notification'),
-                'prazo_notification' => $this->input->post('prazo_notification'),
-                'audiencia_notification' => $this->input->post('audiencia_notification'),
             ];
+            
+            // Campos opcionais - só adiciona se foram enviados
+            if ($this->input->post('email_automatico') !== false && $this->input->post('email_automatico') !== null) {
+                $data['email_automatico'] = $this->input->post('email_automatico');
+            }
+            if ($this->input->post('notifica_whats') !== false && $this->input->post('notifica_whats') !== null) {
+                $data['notifica_whats'] = $this->input->post('notifica_whats');
+            }
+            if ($this->input->post('processo_notification') !== false && $this->input->post('processo_notification') !== null) {
+                $data['processo_notification'] = $this->input->post('processo_notification');
+            }
+            if ($this->input->post('prazo_notification') !== false && $this->input->post('prazo_notification') !== null) {
+                $data['prazo_notification'] = $this->input->post('prazo_notification');
+            }
+            if ($this->input->post('audiencia_notification') !== false && $this->input->post('audiencia_notification') !== null) {
+                $data['audiencia_notification'] = $this->input->post('audiencia_notification');
+            }
             if ($this->sistema_model->saveConfiguracao($data) == true) {
                 $this->session->set_flashdata('success', 'Configurações do sistema atualizadas com sucesso!');
                 redirect(site_url('adv/configurar'));

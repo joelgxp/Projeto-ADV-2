@@ -16,7 +16,7 @@ class Relatorios extends MY_Controller
 
         $this->load->model('Relatorios_model');
         $this->load->model('Usuarios_model');
-        $this->load->model('Mapos_model');
+        $this->load->model('Sistema_model');
 
         $this->data['menuRelatorios'] = 'Relatórios';
     }
@@ -67,7 +67,7 @@ class Relatorios extends MY_Controller
         $data['dataFinal'] = date('d/m/Y', strtotime($dataFinal));
 
         $data['clientes'] = $this->Relatorios_model->clientesCustom($dataInicial, $dataFinal, $this->input->get('tipocliente'));
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Clientes Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -133,7 +133,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['clientes'] = $this->Relatorios_model->clientesRapid();
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Clientes';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -152,7 +152,7 @@ class Relatorios extends MY_Controller
 
         $this->load->model('Processos_model');
         $data['processos'] = $this->Processos_model->get('processos', '*', '', 0, 0, false, 'array');
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Processos';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -190,7 +190,7 @@ class Relatorios extends MY_Controller
         
         $whereClause = !empty($where) ? implode(' AND ', $where) : '';
         $data['processos'] = $this->Processos_model->get('processos', '*', $whereClause, 0, 0, false, 'array');
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Processos Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -219,7 +219,7 @@ class Relatorios extends MY_Controller
 
         $this->load->model('Prazos_model');
         $data['prazos'] = $this->Prazos_model->getPrazosVencidos();
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Prazos Vencidos';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -261,7 +261,7 @@ class Relatorios extends MY_Controller
         
         $whereClause = !empty($where) ? implode(' AND ', $where) : '';
         $data['audiencias'] = $this->Audiencias_model->get('audiencias', '*', $whereClause, 0, 0, false, 'array');
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Audiências Agendadas';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -326,7 +326,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $lancamentos;
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Honorários';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -395,7 +395,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $lancamentos;
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Honorários Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -460,7 +460,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $lancamentos;
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Custas';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -529,7 +529,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $lancamentos;
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Custas Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -562,7 +562,7 @@ class Relatorios extends MY_Controller
         $precoFinal = $this->input->get('precoFinal');
 
         $data['servicos'] = $this->Relatorios_model->servicosCustom($precoInicial, $precoFinal);
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Serviços Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -579,7 +579,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['servicos'] = $this->Relatorios_model->servicosRapid();
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório de Serviços';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -661,7 +661,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $this->Relatorios_model->financeiroRapid();
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório Financeiro';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 
@@ -733,7 +733,7 @@ class Relatorios extends MY_Controller
         }
 
         $data['lancamentos'] = $this->Relatorios_model->financeiroCustom($dataInicial, $dataFinal, $tipo, $situacao);
-        $data['emitente'] = $this->Mapos_model->getEmitente();
+        $data['emitente'] = $this->Sistema_model->getEmitente();
         $data['title'] = 'Relatório Financeiro Customizado';
         $data['topo'] = $this->load->view('relatorios/imprimir/imprimirTopo', $data, true);
 

@@ -63,22 +63,31 @@ class Relatorios_model extends CI_Model
 
     public function clientesCustom($dataInicial = null, $dataFinal = null, $tipo = null)
     {
-        $whereData = '';
+        $where = [];
+        
         if ($dataInicial != null) {
-            $whereData .= 'AND dataCadastro >= ' . $this->db->escape($dataInicial);
+            $where[] = 'dataCadastro >= ' . $this->db->escape($dataInicial);
         }
         if ($dataFinal != null) {
-            $whereData .= 'AND dataCadastro <= ' . $this->db->escape($dataFinal);
+            $where[] = 'dataCadastro <= ' . $this->db->escape($dataFinal);
         }
-        if ($tipo != null) {
-            $whereData .= 'AND fornecedor = ' . $this->db->escape($tipo);
+        if ($tipo != null && $tipo !== '') {
+            // Filtra por tipo_cliente (fisica ou juridica)
+            if ($tipo === 'fisica') {
+                $where[] = '(tipo_cliente = ' . $this->db->escape('fisica') . ' OR pessoa_fisica = 1)';
+            } elseif ($tipo === 'juridica') {
+                $where[] = '(tipo_cliente = ' . $this->db->escape('juridica') . ' OR pessoa_fisica = 0)';
+            }
         }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        
         $query = "SELECT idClientes, nomeCliente, sexo, pessoa_fisica,
         documento, telefone, celular, contato, email, fornecedor,
         dataCadastro, rua, numero, complemento, bairro, cidade, estado,
-        cep FROM clientes WHERE dataCadastro $whereData ORDER BY nomeCliente";
+        cep FROM clientes $whereClause ORDER BY nomeCliente";
 
-        return $this->db->query($query, [$dataInicial, $dataFinal])->result();
+        return $this->db->query($query)->result();
     }
 
     public function clientesRapid($array = false)

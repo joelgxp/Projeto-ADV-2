@@ -92,13 +92,27 @@
         <li class="dropdown">
           <a href="#" class="tip-right dropdown-toggle" data-toggle="dropdown" title="Relatórios"><i class='bx bx-pie-chart-alt-2 iconN'></i><span class="text"></span></a>
           <ul class="dropdown-menu">
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rCliente')) { ?>
             <li><a href="<?= site_url('relatorios/clientes') ?>">Clientes</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rProcesso')) { ?>
             <li><a href="<?= site_url('relatorios/processos') ?>">Processos</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rPrazo')) { ?>
             <li><a href="<?= site_url('relatorios/prazos') ?>">Prazos</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rAudiencia')) { ?>
             <li><a href="<?= site_url('relatorios/audiencias') ?>">Audiências</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rServico')) { ?>
             <li><a href="<?= site_url('relatorios/servicos') ?>">Serviços Jurídicos</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) { ?>
             <li><a href="<?= site_url('relatorios/financeiro') ?>">Financeiro</a></li>
+            <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'rHonorario')) { ?>
             <li><a href="<?= site_url('relatorios/honorarios') ?>">Honorários</a></li>
+            <?php } ?>
           </ul>
         </li>
         <li class="dropdown">

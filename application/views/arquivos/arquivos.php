@@ -9,25 +9,37 @@
                 </span>
                 <h5>Arquivos</h5>
             </div>
-        <form method="get" action="<?= current_url(); ?>">
-            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'aArquivo')) : ?>
+        <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'aArquivo')) : ?>
+            <form method="get" action="<?= current_url(); ?>" style="display: flex; align-items: flex-start;">
                 <div class="span3">
                     <a href="<?= base_url(); ?>index.php/arquivos/adicionar" class="button btn btn-mini btn-success" style="max-width:150px">
                         <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Arquivo</span></a>
                 </div>
-            <?php endif ?>
-
-            <div class="span5">
-                <input type="text" name="pesquisa" id="pesquisa" placeholder="Digite o nome do documento para pesquisar" class="span12" value="<?= $this->input->get('pesquisa') ?>">
-            </div>
-            <div class="span3">
-                <input type="text" name="data" id="data" placeholder="Data de" class="span6 datepicker" value="<?= $this->input->get('data') ?>">
-                <input type="text" name="data2" id="data2" placeholder="Data até" class="span6 datepicker" value="<?= $this->input->get('data2') ?>">
-            </div>
-            <div class="span1">
-                <button class="button btn btn-mini btn-warning" style="min-width: 30px"><span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
-            </div>
-        </form>
+                <div class="span5">
+                    <input type="text" name="pesquisa" id="pesquisa" placeholder="Digite o nome do documento para pesquisar" class="span12" value="<?= $this->input->get('pesquisa') ?>">
+                </div>
+                <div class="span3">
+                    <input type="text" name="data" id="data" placeholder="Data de" class="span6 datepicker" value="<?= $this->input->get('data') ?>">
+                    <input type="text" name="data2" id="data2" placeholder="Data até" class="span6 datepicker" value="<?= $this->input->get('data2') ?>">
+                </div>
+                <div class="span1">
+                    <button class="button btn btn-mini btn-warning" style="min-width: 30px"><span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
+                </div>
+            </form>
+        <?php else : ?>
+            <form method="get" action="<?= current_url(); ?>" style="display: flex; justify-content: flex-end; align-items: flex-start;">
+                <div class="span5">
+                    <input type="text" name="pesquisa" id="pesquisa" placeholder="Digite o nome do documento para pesquisar" class="span12" value="<?= $this->input->get('pesquisa') ?>">
+                </div>
+                <div class="span3">
+                    <input type="text" name="data" id="data" placeholder="Data de" class="span6 datepicker" value="<?= $this->input->get('data') ?>">
+                    <input type="text" name="data2" id="data2" placeholder="Data até" class="span6 datepicker" value="<?= $this->input->get('data2') ?>">
+                </div>
+                <div class="span1">
+                    <button class="button btn btn-mini btn-warning" style="min-width: 30px"><span class="button__icon"><i class='bx bx-search-alt'></i></span></button>
+                </div>
+            </form>
+        <?php endif ?>
     </div>
 
     <div>

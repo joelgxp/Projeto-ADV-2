@@ -21,7 +21,7 @@
                         <div class="control-group">
                             <label for="app_name" class="control-label">Nome do Sistema</label>
                             <div class="controls">
-                                <input type="text" required name="app_name" value="<?= $configuration['app_name'] ?>">
+                                <input type="text" required name="app_name" value="<?= isset($configuration['app_name']) ? $configuration['app_name'] : '' ?>">
                                 <span class="help-inline">Nome do sistema</span>
                             </div>
                         </div>
@@ -29,13 +29,13 @@
                             <label for="app_theme" class="control-label">Tema do Sistema</label>
                             <div class="controls">
                                 <select name="app_theme" id="app_theme">
-                                    <option value="default">Escuro</option>
-                                    <option value="white" <?= $configuration['app_theme'] == 'white' ? 'selected' : ''; ?>>Claro</option>
-                                    <option value="puredark" <?= $configuration['app_theme'] == 'puredark' ? 'selected' : ''; ?>>Pure dark</option>
-                                    <option value="darkorange" <?= $configuration['app_theme'] == 'darkorange' ? 'selected' : ''; ?>>Dark orange</option>
-                                    <option value="darkviolet" <?= $configuration['app_theme'] == 'darkviolet' ? 'selected' : ''; ?>>Dark violet</option>
-                                    <option value="whitegreen" <?= $configuration['app_theme'] == 'whitegreen' ? 'selected' : ''; ?>>White green</option>
-                                    <option value="whiteblack" <?= $configuration['app_theme'] == 'whiteblack' ? 'selected' : ''; ?>>White black</option>
+                                    <option value="default" <?= (!isset($configuration['app_theme']) || $configuration['app_theme'] == 'default') ? 'selected' : ''; ?>>Escuro</option>
+                                    <option value="white" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'white') ? 'selected' : ''; ?>>Claro</option>
+                                    <option value="puredark" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'puredark') ? 'selected' : ''; ?>>Pure dark</option>
+                                    <option value="darkorange" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'darkorange') ? 'selected' : ''; ?>>Dark orange</option>
+                                    <option value="darkviolet" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'darkviolet') ? 'selected' : ''; ?>>Dark violet</option>
+                                    <option value="whitegreen" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'whitegreen') ? 'selected' : ''; ?>>White green</option>
+                                    <option value="whiteblack" <?= (isset($configuration['app_theme']) && $configuration['app_theme'] == 'whiteblack') ? 'selected' : ''; ?>>White black</option>
                                 </select>
                                 <span class="help-inline">Selecione o tema que que deseja usar no sistema</span>
                             </div>
@@ -45,9 +45,9 @@
                             <div class="controls">
                                 <select name="per_page" id="theme">
                                     <option value="10">10</option>
-                                    <option value="20" <?= $configuration['per_page'] == '20' ? 'selected' : ''; ?>>20</option>
-                                    <option value="50" <?= $configuration['per_page'] == '50' ? 'selected' : ''; ?>>50</option>
-                                    <option value="100" <?= $configuration['per_page'] == '100' ? 'selected' : ''; ?>>100</option>
+                                    <option value="20" <?= (isset($configuration['per_page']) && $configuration['per_page'] == '20') ? 'selected' : ''; ?>>20</option>
+                                    <option value="50" <?= (isset($configuration['per_page']) && $configuration['per_page'] == '50') ? 'selected' : ''; ?>>50</option>
+                                    <option value="100" <?= (isset($configuration['per_page']) && $configuration['per_page'] == '100') ? 'selected' : ''; ?>>100</option>
                                 </select>
                                 <span class="help-inline">Selecione quantos registros deseja exibir nas listas</span>
                             </div>
@@ -106,8 +106,8 @@
                             <label for="email_automatico" class="control-label">Enviar Email Automático</label>
                             <div class="controls">
                                 <select name="email_automatico" id="email_automatico">
-                                    <option value="1">Ativar</option>
-                                    <option value="0" <?= $configuration['email_automatico'] == '0' ? 'selected' : ''; ?>>Desativar</option>
+                                    <option value="1" <?= (!isset($configuration['email_automatico']) || $configuration['email_automatico'] == '1') ? 'selected' : ''; ?>>Ativar</option>
+                                    <option value="0" <?= (isset($configuration['email_automatico']) && $configuration['email_automatico'] == '0') ? 'selected' : ''; ?>>Desativar</option>
                                 </select>
                                 <span class="help-inline">Ativar ou Desativar a opção de envio de e-mail automático para processos, prazos e audiências.</span>
                             </div>
@@ -115,7 +115,7 @@
                         <div class="control-group">
                             <label for="notifica_whats" class="control-label">Notificação do WhatsApp</label>
                             <div class="controls">
-                                <textarea rows="5" cols="20" name="notifica_whats" id="notifica_whats" placeholder="Use as tags abaixo para criar seu texto!" style="margin: 0px; width: 606px; height: 86px;"><?php echo $configuration['notifica_whats']; ?></textarea>
+                                <textarea rows="5" cols="20" name="notifica_whats" id="notifica_whats" placeholder="Use as tags abaixo para criar seu texto!" style="margin: 0px; width: 606px; height: 86px;"><?php echo isset($configuration['notifica_whats']) ? $configuration['notifica_whats'] : ''; ?></textarea>
                             </div>
                             <div class="span3">
                                 <label for="notifica_whats_select">Tags de preenchimento<span class="required"></span></label>
@@ -175,14 +175,14 @@
                         <div class="control-group">
                             <label for="EMAIL_PROTOCOL" class="control-label">Protocolo de E-mail</label>
                             <div class="controls">
-                                <input type="text" name="EMAIL_PROTOCOL" value="<?= $_ENV['EMAIL_PROTOCOL'] ?>" id="EMAIL_PROTOCOL">
+                                <input type="text" name="EMAIL_PROTOCOL" value="<?= isset($_ENV['EMAIL_PROTOCOL']) ? $_ENV['EMAIL_PROTOCOL'] : '' ?>" id="EMAIL_PROTOCOL">
                                 <span class="help-inline">Informe o protocolo que será utilizado</span>
                             </div>
                         </div>
                         <div class="control-group">
                             <label for="EMAIL_SMTP_HOST" class="control-label">Endereço do Host</label>
                             <div class="controls">
-                                <input type="text" name="EMAIL_SMTP_HOST" value="<?= $_ENV['EMAIL_SMTP_HOST'] ?>" id="EMAIL_SMTP_HOST">
+                                <input type="text" name="EMAIL_SMTP_HOST" value="<?= isset($_ENV['EMAIL_SMTP_HOST']) ? $_ENV['EMAIL_SMTP_HOST'] : '' ?>" id="EMAIL_SMTP_HOST">
                                 <span class="help-inline">Informe o endereço do host</span>
                             </div>
                         </div>
@@ -190,8 +190,8 @@
                             <label for="EMAIL_SMTP_CRYPTO" class="control-label">Tipo de criptografia</label>
                             <div class="controls">
                                 <select name="EMAIL_SMTP_CRYPTO" id="EMAIL_SMTP_CRYPTO">
-                                    <option value="tls" <?= $_ENV['EMAIL_SMTP_CRYPTO'] == 'tls' ? 'selected' : ''; ?>>tls</option>
-                                    <option value="ssl" <?= $_ENV['EMAIL_SMTP_CRYPTO'] == 'ssl' ? 'selected' : ''; ?>>ssl</option>
+                                    <option value="tls" <?= (isset($_ENV['EMAIL_SMTP_CRYPTO']) && $_ENV['EMAIL_SMTP_CRYPTO'] == 'tls') ? 'selected' : ''; ?>>tls</option>
+                                    <option value="ssl" <?= (isset($_ENV['EMAIL_SMTP_CRYPTO']) && $_ENV['EMAIL_SMTP_CRYPTO'] == 'ssl') ? 'selected' : ''; ?>>ssl</option>
                                 </select>
                                 <span class="help-inline">Tipo de criptografia que será utilizada.</span>
                             </div>
@@ -199,21 +199,21 @@
                         <div class="control-group">
                             <label for="EMAIL_SMTP_PORT" class="control-label">Porta</label>
                             <div class="controls">
-                                <input type="text" name="EMAIL_SMTP_PORT" value="<?= $_ENV['EMAIL_SMTP_PORT'] ?>" id="EMAIL_SMTP_PORT">
+                                <input type="text" name="EMAIL_SMTP_PORT" value="<?= isset($_ENV['EMAIL_SMTP_PORT']) ? $_ENV['EMAIL_SMTP_PORT'] : '' ?>" id="EMAIL_SMTP_PORT">
                                 <span class="help-inline">Informe a porta que será utilizada.</span>
                             </div>
                         </div>
                         <div class="control-group">
                             <label for="EMAIL_SMTP_USER" class="control-label">Usuário</label>
                             <div class="controls">
-                                <input type="text" name="EMAIL_SMTP_USER" value="<?= $_ENV['EMAIL_SMTP_USER'] ?>" id="EMAIL_SMTP_USER">
+                                <input type="text" name="EMAIL_SMTP_USER" value="<?= isset($_ENV['EMAIL_SMTP_USER']) ? $_ENV['EMAIL_SMTP_USER'] : '' ?>" id="EMAIL_SMTP_USER">
                                 <span class="help-inline">Informe nome de usuáriodo e-mail.</span>
                             </div>
                         </div>
                         <div class="control-group">
                             <label for="EMAIL_SMTP_PASS" class="control-label">Senha</label>
                             <div class="controls">
-                                <input type="password" name="EMAIL_SMTP_PASS" value="<?= $_ENV['EMAIL_SMTP_PASS'] ?>" id="EMAIL_SMTP_PASS">
+                                <input type="password" name="EMAIL_SMTP_PASS" value="<?= isset($_ENV['EMAIL_SMTP_PASS']) ? $_ENV['EMAIL_SMTP_PASS'] : '' ?>" id="EMAIL_SMTP_PASS">
                                 <span class="help-inline">Informe a senha do e-mail.</span>
                             </div>
                         </div>
