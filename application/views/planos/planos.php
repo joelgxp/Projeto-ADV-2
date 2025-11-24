@@ -120,7 +120,7 @@
             <p style="text-align: center; color: #d9534f;"><strong>Atenção:</strong> Não é possível excluir planos que possuem clientes vinculados.</p>
         </div>
         <div class="modal-footer" style="display:flex;justify-content: center">
-            <button class="button btn btn-warning" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i
+            <button type="button" class="button btn btn-warning" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i
                         class="bx bx-x"></i></span><span class="button__text2">Cancelar</span></button>
             <button class="button btn btn-danger"><span class="button__icon"><i class='bx bx-trash'></i></span> <span
                     class="button__text2">Excluir</span></button>

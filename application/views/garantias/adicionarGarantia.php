@@ -43,11 +43,11 @@
                         </div>
                     </div>
                     <div class="span12" style="padding: 1%; margin-left: 0">
-                        <div class="span6 offset3" style="display:flex;justify-content: center">
-                            <button class="button btn btn-success" id="btnContinuar">
+                        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+                            <button class="button btn btn-success" id="btnContinuar" style="display:inline-flex;">
                               <span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Adicionar</span></button>
-                            <a href="<?php echo base_url() ?>index.php/garantias" class="button btn btn-mini btn-warning">
-                              <span class="button__icon"><i class="bx bx-undo"></i></span> <span class="button__text2">Voltar</span></a>
+                            <a href="<?php echo base_url() ?>index.php/garantias" class="button btn btn-mini btn-warning" style="display:inline-flex;">
+                              <span class="button__icon"><i class="bx bx-x"></i></span> <span class="button__text2">Cancelar</span></a>
                         </div>
                     </div>
                 </form>

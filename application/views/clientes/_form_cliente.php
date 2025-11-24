@@ -24,15 +24,45 @@ $documento_pj_value = set_value(
 
 $valueOr = function ($field, $clienteField = null) use ($is_edit, $cliente) {
     $default = '';
-    if ($is_edit && $cliente !== null && $clienteField !== null) {
+    if ($is_edit && $cliente !== null) {
         // Usar o mesmo nome do campo se não especificado
         $fieldName = $clienteField ?: $field;
         
-        // Verificar se a propriedade existe no objeto
+        // Tentar buscar o valor do campo de múltiplas formas
+        $value = null;
+        
+        // Primeiro, tentar com o nome especificado usando property_exists
         if (property_exists($cliente, $fieldName)) {
             $value = $cliente->$fieldName;
-            // Retornar o valor mesmo se for null ou vazio (para campos que podem ser vazios)
-            $default = $value !== null ? $value : '';
+        } 
+        // Se não encontrou e o nome é diferente, tentar com o nome original
+        elseif ($fieldName !== $field && property_exists($cliente, $field)) {
+            $value = $cliente->$field;
+        }
+        // Se ainda não encontrou, tentar acessar diretamente usando isset (pode ser campo dinâmico)
+        elseif (isset($cliente->$fieldName)) {
+            $value = $cliente->$fieldName;
+        }
+        elseif (isset($cliente->$field)) {
+            $value = $cliente->$field;
+        }
+        // Última tentativa: acessar diretamente como propriedade (pode funcionar mesmo sem property_exists)
+        elseif (isset($cliente) && is_object($cliente)) {
+            try {
+                if (isset($cliente->$fieldName)) {
+                    $value = $cliente->$fieldName;
+                } elseif (isset($cliente->$field)) {
+                    $value = $cliente->$field;
+                }
+            } catch (Exception $e) {
+                // Ignorar erros de acesso
+            }
+        }
+        
+        // Se encontrou um valor, converter para string (exceto null)
+        // Preservar valores vazios como string vazia
+        if ($value !== null) {
+            $default = (string)$value;
         }
     }
     return set_value($field, $default);
@@ -241,12 +271,6 @@ $estado_value = $valueOr('estado', 'estado');
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label for="site" class="control-label">Site</label>
-                                <div class="controls">
-                                    <input id="site" type="url" name="site" value="<?php echo htmlspecialchars($valueOr('site', 'site')); ?>">
-                                </div>
-                            </div>
-                            <div class="control-group">
                                 <label for="telefone" class="control-label">Telefone</label>
                                 <div class="controls">
                                     <input id="telefone" type="text" name="telefone" value="<?php echo htmlspecialchars($valueOr('telefone', 'telefone')); ?>">
@@ -267,7 +291,7 @@ $estado_value = $valueOr('estado', 'estado');
                             <div class="control-group">
                                 <label for="senha" class="control-label">Senha de Acesso</label>
                                 <div class="controls senha-wrapper">
-                                    <input class="form-control" id="senha" type="password" name="senha" autocomplete="new-password" value="<?php echo htmlspecialchars($senha_value); ?>" <?php echo $is_edit ? 'placeholder="NÃ£o preencha para manter."' : ''; ?>>
+                                    <input class="form-control" id="senha" type="password" name="senha" autocomplete="new-password" value="<?php echo htmlspecialchars($senha_value); ?>" <?php echo $is_edit ? 'placeholder="Não preencha para manter."' : ''; ?>>
                                     <img id="imgSenha" src="<?php echo base_url('assets/img/eye.svg'); ?>" alt="Mostrar/ocultar senha" role="button" tabindex="0" aria-label="Alternar visibilidade da senha">
                             </div>
                         </div>
@@ -383,15 +407,15 @@ $estado_value = $valueOr('estado', 'estado');
     </div>
 
     <div class="form-actions">
-        <div class="span12">
-            <div class="span6 offset3 form-actions__buttons">
-                <button type="submit" class="button btn <?php echo $is_edit ? 'btn-primary' : 'btn-success'; ?>">
+        <div class="span12" style="display:flex;justify-content:center;">
+            <div class="form-actions__buttons" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="submit" class="button btn <?php echo $is_edit ? 'btn-primary' : 'btn-success'; ?>" style="display:inline-flex;">
                     <span class="button__icon"><i class="<?php echo $is_edit ? 'bx bx-sync' : 'bx bx-save'; ?>"></i></span>
                     <span class="button__text2"><?php echo htmlspecialchars($submit_text); ?></span>
                 </button>
-                <a class="button btn btn-warning" href="<?php echo site_url('clientes'); ?>">
-                    <span class="button__icon"><i class="bx bx-undo"></i></span>
-                    <span class="button__text2">Voltar</span>
+                <a class="button btn btn-warning" href="<?php echo site_url('clientes'); ?>" style="display:inline-flex;">
+                    <span class="button__icon"><i class="bx bx-x"></i></span>
+                    <span class="button__text2">Cancelar</span>
                 </a>
             </div>
         </div>

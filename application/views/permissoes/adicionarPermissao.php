@@ -594,10 +594,10 @@
                     </div>
                     <div class="form-actions">
                         <div class="span12">
-                            <div class="span6 offset3" style="display:flex;justify-content: center">
-                                <button type="submit" class="button btn btn-success"><span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Confirmar</span></button>
-                                <a title="Voltar" class="button btn btn-mini btn-warning" href="<?php echo site_url() ?>/permissoes">
-                                  <span class="button__icon"><i class="bx bx-undo"></i></span> <span class="button__text2">Voltar</span></a>
+                            <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+                                <button type="submit" class="button btn btn-success" style="display:inline-flex;"><span class="button__icon"><i class='bx bx-plus-circle'></i></span><span class="button__text2">Confirmar</span></button>
+                                <a title="Cancelar" class="button btn btn-mini btn-warning" href="<?php echo site_url() ?>/permissoes" style="display:inline-flex;">
+                                  <span class="button__icon"><i class="bx bx-x"></i></span> <span class="button__text2">Cancelar</span></a>
                             </div>
                         </div>
                     </div>

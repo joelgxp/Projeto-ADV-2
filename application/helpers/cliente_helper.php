@@ -127,7 +127,6 @@ if (! function_exists('preparar_dados_cliente')) {
             'telefone' => trim($post_data['telefone'] ?? ''),
             'celular' => trim($post_data['celular'] ?? ''),
             'email' => strtolower(trim($post_data['email'] ?? '')),
-            'site' => trim($post_data['site'] ?? ''),
             'redes_sociais' => trim($post_data['redes_sociais'] ?? ''),
             'rua' => trim($post_data['rua'] ?? ''),
             'numero' => trim($post_data['numero'] ?? ''),
@@ -136,7 +135,6 @@ if (! function_exists('preparar_dados_cliente')) {
             'cidade' => trim($post_data['cidade'] ?? ''),
             'estado' => trim($post_data['estado'] ?? ''),
             'cep' => trim($post_data['cep'] ?? ''),
-            'fornecedor' => ! empty($post_data['fornecedor']) ? 1 : 0,
             'observacoes' => trim($post_data['observacoes'] ?? ''),
             'observacoes_juridicas' => trim($post_data['observacoes_juridicas'] ?? ''),
         ];
