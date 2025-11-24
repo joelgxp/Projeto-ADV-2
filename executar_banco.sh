@@ -9,7 +9,7 @@ echo ""
 DB_HOST="localhost"
 DB_USER="root"
 DB_PASS=""
-DB_NAME="mapos"
+DB_NAME="adv"
 
 echo "Criando banco de dados $DB_NAME..."
 mysql -h "$DB_HOST" -u "$DB_USER" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"

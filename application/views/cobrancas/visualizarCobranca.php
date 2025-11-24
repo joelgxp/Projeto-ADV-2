@@ -61,13 +61,6 @@
                         </tr>
 
                         <tr>
-                            <td style="text-align: right"><strong>Gateway de Pagamento</strong></td>
-                            <td>
-                                <?php echo $result->payment_gateway; ?>
-                            </td>
-                        </tr>
-
-                        <tr>
                             <td style="text-align: right"><strong>Valor da cobrança</strong></td>
                             <td>R$
                                 <?php echo number_format($result->total / 100, 2, ',', '.'); ?>
@@ -77,13 +70,7 @@
                         <tr>
                             <td style="text-align: right"><strong>Status atual</strong></td>
                             <td>
-                                <?php
-                                    echo getCobrancaTransactionStatus(
-                                        $this->config->item('payment_gateways'),
-                                        $result->payment_gateway,
-                                        $result->status
-                                    );
-                                ?>
+                                <?php echo ucfirst($result->status ?? 'pendente'); ?>
                             </td>
                         </tr>
 

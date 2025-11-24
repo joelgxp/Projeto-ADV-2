@@ -380,7 +380,6 @@ class Mine extends CI_Controller
         }
 
         $this->load->library('pagination');
-        $this->load->config('payment_gateways');
 
         $data['menuCobrancas'] = 'cobrancas';
 

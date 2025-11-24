@@ -17,7 +17,6 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Gateway</th>
                         <th>Tipo</th>
                         <th>Data de Vencimento</th>
                         <th>Referência</th>
@@ -33,15 +32,10 @@
                     if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         foreach ($results as $r) {
                             $dataVenda = date(('d/m/Y'), strtotime($r->expire_at));
-                            $cobrancaStatus = getCobrancaTransactionStatus(
-                                $this->config->item('payment_gateways'),
-                                $r->payment_gateway,
-                                $r->status
-                            );
+                            $cobrancaStatus = ucfirst($r->status ?? 'pendente');
 
                             echo '<tr>';
                             echo '<td>' . $r->idCobranca . '</td>';
-                            echo '<td>' . $r->payment_gateway . '</td>';
                             echo '<td>' . $r->payment_method . '</td>';
                             echo '<td>' . $dataVenda . '</td>';
 

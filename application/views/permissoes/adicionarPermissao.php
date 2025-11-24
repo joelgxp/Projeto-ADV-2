@@ -358,50 +358,6 @@
                         <div class="accordion-group widget-box">
                             <div class="accordion-heading">
                                 <div class="widget-title">
-                                    <a data-parent="#collapse-group" href="#collapseGThree33333" data-toggle="collapse">
-                                      <span><i class='bx bx-box icon-cli'></i></span>
-                                      <h5 style="padding-left: 28px">Arquivos</h5>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="collapse accordion-body" id="collapseGThree33333">
-                                <div class="widget-content">
-                                    <table class="table table-bordered">
-                                        <tbody>
-                                        <tr>
-                                            <td>
-                                                <label>
-                                                    <input name="vArquivo" class="marcar" type="checkbox" checked="checked" value="1" />
-                                                    <span class="lbl"> Visualizar Arquivo</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="aArquivo" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Adicionar Arquivo</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="eArquivo" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Editar Arquivo</span>
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label>
-                                                    <input name="dArquivo" class="marcar" type="checkbox" value="1" />
-                                                    <span class="lbl"> Excluir Arquivo</span>
-                                                </label>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-group widget-box">
-                            <div class="accordion-heading">
-                                <div class="widget-title">
                                     <a data-parent="#collapse-group" href="#collapseGThree333343" data-toggle="collapse">
                                       <span><i class="bx bx-bar-chart-square icon-cli"></i></span>
                                       <h5 style="padding-left: 28px">Financeiro</h5>

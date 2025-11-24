@@ -16,7 +16,7 @@ $config = [
     'host' => 'localhost',
     'user' => 'root',
     'pass' => '', // Deixe vazio se não tiver senha
-    'database' => 'mapos',
+    'database' => 'adv',
     
     // Dados do administrador (serão substituídos no SQL)
     'admin_name' => 'Administrador',

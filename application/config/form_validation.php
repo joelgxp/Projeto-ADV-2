@@ -195,16 +195,12 @@ $config = [
             'rules' => 'trim|required',
         ],
         [
-            'field' => 'garantia',
-            'label' => 'Garantia',
             'rules' => 'trim|numeric',
             'errors' => [
                 'numeric' => 'Por favor digite apenas número.',
             ],
         ],
         [
-            'field' => 'termoGarantia',
-            'label' => 'Termo Garantia',
             'rules' => 'trim',
         ],
         [
@@ -307,28 +303,6 @@ $config = [
         [
             'field' => 'tipo',
             'label' => 'Tipo',
-            'rules' => 'required|trim',
-        ],
-    ],
-    'garantias' => [
-        [
-            'field' => 'dataGarantia',
-            'label' => 'dataGarantia',
-            'rules' => 'trim',
-        ],
-        [
-            'field' => 'usuarios_id',
-            'label' => 'usuarios_id',
-            'rules' => 'trim',
-        ],
-        [
-            'field' => 'refGarantia',
-            'label' => 'refGarantia',
-            'rules' => 'trim',
-        ],
-        [
-            'field' => 'textoGarantia',
-            'label' => 'textoGarantia',
             'rules' => 'required|trim',
         ],
     ],

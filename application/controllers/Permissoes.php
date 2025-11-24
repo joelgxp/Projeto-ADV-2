@@ -92,10 +92,6 @@ class Permissoes extends MY_Controller
 
                 'cConsultaProcessual' => $this->input->post('cConsultaProcessual'), // Consulta processual na API
 
-                'aArquivo' => $this->input->post('aArquivo'),
-                'eArquivo' => $this->input->post('eArquivo'),
-                'dArquivo' => $this->input->post('dArquivo'),
-                'vArquivo' => $this->input->post('vArquivo'),
 
                 'aLancamento' => $this->input->post('aLancamento'),
                 'eLancamento' => $this->input->post('eLancamento'),
@@ -194,10 +190,6 @@ class Permissoes extends MY_Controller
 
                 'cConsultaProcessual' => $this->input->post('cConsultaProcessual'), // Consulta processual na API
 
-                'aArquivo' => $this->input->post('aArquivo'),
-                'eArquivo' => $this->input->post('eArquivo'),
-                'dArquivo' => $this->input->post('dArquivo'),
-                'vArquivo' => $this->input->post('vArquivo'),
 
                 'aLancamento' => $this->input->post('aLancamento'),
                 'eLancamento' => $this->input->post('eLancamento'),
