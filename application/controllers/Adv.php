@@ -603,10 +603,18 @@ class Adv extends MY_Controller {
 
             // Buscar audiências se tipoEvento for 'audiencia' ou vazio
             if ($tipoEvento == 'audiencia' || $tipoEvento == '') {
-                $allAudiencias = $this->sistema_model->calendario($start, $end, null);
-                
-                if ($allAudiencias === false) {
-                    log_message('error', 'Erro ao buscar audiências no calendário');
+                try {
+                    $allAudiencias = $this->sistema_model->calendario($start, $end, null);
+                    
+                    if ($allAudiencias === false || !is_array($allAudiencias)) {
+                        log_message('error', 'Erro ao buscar audiências no calendário - retorno inválido: ' . gettype($allAudiencias));
+                        $allAudiencias = [];
+                    }
+                } catch (Exception $e) {
+                    log_message('error', 'Exceção ao buscar audiências: ' . $e->getMessage());
+                    $allAudiencias = [];
+                } catch (Error $e) {
+                    log_message('error', 'Erro fatal ao buscar audiências: ' . $e->getMessage());
                     $allAudiencias = [];
                 }
                 
@@ -660,15 +668,7 @@ class Adv extends MY_Controller {
             // Buscar prazos se tipoEvento for 'prazo' ou vazio
             if ($tipoEvento == 'prazo' || $tipoEvento == '') {
                 if ($this->db->table_exists('prazos')) {
-                    // Verificar se processos.numeroProcesso existe antes de selecionar
-                    $processos_columns = $this->db->list_fields('processos');
-                    $selects = ['prazos.*'];
-                    if (in_array('numeroProcesso', $processos_columns)) {
-                        $selects[] = 'processos.numeroProcesso';
-                    }
-                    if (in_array('classe', $processos_columns)) {
-                        $selects[] = 'processos.classe';
-                    }
+                    $selects = ['prazos.*', 'processos.numeroProcesso', 'processos.classe'];
                     
                     $this->db->select(implode(', ', $selects));
                     $this->db->from('prazos');
@@ -767,10 +767,28 @@ class Adv extends MY_Controller {
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
 
+        // Garantir que $events é sempre um array
+        if (!is_array($events)) {
+            log_message('error', 'Events não é um array: ' . gettype($events));
+            $events = [];
+        }
+
+        log_message('debug', 'Retornando ' . count($events) . ' eventos do calendário');
+        
+        // Tentar codificar JSON e verificar erros
+        $json = json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            $jsonError = json_last_error_msg();
+            log_message('error', 'Erro ao codificar JSON: ' . $jsonError);
+            log_message('error', 'JSON Error Code: ' . json_last_error());
+            $events = []; // Retornar array vazio em caso de erro
+            $json = json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        
         return $this->output
             ->set_content_type('application/json')
             ->set_status_header(200)
-            ->set_output(json_encode($events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            ->set_output($json);
     }
 
     private function editDontEnv(array $data)

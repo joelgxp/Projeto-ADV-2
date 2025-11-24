@@ -18,26 +18,14 @@ class Processos_model extends CI_Model
 
         // Join com clientes
         if ($this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.{$clientes_nome_col} as nomeCliente");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.nomeCliente as nomeCliente');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
 
         // Join com usuarios (advogado responsável)
         if ($this->db->table_exists('usuarios')) {
-            $usuarios_columns = $this->db->list_fields('usuarios');
-            $usuarios_id_col = in_array('idUsuarios', $usuarios_columns) ? 'idUsuarios' : (in_array('id', $usuarios_columns) ? 'id' : null);
-            $usuarios_nome_col = in_array('nome', $usuarios_columns) ? 'nome' : null;
-            
-            if ($usuarios_id_col && $usuarios_nome_col) {
-                $this->db->select("usuarios.{$usuarios_nome_col} as nomeAdvogado");
-                $this->db->join('usuarios', "usuarios.{$usuarios_id_col} = processos.usuarios_id", 'left');
-            }
+            $this->db->select('usuarios.nome as nomeAdvogado');
+            $this->db->join('usuarios', 'usuarios.idUsuarios = processos.usuarios_id', 'left');
         }
 
         $this->db->order_by('processos.dataCadastro', 'desc');
@@ -51,11 +39,7 @@ class Processos_model extends CI_Model
             $this->db->or_like('processos.comarca', $where);
             $this->db->or_like('processos.tribunal', $where);
             if ($this->db->table_exists('clientes')) {
-                $clientes_columns = $this->db->list_fields('clientes');
-                $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-                if ($clientes_nome_col) {
-                    $this->db->or_like("clientes.{$clientes_nome_col}", $where);
-                }
+                $this->db->or_like('clientes.nomeCliente', $where);
             }
             $this->db->group_end();
         }
@@ -81,27 +65,16 @@ class Processos_model extends CI_Model
         $this->db->where('idProcessos', $id);
         $this->db->limit(1);
 
-        // Join com clientes (verificar se coluna clientes_id existe)
+        // Join com clientes
         if ($this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-            
-            if ($clientes_id_col && $clientes_nome_col) {
-                $this->db->select("clientes.*");
-                $this->db->join('clientes', "clientes.{$clientes_id_col} = processos.clientes_id", 'left');
-            }
+            $this->db->select('clientes.*');
+            $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
 
         // Join com usuarios
         if ($this->db->table_exists('usuarios')) {
-            $usuarios_columns = $this->db->list_fields('usuarios');
-            $usuarios_id_col = in_array('idUsuarios', $usuarios_columns) ? 'idUsuarios' : (in_array('id', $usuarios_columns) ? 'id' : null);
-            
-            if ($usuarios_id_col) {
-                $this->db->select("usuarios.nome as nomeAdvogado, usuarios.email as emailAdvogado");
-                $this->db->join('usuarios', "usuarios.{$usuarios_id_col} = processos.usuarios_id", 'left');
-            }
+            $this->db->select('usuarios.nome as nomeAdvogado, usuarios.email as emailAdvogado');
+            $this->db->join('usuarios', 'usuarios.idUsuarios = processos.usuarios_id', 'left');
         }
 
         $query = $this->db->get('processos');
@@ -566,41 +539,25 @@ class Processos_model extends CI_Model
      */
     public function getProcessosByCliente($cliente_id, $limit = 0, $offset = 0)
     {
-        if (!$this->db->table_exists('processos')) {
-            return [];
-        }
-
-        // Verificar se processos.clientes_id existe
-        // Verificar se tabelas existem
         if (!$this->db->table_exists('processos') || !$this->db->table_exists('clientes')) {
             return [];
         }
 
-        // Detectar coluna de ID de clientes
-        if ($this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            
-            if ($clientes_id_col) {
-                $this->db->where('processos.clientes_id', $cliente_id);
-                $this->db->order_by('processos.dataCadastro', 'desc');
-                
-                if ($limit > 0) {
-                    $this->db->limit($limit, $offset);
-                }
-                
-                $query = $this->db->get('processos');
-                
-                if ($query === false) {
-                    log_message('error', 'Erro na query getProcessosByCliente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-                    return [];
-                }
-                
-                return $query->result();
-            }
+        $this->db->where('processos.clientes_id', $cliente_id);
+        $this->db->order_by('processos.dataCadastro', 'desc');
+        
+        if ($limit > 0) {
+            $this->db->limit($limit, $offset);
         }
-
-        return [];
+        
+        $query = $this->db->get('processos');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getProcessosByCliente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        
+        return $query->result();
     }
 
     /**
@@ -627,26 +584,13 @@ class Processos_model extends CI_Model
             return [];
         }
 
-        $clientes_columns = $this->db->list_fields('clientes');
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        
-        if (!$clientes_id_col) {
-            return [];
-        }
-
         $this->db->select('processos.*');
         $this->db->from('processos');
         
         // Join com usuarios (advogado)
         if ($this->db->table_exists('usuarios')) {
-            $usuarios_columns = $this->db->list_fields('usuarios');
-            $usuarios_id_col = in_array('idUsuarios', $usuarios_columns) ? 'idUsuarios' : (in_array('id', $usuarios_columns) ? 'id' : null);
-            $usuarios_nome_col = in_array('nome', $usuarios_columns) ? 'nome' : null;
-            
-            if ($usuarios_id_col && $usuarios_nome_col) {
-                $this->db->select("usuarios.{$usuarios_nome_col} as nomeAdvogado");
-                $this->db->join('usuarios', "usuarios.{$usuarios_id_col} = processos.usuarios_id", 'left');
-            }
+            $this->db->select('usuarios.nome as nomeAdvogado');
+            $this->db->join('usuarios', 'usuarios.idUsuarios = processos.usuarios_id', 'left');
         }
 
         // Filtro por cliente
@@ -698,16 +642,10 @@ class Processos_model extends CI_Model
         }
 
 
-        // Detectar coluna de ID de clientes
         if ($this->db->table_exists('clientes')) {
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-            
-            if ($clientes_id_col) {
-                $this->db->where('processos.clientes_id', $cliente_id);
-                $this->db->from('processos');
-                return $this->db->count_all_results();
-            }
+            $this->db->where('processos.clientes_id', $cliente_id);
+            $this->db->from('processos');
+            return $this->db->count_all_results();
         }
 
         return 0;
@@ -722,26 +660,16 @@ class Processos_model extends CI_Model
             return [];
         }
 
-        // Detectar coluna de ID de usuarios
-        if ($this->db->table_exists('usuarios')) {
-            $usuarios_columns = $this->db->list_fields('usuarios');
-            $usuarios_id_col = in_array('idUsuarios', $usuarios_columns) ? 'idUsuarios' : (in_array('id', $usuarios_columns) ? 'id' : null);
-            
-            if ($usuarios_id_col) {
-                $this->db->where('processos.usuarios_id', $usuario_id);
-                $this->db->order_by('processos.dataCadastro', 'desc');
-                $query = $this->db->get('processos');
-                
-                if ($query === false) {
-                    log_message('error', 'Erro na query getProcessosByAdvogado: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-                    return [];
-                }
-                
-                return $query->result();
-            }
+        $this->db->where('processos.usuarios_id', $usuario_id);
+        $this->db->order_by('processos.dataCadastro', 'desc');
+        $query = $this->db->get('processos');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getProcessosByAdvogado: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
         }
-
-        return [];
+        
+        return $query->result();
     }
 
     /**
@@ -776,14 +704,6 @@ class Processos_model extends CI_Model
     public function countByClienteWithFilters($cliente_id, $filters = [])
     {
         if (!$this->db->table_exists('processos') || !$this->db->table_exists('clientes')) {
-            return 0;
-        }
-
-        
-        $clientes_columns = $this->db->list_fields('clientes');
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        
-        if (!$clientes_id_col) {
             return 0;
         }
 

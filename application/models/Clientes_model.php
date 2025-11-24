@@ -29,10 +29,19 @@ class Clientes_model extends CI_Model
 
     public function getById($id)
     {
+        $this->db->select('*');
+        $this->db->from('clientes');
         $this->db->where('idClientes', $id);
         $this->db->limit(1);
 
-        return $this->db->get('clientes')->row();
+        $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getById: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return null;
+        }
+
+        return $query->row();
     }
 
     public function add($table, $data)
@@ -75,11 +84,23 @@ class Clientes_model extends CI_Model
 
     public function getOsByCliente($id)
     {
+        // Verificar se a tabela os existe (não existe no sistema de advocacia)
+        if (!$this->db->table_exists('os')) {
+            return [];
+        }
+
         $this->db->where('clientes_id', $id);
         $this->db->order_by('idOs', 'desc');
         $this->db->limit(10);
 
-        return $this->db->get('os')->result();
+        $query = $this->db->get('os');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getOsByCliente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+
+        return $query->result();
     }
 
     /**
@@ -90,9 +111,21 @@ class Clientes_model extends CI_Model
      */
     public function getAllOsByClient($id)
     {
+        // Verificar se a tabela os existe (não existe no sistema de advocacia)
+        if (!$this->db->table_exists('os')) {
+            return [];
+        }
+
         $this->db->where('clientes_id', $id);
 
-        return $this->db->get('os')->result();
+        $query = $this->db->get('os');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getAllOsByClient: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+
+        return $query->result();
     }
 
     /**
@@ -103,18 +136,28 @@ class Clientes_model extends CI_Model
      */
     public function removeClientOs($os)
     {
+        // Verificar se a tabela os existe (não existe no sistema de advocacia)
+        if (!$this->db->table_exists('os')) {
+            return true; // Retorna true pois não há nada para remover
+        }
+
         try {
             foreach ($os as $o) {
-                $this->db->where('os_id', $o->idOs);
-                $this->db->delete('servicos_os');
+                if ($this->db->table_exists('servicos_os')) {
+                    $this->db->where('os_id', $o->idOs);
+                    $this->db->delete('servicos_os');
+                }
 
-                $this->db->where('os_id', $o->idOs);
-                $this->db->delete('produtos_os');
+                if ($this->db->table_exists('produtos_os')) {
+                    $this->db->where('os_id', $o->idOs);
+                    $this->db->delete('produtos_os');
+                }
 
                 $this->db->where('idOs', $o->idOs);
                 $this->db->delete('os');
             }
         } catch (Exception $e) {
+            log_message('error', 'Erro ao remover OS do cliente: ' . $e->getMessage());
             return false;
         }
 
@@ -129,9 +172,21 @@ class Clientes_model extends CI_Model
      */
     public function getAllVendasByClient($id)
     {
+        // Verificar se a tabela vendas existe (não existe no sistema de advocacia)
+        if (!$this->db->table_exists('vendas')) {
+            return [];
+        }
+
         $this->db->where('clientes_id', $id);
 
-        return $this->db->get('vendas')->result();
+        $query = $this->db->get('vendas');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query getAllVendasByClient: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+
+        return $query->result();
     }
 
     /**
@@ -142,15 +197,23 @@ class Clientes_model extends CI_Model
      */
     public function removeClientVendas($vendas)
     {
+        // Verificar se a tabela vendas existe (não existe no sistema de advocacia)
+        if (!$this->db->table_exists('vendas')) {
+            return true; // Retorna true pois não há nada para remover
+        }
+
         try {
             foreach ($vendas as $v) {
-                $this->db->where('vendas_id', $v->idVendas);
-                $this->db->delete('itens_de_vendas');
+                if ($this->db->table_exists('itens_de_vendas')) {
+                    $this->db->where('vendas_id', $v->idVendas);
+                    $this->db->delete('itens_de_vendas');
+                }
 
                 $this->db->where('idVendas', $v->idVendas);
                 $this->db->delete('vendas');
             }
         } catch (Exception $e) {
+            log_message('error', 'Erro ao remover vendas do cliente: ' . $e->getMessage());
             return false;
         }
 

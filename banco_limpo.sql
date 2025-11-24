@@ -240,6 +240,9 @@ CREATE TABLE IF NOT EXISTS `lancamentos` (
     `idLancamentos` INT(11) NOT NULL AUTO_INCREMENT,
     `descricao` VARCHAR(255) NOT NULL,
     `valor` DECIMAL(10,2) NOT NULL,
+    `desconto` DECIMAL(10,2) NULL DEFAULT 0,
+    `tipo_desconto` VARCHAR(20) NULL DEFAULT NULL COMMENT 'real ou porcento',
+    `valor_desconto` DECIMAL(10,2) NULL DEFAULT 0,
     `data_vencimento` DATE NOT NULL,
     `data_pagamento` DATE NULL DEFAULT NULL,
     `baixado` TINYINT(1) NOT NULL DEFAULT 0,
@@ -263,30 +266,6 @@ CREATE TABLE IF NOT EXISTS `lancamentos` (
         REFERENCES `categorias` (`idCategorias`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_lancamentos_contas` FOREIGN KEY (`contas_id`) 
         REFERENCES `contas` (`idContas`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Tabela de cobranças
-CREATE TABLE IF NOT EXISTS `cobrancas` (
-    `idCobrancas` INT(11) NOT NULL AUTO_INCREMENT,
-    `clientes_id` INT(11) NOT NULL,
-    `descricao` VARCHAR(255) NOT NULL,
-    `valor` DECIMAL(10,2) NOT NULL,
-    `data_vencimento` DATE NOT NULL,
-    `data_pagamento` DATE NULL DEFAULT NULL,
-    `status` VARCHAR(20) NOT NULL DEFAULT 'pendente' COMMENT 'pendente, pago, cancelado',
-    `forma_pgto` VARCHAR(20) NULL DEFAULT NULL,
-    `observacoes` TEXT NULL,
-    `usuarios_id` INT(11) NULL DEFAULT NULL,
-    `dataCadastro` DATETIME NOT NULL,
-    PRIMARY KEY (`idCobrancas`),
-    INDEX `idx_clientes_id` (`clientes_id`),
-    INDEX `idx_usuarios_id` (`usuarios_id`),
-    INDEX `idx_data_vencimento` (`data_vencimento`),
-    INDEX `idx_status` (`status`),
-    CONSTRAINT `fk_cobrancas_clientes` FOREIGN KEY (`clientes_id`) 
-        REFERENCES `clientes` (`idClientes`) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_cobrancas_usuarios` FOREIGN KEY (`usuarios_id`) 
-        REFERENCES `usuarios` (`idUsuarios`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -336,6 +315,41 @@ CREATE TABLE IF NOT EXISTS `processos` (
     CONSTRAINT `fk_processos_clientes` FOREIGN KEY (`clientes_id`) 
         REFERENCES `clientes` (`idClientes`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_processos_usuarios` FOREIGN KEY (`usuarios_id`) 
+        REFERENCES `usuarios` (`idUsuarios`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de cobranças (DEPOIS de processos, pois tem FK para processos)
+CREATE TABLE IF NOT EXISTS `cobrancas` (
+    `idCobranca` INT(11) NOT NULL AUTO_INCREMENT,
+    `clientes_id` INT(11) NOT NULL,
+    `processos_id` INT(11) NULL DEFAULT NULL,
+    `descricao` VARCHAR(255) NOT NULL,
+    `valor` DECIMAL(10,2) NOT NULL,
+    `data_vencimento` DATE NOT NULL,
+    `expire_at` DATE NULL DEFAULT NULL COMMENT 'Data de expiração (para gateways de pagamento)',
+    `data_pagamento` DATE NULL DEFAULT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'pendente' COMMENT 'pendente, pago, cancelado',
+    `payment_gateway` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Gateway de pagamento usado',
+    `payment_method` VARCHAR(20) NULL DEFAULT NULL COMMENT 'Método de pagamento',
+    `charge_id` VARCHAR(255) NULL DEFAULT NULL COMMENT 'ID externo do gateway',
+    `barcode` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Código de barras (boleto)',
+    `link` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Link de pagamento',
+    `pdf` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Link do PDF do boleto',
+    `forma_pgto` VARCHAR(20) NULL DEFAULT NULL,
+    `observacoes` TEXT NULL,
+    `usuarios_id` INT(11) NULL DEFAULT NULL,
+    `dataCadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idCobranca`),
+    INDEX `idx_clientes_id` (`clientes_id`),
+    INDEX `idx_processos_id` (`processos_id`),
+    INDEX `idx_usuarios_id` (`usuarios_id`),
+    INDEX `idx_data_vencimento` (`data_vencimento`),
+    INDEX `idx_status` (`status`),
+    CONSTRAINT `fk_cobrancas_clientes` FOREIGN KEY (`clientes_id`) 
+        REFERENCES `clientes` (`idClientes`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_cobrancas_processos` FOREIGN KEY (`processos_id`) 
+        REFERENCES `processos` (`idProcessos`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_cobrancas_usuarios` FOREIGN KEY (`usuarios_id`) 
         REFERENCES `usuarios` (`idUsuarios`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -448,20 +462,39 @@ CREATE TABLE IF NOT EXISTS `partes_processo` (
 -- Tabela de cache de processos (consultas API)
 CREATE TABLE IF NOT EXISTS `processos_cache` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `numero_processo` VARCHAR(50) NOT NULL,
-    `dados` LONGTEXT NOT NULL COMMENT 'JSON com dados do processo',
-    `hash_dados` VARCHAR(64) NOT NULL COMMENT 'Hash dos dados para detectar mudanças',
-    `data_consulta` DATETIME NOT NULL,
-    `proxima_consulta` DATETIME NULL DEFAULT NULL,
+    `numeroProcesso` VARCHAR(50) NOT NULL COMMENT 'Número do processo (limpo, sem formatação)',
+    `payload` LONGTEXT NULL DEFAULT NULL COMMENT 'JSON com dados do processo (nome alternativo para compatibilidade)',
+    `dados` LONGTEXT NULL DEFAULT NULL COMMENT 'JSON com dados do processo',
+    `hash_payload` VARCHAR(64) NULL DEFAULT NULL COMMENT 'Hash dos dados (nome alternativo)',
+    `hash_dados` VARCHAR(64) NULL DEFAULT NULL COMMENT 'Hash dos dados para detectar mudanças',
+    `ultimo_fetch` DATETIME NULL DEFAULT NULL COMMENT 'Data do último fetch',
+    `data_consulta` DATETIME NULL DEFAULT NULL COMMENT 'Data da consulta',
+    `ultima_atualizacao` DATETIME NULL DEFAULT NULL COMMENT 'Data da última atualização',
+    `proxima_consulta` DATETIME NULL DEFAULT NULL COMMENT 'Data da próxima consulta agendada',
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    `created_at` DATETIME NULL DEFAULT NULL,
     `ttl` INT(11) NOT NULL DEFAULT 86400 COMMENT 'Time to live em segundos',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `numero_processo` (`numero_processo`),
+    UNIQUE KEY `numeroProcesso` (`numeroProcesso`),
     INDEX `idx_proxima_consulta` (`proxima_consulta`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
 -- TABELAS DE SISTEMA
 -- ============================================================
+
+-- Tabela de logs do sistema
+CREATE TABLE IF NOT EXISTS `logs` (
+    `idLogs` INT(11) NOT NULL AUTO_INCREMENT,
+    `usuario` VARCHAR(100) NOT NULL,
+    `ip` VARCHAR(45) NOT NULL,
+    `tarefa` VARCHAR(255) NOT NULL,
+    `data` DATE NOT NULL,
+    `hora` TIME NOT NULL,
+    PRIMARY KEY (`idLogs`),
+    INDEX `idx_data` (`data`),
+    INDEX `idx_usuario` (`usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de logs de auditoria
 CREATE TABLE IF NOT EXISTS `logs_auditoria` (

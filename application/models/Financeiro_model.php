@@ -98,13 +98,7 @@ class Financeiro_model extends CI_Model
         }
         $select .= " end) as despesas, ";
         
-        $select .= "SUM(case when " . $tipo_col . " = 'receita' then (IF(";
-        if ($valor_desconto_col) {
-            $select .= $valor_desconto_col . " = 0, " . $valor_col . ", " . $valor_desconto_col;
-        } else {
-            $select .= $valor_col;
-        }
-        $select .= ")) end) as receitas";
+        $select .= "SUM(case when " . $tipo_col . " = 'receita' then " . $valor_col . " end) as receitas";
         
         $this->db->select($select);
         $this->db->from('lancamentos');
@@ -172,24 +166,14 @@ class Financeiro_model extends CI_Model
         if ($baixado_col) {
             $sql .= $baixado_col . " = 1 AND ";
         }
-        $sql .= $tipo_col . " = 'receita' THEN IF(";
-        if ($valor_desconto_col) {
-            $sql .= $valor_desconto_col . " = 0, " . $valor_col . ", " . $valor_desconto_col;
-        } else {
-            $sql .= $valor_col;
-        }
-        $sql .= ") END) as total_receita, ";
+        $sql .= $tipo_col . " = 'receita' THEN " . $valor_col . " END) as total_receita, ";
         
         // total_despesa
         $sql .= "SUM(CASE WHEN ";
         if ($baixado_col) {
             $sql .= $baixado_col . " = 1 AND ";
         }
-        $sql .= $tipo_col . " = 'despesa' THEN " . $valor_col;
-        if ($desconto_col) {
-            $sql .= " - " . $desconto_col;
-        }
-        $sql .= " END) as total_despesa, ";
+        $sql .= $tipo_col . " = 'despesa' THEN " . $valor_col . " END) as total_despesa, ";
         
         // total_valor_desconto
         if ($desconto_col && $baixado_col) {
@@ -199,15 +183,7 @@ class Financeiro_model extends CI_Model
         }
         
         // total_valor_desconto_pendente
-        if ($baixado_col) {
-            $sql .= "SUM(CASE WHEN " . $baixado_col . " = 0 THEN " . $valor_col;
-            if ($valor_desconto_col) {
-                $sql .= " - " . $valor_desconto_col;
-            }
-            $sql .= " END) as total_valor_desconto_pendente, ";
-        } else {
-            $sql .= "0 as total_valor_desconto_pendente, ";
-        }
+        $sql .= "0 as total_valor_desconto_pendente, ";
         
         // total_receita_sem_desconto
         $sql .= "SUM(CASE WHEN " . $tipo_col . " = 'receita' THEN " . $valor_col . " END) as total_receita_sem_desconto, ";
@@ -216,15 +192,15 @@ class Financeiro_model extends CI_Model
         $sql .= "SUM(CASE WHEN " . $tipo_col . " = 'despesa' THEN " . $valor_col . " END) as total_despesa_sem_desconto, ";
         
         // total_receita_pendente
-        if ($baixado_col && $valor_desconto_col) {
-            $sql .= "SUM(CASE WHEN " . $baixado_col . " = 0 AND " . $tipo_col . " = 'receita' THEN " . $valor_desconto_col . " END) as total_receita_pendente, ";
+        if ($baixado_col) {
+            $sql .= "SUM(CASE WHEN " . $baixado_col . " = 0 AND " . $tipo_col . " = 'receita' THEN " . $valor_col . " END) as total_receita_pendente, ";
         } else {
             $sql .= "0 as total_receita_pendente, ";
         }
         
         // total_despesa_pendente
-        if ($baixado_col && $valor_desconto_col) {
-            $sql .= "SUM(CASE WHEN " . $baixado_col . " = 0 AND " . $tipo_col . " = 'despesa' THEN " . $valor_desconto_col . " END) as total_despesa_pendente ";
+        if ($baixado_col) {
+            $sql .= "SUM(CASE WHEN " . $baixado_col . " = 0 AND " . $tipo_col . " = 'despesa' THEN " . $valor_col . " END) as total_despesa_pendente ";
         } else {
             $sql .= "0 as total_despesa_pendente ";
         }

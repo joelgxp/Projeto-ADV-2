@@ -24,8 +24,16 @@ $documento_pj_value = set_value(
 
 $valueOr = function ($field, $clienteField = null) use ($is_edit, $cliente) {
     $default = '';
-    if ($is_edit && $clienteField !== null && isset($cliente->$clienteField)) {
-        $default = $cliente->$clienteField;
+    if ($is_edit && $cliente !== null && $clienteField !== null) {
+        // Usar o mesmo nome do campo se não especificado
+        $fieldName = $clienteField ?: $field;
+        
+        // Verificar se a propriedade existe no objeto
+        if (property_exists($cliente, $fieldName)) {
+            $value = $cliente->$fieldName;
+            // Retornar o valor mesmo se for null ou vazio (para campos que podem ser vazios)
+            $default = $value !== null ? $value : '';
+        }
     }
     return set_value($field, $default);
 };

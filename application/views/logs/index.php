@@ -39,14 +39,14 @@
                                         </td>
                                         <td><?= formatarTamanho($log['tamanho']) ?></td>
                                         <td><?= date('d/m/Y H:i:s', $log['data_modificacao']) ?></td>
-                                        <td>
+                                        <td style="white-space: nowrap;">
                                             <a href="<?= base_url() ?>index.php/logs/visualizar/geral/<?= urlencode($log['nome']) ?>" 
-                                               class="button btn btn-mini btn-info" title="Visualizar">
-                                                <i class="fas fa-eye"></i> Visualizar
+                                               style="margin-right: 5px" class="btn-nwe" title="Visualizar">
+                                                <i class="bx bx-show bx-xs"></i>
                                             </a>
                                             <a href="<?= base_url() ?>index.php/logs/download/geral/<?= urlencode($log['nome']) ?>" 
-                                               class="button btn btn-mini btn-success" title="Download">
-                                                <i class="fas fa-download"></i> Download
+                                               style="margin-right: 5px" class="btn-nwe2" title="Download">
+                                                <i class="bx bx-download bx-xs"></i>
                                             </a>
                                             <?php 
                                             $permissao = $this->session->userdata('permissao');
@@ -54,10 +54,10 @@
                                             if ($isAdmin || $this->permission->checkPermission($permissao, 'eLog')): 
                                             ?>
                                                 <a href="<?= base_url() ?>index.php/logs/limpar/geral/<?= urlencode($log['nome']) ?>" 
-                                                   class="button btn btn-mini btn-danger" 
+                                                   style="margin-right: 5px" class="btn-nwe4" 
                                                    title="Limpar"
                                                    onclick="return confirm('Tem certeza que deseja limpar este log? Esta ação não pode ser desfeita.');">
-                                                    <i class="fas fa-trash"></i> Limpar
+                                                    <i class="bx bx-trash-alt bx-xs"></i>
                                                 </a>
                                             <?php endif; ?>
                                         </td>
@@ -97,14 +97,14 @@
                                         </td>
                                         <td><?= formatarTamanho($log['tamanho']) ?></td>
                                         <td><?= date('d/m/Y H:i:s', $log['data_modificacao']) ?></td>
-                                        <td>
+                                        <td style="white-space: nowrap;">
                                             <a href="<?= base_url() ?>index.php/logs/visualizar/cnj_api/<?= urlencode($log['nome']) ?>" 
-                                               class="button btn btn-mini btn-info" title="Visualizar">
-                                                <i class="fas fa-eye"></i> Visualizar
+                                               style="margin-right: 5px" class="btn-nwe" title="Visualizar">
+                                                <i class="bx bx-show bx-xs"></i>
                                             </a>
                                             <a href="<?= base_url() ?>index.php/logs/download/cnj_api/<?= urlencode($log['nome']) ?>" 
-                                               class="button btn btn-mini btn-success" title="Download">
-                                                <i class="fas fa-download"></i> Download
+                                               style="margin-right: 5px" class="btn-nwe2" title="Download">
+                                                <i class="bx bx-download bx-xs"></i>
                                             </a>
                                             <?php 
                                             $permissao = $this->session->userdata('permissao');
@@ -112,10 +112,10 @@
                                             if ($isAdmin || $this->permission->checkPermission($permissao, 'eLog')): 
                                             ?>
                                                 <a href="<?= base_url() ?>index.php/logs/limpar/cnj_api/<?= urlencode($log['nome']) ?>" 
-                                                   class="button btn btn-mini btn-danger" 
+                                                   style="margin-right: 5px" class="btn-nwe4" 
                                                    title="Limpar"
                                                    onclick="return confirm('Tem certeza que deseja limpar este log? Esta ação não pode ser desfeita.');">
-                                                    <i class="fas fa-trash"></i> Limpar
+                                                    <i class="bx bx-trash-alt bx-xs"></i>
                                                 </a>
                                             <?php endif; ?>
                                         </td>
@@ -130,14 +130,4 @@
         </div>
     </div>
 </div>
-
-<style>
-    .table th {
-        background-color: #f5f5f5;
-        font-weight: bold;
-    }
-    .button {
-        margin-right: 5px;
-    }
-</style>
 

@@ -26,12 +26,12 @@
 
                 <!-- Ações -->
                 <div class="span12" style="margin-left: 0; margin-bottom: 20px;">
-                    <a href="<?= base_url() ?>index.php/logs" class="button btn btn-mini">
-                        <i class="fas fa-arrow-left"></i> Voltar
+                    <a href="<?= base_url() ?>index.php/logs" style="margin-right: 5px" class="btn-nwe" title="Voltar">
+                        <i class="bx bx-arrow-back bx-xs"></i>
                     </a>
                     <a href="<?= base_url() ?>index.php/logs/download/<?= $tipo ?>/<?= urlencode($arquivo) ?>" 
-                       class="button btn btn-mini btn-success">
-                        <i class="fas fa-download"></i> Download
+                       style="margin-right: 5px" class="btn-nwe2" title="Download">
+                        <i class="bx bx-download bx-xs"></i>
                     </a>
                     <?php 
                     $permissao = $this->session->userdata('permissao');
@@ -39,9 +39,10 @@
                     if ($isAdmin || $this->permission->checkPermission($permissao, 'eLog')): 
                     ?>
                         <a href="<?= base_url() ?>index.php/logs/limpar/<?= $tipo ?>/<?= urlencode($arquivo) ?>" 
-                           class="button btn btn-mini btn-danger"
+                           style="margin-right: 5px" class="btn-nwe4" 
+                           title="Limpar Log"
                            onclick="return confirm('Tem certeza que deseja limpar este log? Esta ação não pode ser desfeita.');">
-                            <i class="fas fa-trash"></i> Limpar Log
+                            <i class="bx bx-trash-alt bx-xs"></i>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -105,9 +106,6 @@
 </div>
 
 <style>
-    .button {
-        margin-right: 5px;
-    }
     div[style*="background-color: #1e1e1e"] {
         box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
     }

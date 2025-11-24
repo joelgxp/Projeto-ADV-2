@@ -301,26 +301,15 @@ class ConsultaProcessual extends MY_Controller
         $this->load->model('clientes_model');
         
         // Buscar clientes por nome, CPF/CNPJ ou email
-        $clientes_columns = $this->db->list_fields('clientes');
-        $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : (in_array('id', $clientes_columns) ? 'id' : null);
-        $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : (in_array('nome', $clientes_columns) ? 'nome' : null);
-        
-        if (!$clientes_id_col || !$clientes_nome_col) {
-            $this->output
-                ->set_content_type('application/json')
-                ->set_output(json_encode([]));
-            return;
-        }
-
         if (!$buscarTodos) {
             $this->db->group_start();
-            $this->db->like($clientes_nome_col, $termo);
+            $this->db->like('nomeCliente', $termo);
             $this->db->or_like('documento', $termo);
             $this->db->or_like('email', $termo);
             $this->db->group_end();
         }
         $this->db->limit($buscarTodos ? 1000 : 20);
-        $this->db->order_by($clientes_nome_col, 'ASC');
+        $this->db->order_by('nomeCliente', 'ASC');
         
         $query = $this->db->get('clientes');
         $clientes = $query->result();
@@ -328,8 +317,8 @@ class ConsultaProcessual extends MY_Controller
         $resultado = [];
         foreach ($clientes as $cliente) {
             $resultado[] = [
-                'id' => $cliente->$clientes_id_col,
-                'nome' => $cliente->$clientes_nome_col,
+                'id' => $cliente->idClientes,
+                'nome' => $cliente->nomeCliente,
                 'documento' => isset($cliente->documento) ? $cliente->documento : '',
                 'email' => isset($cliente->email) ? $cliente->email : '',
                 'telefone' => isset($cliente->telefone) ? $cliente->telefone : '',
@@ -432,9 +421,6 @@ class ConsultaProcessual extends MY_Controller
 
         if ($id_cliente) {
             $cliente = $this->clientes_model->getById($id_cliente);
-            $clientes_columns = $this->db->list_fields('clientes');
-            $clientes_id_col = in_array('idClientes', $clientes_columns) ? 'idClientes' : 'id';
-            $clientes_nome_col = in_array('nomeCliente', $clientes_columns) ? 'nomeCliente' : 'nome';
 
             $this->output
                 ->set_content_type('application/json')
@@ -442,8 +428,8 @@ class ConsultaProcessual extends MY_Controller
                     'success' => true,
                     'message' => 'Cliente cadastrado com sucesso!',
                     'cliente' => [
-                        'id' => $cliente->$clientes_id_col,
-                        'nome' => $cliente->$clientes_nome_col,
+                        'id' => $cliente->idClientes,
+                        'nome' => $cliente->nomeCliente,
                         'documento' => $cliente->documento ?? '',
                         'email' => $cliente->email ?? '',
                         'telefone' => $cliente->telefone ?? '',
