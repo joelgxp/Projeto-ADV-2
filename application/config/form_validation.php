@@ -120,11 +120,6 @@ $config = [
             'rules' => 'required|trim',
         ],
         [
-            'field' => 'rg',
-            'label' => 'RG',
-            'rules' => 'required|trim',
-        ],
-        [
             'field' => 'cpf',
             'label' => 'CPF',
             'rules' => 'required|trim|verific_cpf_cnpj|is_unique[usuarios.cpf]',
@@ -135,7 +130,7 @@ $config = [
         [
             'field' => 'rua',
             'label' => 'Rua',
-            'rules' => 'required|trim',
+            'rules' => 'trim',
         ],
         [
             'field' => 'numero',
@@ -170,11 +165,6 @@ $config = [
         [
             'field' => 'senha',
             'label' => 'Senha',
-            'rules' => 'required|trim',
-        ],
-        [
-            'field' => 'telefone',
-            'label' => 'Telefone',
             'rules' => 'required|trim',
         ],
         [

@@ -214,7 +214,9 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('cidade', 'Cidade', 'required|trim');
         $this->form_validation->set_rules('uf', 'UF', 'required|trim');
         $this->form_validation->set_rules('telefone', 'Telefone', 'required|trim');
+        $this->form_validation->set_rules('celular', 'Celular', 'trim');
         $this->form_validation->set_rules('email', 'E-mail', 'required|trim');
+        $this->form_validation->set_rules('site', 'Site', 'trim');
 
         if ($this->form_validation->run() == false) {
             $this->session->set_flashdata('error', 'Campos obrigatórios não foram preenchidos.');
@@ -222,7 +224,6 @@ class Adv extends MY_Controller {
         } else {
             $nome = $this->input->post('nome');
             $cnpj = $this->input->post('cnpj');
-            $ie = $this->input->post('ie');
             $cep = $this->input->post('cep');
             $logradouro = $this->input->post('logradouro');
             $numero = $this->input->post('numero');
@@ -230,11 +231,13 @@ class Adv extends MY_Controller {
             $cidade = $this->input->post('cidade');
             $uf = $this->input->post('uf');
             $telefone = $this->input->post('telefone');
+            $celular = $this->input->post('celular');
             $email = $this->input->post('email');
+            $site = $this->input->post('site');
             $image = $this->do_upload();
             $logo = base_url() . 'assets/uploads/' . $image;
 
-            $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo);
+            $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site, $logo);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram inseridas com sucesso.');
                 log_info('Adicionou informações de emitente.');
@@ -253,9 +256,8 @@ class Adv extends MY_Controller {
         }
 
         $this->load->library('form_validation');
-        $this->form_validation->set_rules('nome', 'Razão Social', 'required|trim');
-        $this->form_validation->set_rules('cnpj', 'CNPJ', 'required|trim');
-        $this->form_validation->set_rules('ie', 'IE', 'trim');
+        $this->form_validation->set_rules('nome', 'Nome do Escritório', 'required|trim');
+        $this->form_validation->set_rules('cnpj', 'CNPJ', 'trim');
         $this->form_validation->set_rules('cep', 'CEP', 'required|trim');
         $this->form_validation->set_rules('logradouro', 'Logradouro', 'required|trim');
         $this->form_validation->set_rules('numero', 'Número', 'required|trim');
@@ -263,7 +265,9 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('cidade', 'Cidade', 'required|trim');
         $this->form_validation->set_rules('uf', 'UF', 'required|trim');
         $this->form_validation->set_rules('telefone', 'Telefone', 'required|trim');
+        $this->form_validation->set_rules('celular', 'Celular', 'trim');
         $this->form_validation->set_rules('email', 'E-mail', 'required|trim');
+        $this->form_validation->set_rules('site', 'Site', 'trim');
 
         if ($this->form_validation->run() == false) {
             $this->session->set_flashdata('error', 'Campos obrigatórios não foram preenchidos.');
@@ -271,7 +275,6 @@ class Adv extends MY_Controller {
         } else {
             $nome = $this->input->post('nome');
             $cnpj = $this->input->post('cnpj');
-            $ie = $this->input->post('ie');
             $cep = $this->input->post('cep');
             $logradouro = $this->input->post('logradouro');
             $numero = $this->input->post('numero');
@@ -279,10 +282,12 @@ class Adv extends MY_Controller {
             $cidade = $this->input->post('cidade');
             $uf = $this->input->post('uf');
             $telefone = $this->input->post('telefone');
+            $celular = $this->input->post('celular');
             $email = $this->input->post('email');
+            $site = $this->input->post('site');
             $id = $this->input->post('id');
 
-            $retorno = $this->sistema_model->editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email);
+            $retorno = $this->sistema_model->editEmitente($id, $nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram alteradas com sucesso.');
                 log_info('Alterou informações de emitente.');

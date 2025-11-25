@@ -34,7 +34,6 @@
                         <th>#</th>
                         <th>Nome</th>
                         <th>CPF</th>
-                        <th>Telefone</th>
                         <th>Nível</th>
                         <th>Situação</th>
                         <th>Validade</th>
@@ -54,7 +53,6 @@
                                 <td><?= $r->idUsuarios ?></td>
                                 <td><?= $r->nome ?></td>
                                 <td><?= $r->cpf ?></td>
-                                <td><?= $r->telefone ?></td>
                                 <td><?= $r->permissao ?></td>
                                 <td><span class="badge <?= $situacaoClasse ?>"><?= ucfirst($situacao) ?></span></td>
                                 <td><?= $r->dataExpiracao ?></td>
@@ -65,7 +63,7 @@
                             <?php
                         }
                     } else {
-                        echo '<tr><td colspan="8" class="dataTables_empty">Carregando dados...</td></tr>';
+                        echo '<tr><td colspan="7" class="dataTables_empty">Carregando dados...</td></tr>';
                     }
                     ?>
                 </tbody>

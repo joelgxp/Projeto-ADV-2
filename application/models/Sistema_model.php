@@ -454,11 +454,10 @@ class Sistema_model extends CI_Model
         return $query->row();
     }
 
-    public function addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo)
+    public function addEmitente($nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site, $logo)
     {
         $this->db->set('nome', $nome);
         $this->db->set('cnpj', $cnpj);
-        $this->db->set('ie', $ie);
         $this->db->set('cep', $cep);
         $this->db->set('rua', $logradouro);
         $this->db->set('numero', $numero);
@@ -466,17 +465,18 @@ class Sistema_model extends CI_Model
         $this->db->set('cidade', $cidade);
         $this->db->set('uf', $uf);
         $this->db->set('telefone', $telefone);
+        $this->db->set('celular', $celular);
         $this->db->set('email', $email);
+        $this->db->set('site', $site);
         $this->db->set('url_logo', $logo);
 
         return $this->db->insert('emitente');
     }
 
-    public function editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email)
+    public function editEmitente($id, $nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site)
     {
         $this->db->set('nome', $nome);
         $this->db->set('cnpj', $cnpj);
-        $this->db->set('ie', $ie);
         $this->db->set('cep', $cep);
         $this->db->set('rua', $logradouro);
         $this->db->set('numero', $numero);
@@ -484,7 +484,9 @@ class Sistema_model extends CI_Model
         $this->db->set('cidade', $cidade);
         $this->db->set('uf', $uf);
         $this->db->set('telefone', $telefone);
+        $this->db->set('celular', $celular);
         $this->db->set('email', $email);
+        $this->db->set('site', $site);
         $this->db->where('id', $id);
 
         return $this->db->update('emitente');

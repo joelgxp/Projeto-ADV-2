@@ -105,7 +105,6 @@ class Usuarios extends MY_Controller
             $this->db->group_start();
             $this->db->like('usuarios.nome', $search);
             $this->db->or_like('usuarios.cpf', $search);
-            $this->db->or_like('usuarios.telefone', $search);
             $this->db->or_like('permissoes.nome', $search);
             $this->db->group_end();
             
@@ -119,7 +118,6 @@ class Usuarios extends MY_Controller
             $this->db->group_start();
             $this->db->like('usuarios.nome', $search);
             $this->db->or_like('usuarios.cpf', $search);
-            $this->db->or_like('usuarios.telefone', $search);
             $this->db->or_like('permissoes.nome', $search);
             $this->db->group_end();
             $this->db->limit($length, $start);
@@ -141,7 +139,6 @@ class Usuarios extends MY_Controller
                     $r->idUsuarios ?? '-',
                     $r->nome ?? '-',
                     $r->cpf ?? '-',
-                    $r->telefone ?? '-',
                     $r->permissao ?? '-',
                     '<span class="badge ' . $situacaoClasse . '">' . ucfirst($situacao) . '</span>',
                     $r->dataExpiracao ?? '-',
@@ -184,7 +181,7 @@ class Usuarios extends MY_Controller
         } else {
             $data = [
                 'nome' => set_value('nome'),
-                'rg' => set_value('rg'),
+                'oab' => set_value('oab'),
                 'cpf' => set_value('cpf'),
                 'cep' => set_value('cep'),
                 'rua' => set_value('rua'),
@@ -194,7 +191,6 @@ class Usuarios extends MY_Controller
                 'estado' => set_value('estado'),
                 'email' => set_value('email'),
                 'senha' => password_hash($this->input->post('senha'), PASSWORD_DEFAULT),
-                'telefone' => set_value('telefone'),
                 'celular' => set_value('celular'),
                 'dataExpiracao' => set_value('dataExpiracao'),
                 'situacao' => set_value('situacao'),
@@ -230,24 +226,16 @@ class Usuarios extends MY_Controller
         $this->load->library('form_validation');
         $this->data['custom_error'] = '';
         $this->form_validation->set_rules('nome', 'Nome', 'trim|required');
-        $this->form_validation->set_rules('rg', 'RG', 'trim|required');
         // Validação de CPF único (exceto o próprio registro na edição)
         $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf_cnpj|callback_check_unique_cpf[' . $idUsuario . ']', [
             'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.',
             'check_unique_cpf' => 'Este CPF já está cadastrado no sistema.'
         ]);
-        $this->form_validation->set_rules('cep', 'CEP', 'trim|required');
-        $this->form_validation->set_rules('rua', 'Rua', 'trim|required');
-        $this->form_validation->set_rules('numero', 'Número', 'trim|required');
-        $this->form_validation->set_rules('bairro', 'Bairro', 'trim|required');
-        $this->form_validation->set_rules('cidade', 'Cidade', 'trim|required');
-        $this->form_validation->set_rules('estado', 'Estado', 'trim|required');
         // Validação de Email único (exceto o próprio registro na edição)
         $this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email|callback_check_unique_email[' . $idUsuario . ']', [
             'valid_email' => 'O campo %s deve conter um email válido.',
             'check_unique_email' => 'Este email já está cadastrado no sistema.'
         ]);
-        $this->form_validation->set_rules('telefone', 'Telefone', 'trim|required');
         $this->form_validation->set_rules('situacao', 'Situação', 'trim|required');
         $this->form_validation->set_rules('permissoes_id', 'Permissão', 'trim|required');
 
@@ -265,7 +253,7 @@ class Usuarios extends MY_Controller
 
                 $data = [
                     'nome' => $this->input->post('nome'),
-                    'rg' => $this->input->post('rg'),
+                    'oab' => $this->input->post('oab'),
                     'cpf' => $this->input->post('cpf'),
                     'cep' => $this->input->post('cep'),
                     'rua' => $this->input->post('rua'),
@@ -275,7 +263,6 @@ class Usuarios extends MY_Controller
                     'estado' => $this->input->post('estado'),
                     'email' => $this->input->post('email'),
                     'senha' => $senha,
-                    'telefone' => $this->input->post('telefone'),
                     'celular' => $this->input->post('celular'),
                     'dataExpiracao' => set_value('dataExpiracao'),
                     'situacao' => $this->input->post('situacao'),
@@ -284,7 +271,7 @@ class Usuarios extends MY_Controller
             } else {
                 $data = [
                     'nome' => $this->input->post('nome'),
-                    'rg' => $this->input->post('rg'),
+                    'oab' => $this->input->post('oab'),
                     'cpf' => $this->input->post('cpf'),
                     'cep' => $this->input->post('cep'),
                     'rua' => $this->input->post('rua'),
@@ -293,7 +280,6 @@ class Usuarios extends MY_Controller
                     'cidade' => $this->input->post('cidade'),
                     'estado' => $this->input->post('estado'),
                     'email' => $this->input->post('email'),
-                    'telefone' => $this->input->post('telefone'),
                     'celular' => $this->input->post('celular'),
                     'dataExpiracao' => set_value('dataExpiracao'),
                     'situacao' => $this->input->post('situacao'),
