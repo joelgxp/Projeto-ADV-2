@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS `resets_de_senha` (
     `token` VARCHAR(255) NOT NULL,
     `data_expiracao` DATETIME NOT NULL,
     `token_utilizado` TINYINT(1) NOT NULL DEFAULT 0,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS `confirmacoes_email` (
     `data_expiracao` DATETIME NOT NULL,
     `token_utilizado` TINYINT(1) NOT NULL DEFAULT 0,
     `data_cadastro` DATETIME NOT NULL,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_token` (`token`),
     INDEX `idx_usuarios_id` (`usuarios_id`),
     CONSTRAINT `fk_confirmacoes_usuarios` FOREIGN KEY (`usuarios_id`) 
@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS `tentativas_login` (
     `user_agent` VARCHAR(500) NULL DEFAULT NULL,
     `sucesso` TINYINT(1) NOT NULL DEFAULT 0,
     `data_hora` DATETIME NOT NULL,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_email` (`email`),
     INDEX `idx_ip` (`ip_address`),
     INDEX `idx_data_hora` (`data_hora`)
@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS `bloqueios_conta` (
     `desbloqueado` TINYINT(1) NOT NULL DEFAULT 0,
     `desbloqueado_por` INT(11) NULL DEFAULT NULL COMMENT 'ID do admin que desbloqueou',
     `data_desbloqueio` DATETIME NULL DEFAULT NULL,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_email` (`email`),
     INDEX `idx_bloqueado_ate` (`bloqueado_ate`),
     INDEX `idx_desbloqueado` (`desbloqueado`)
@@ -625,7 +625,7 @@ CREATE TABLE IF NOT EXISTS `processos_cache` (
     `updated_at` DATETIME NULL DEFAULT NULL,
     `created_at` DATETIME NULL DEFAULT NULL,
     `ttl` INT(11) NOT NULL DEFAULT 86400 COMMENT 'Time to live em segundos',
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     UNIQUE KEY `numeroProcesso` (`numeroProcesso`),
     INDEX `idx_proxima_consulta` (`proxima_consulta`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -661,7 +661,7 @@ CREATE TABLE IF NOT EXISTS `logs_auditoria` (
     `ip_address` VARCHAR(45) NULL DEFAULT NULL,
     `user_agent` VARCHAR(255) NULL DEFAULT NULL,
     `data` DATETIME NOT NULL,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_usuario_id` (`usuario_id`),
     INDEX `idx_tabela` (`tabela`),
     INDEX `idx_data` (`data`)
@@ -677,7 +677,7 @@ CREATE TABLE IF NOT EXISTS `email_queue` (
     `attempts` INT(11) NOT NULL DEFAULT 0,
     `last_attempt` DATETIME NULL DEFAULT NULL,
     `created_at` DATETIME NOT NULL,
-    PRIMARY KEY (`idAdvogadoProcesso`),
+    PRIMARY KEY (`id`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

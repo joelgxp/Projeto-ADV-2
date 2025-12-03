@@ -452,6 +452,7 @@ $config['csrf_regenerate'] = isset($_ENV['APP_CSRF_REGENERATE']) ? filter_var($_
 $config['csrf_exclude_uris'] = [
     'api.*+',
     'mine.*',  // Área pública do cliente - não requer CSRF
+    'login/verificarLogin',  // Login - pode ser excluído ou usar CSRF normal
 ];
 
 /*

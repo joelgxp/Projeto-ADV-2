@@ -25,7 +25,12 @@ class Login extends CI_Controller
         // Tratar requisição OPTIONS (preflight) - PRIMEIRO
         if ($this->input->method() === 'options' || (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS')) {
             $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
-            header('Access-Control-Allow-Origin: ' . $origin);
+            // Em desenvolvimento, permitir qualquer origem; em produção, validar
+            if (ENVIRONMENT !== 'production') {
+                header('Access-Control-Allow-Origin: *');
+            } else {
+                header('Access-Control-Allow-Origin: ' . $origin);
+            }
             header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
             header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, ' . $this->security->get_csrf_token_name());
             header('Access-Control-Max-Age: 3600');
@@ -33,16 +38,36 @@ class Login extends CI_Controller
             exit(0);
         }
         
-        // Configurar headers CORS - permitir tudo em desenvolvimento
-        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+        // Configurar headers CORS - permitir origem específica em produção
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+        $allowed_origins = [
+            base_url(),
+            rtrim(base_url(), '/'),
+            'https://adv.joelsouza.com.br',
+            'https://www.adv.joelsouza.com.br'
+        ];
+        
+        // Verificar se a origem está permitida ou permitir todas em desenvolvimento
         if (ENVIRONMENT !== 'production') {
             header('Access-Control-Allow-Origin: *');
         } else {
-            header('Access-Control-Allow-Origin: ' . ($origin !== '*' ? $origin : base_url()));
+            // Em produção, verificar se a origem está na lista de permitidas
+            if (in_array($origin, $allowed_origins) || empty($origin)) {
+                header('Access-Control-Allow-Origin: ' . ($origin ?: base_url()));
+            } else {
+                // Se não estiver na lista, usar a origem da requisição se for do mesmo domínio
+                $base_host = parse_url(base_url(), PHP_URL_HOST);
+                $origin_host = parse_url($origin, PHP_URL_HOST);
+                if ($base_host === $origin_host) {
+                    header('Access-Control-Allow-Origin: ' . $origin);
+                } else {
+                    header('Access-Control-Allow-Origin: ' . base_url());
+                }
+            }
         }
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
         header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, ' . $this->security->get_csrf_token_name());
-        header('Access-Control-Allow-Credentials: false');
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Max-Age: 3600');
         
         // Verifica se é requisição AJAX pelo header ou parâmetro

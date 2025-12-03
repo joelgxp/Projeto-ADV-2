@@ -143,11 +143,38 @@
           $('#btn-acessar').addClass('disabled');
           $('#progress-acessar').removeClass('hide');
 
-          // Construir URL relativa simples - substituir /login por /login/verificarLogin
-          var currentPath = window.location.pathname;
-          var url = currentPath.replace(/\/login\/?$/, '') + '/login/verificarLogin';
+          // Obter o token CSRF do formulário
+          var csrfTokenName = '<?= $this->security->get_csrf_token_name(); ?>';
+          var csrfTokenValue = $('input[name="' + csrfTokenName + '"]').val();
           
-          console.log('Tentando fazer login em:', window.location.origin + url);
+          // Adicionar token CSRF aos dados se não estiver presente
+          if (csrfTokenValue && dados.indexOf(csrfTokenName) === -1) {
+              dados += '&' + csrfTokenName + '=' + encodeURIComponent(csrfTokenValue);
+          }
+
+          // Construir URL - tentar usar base_url do PHP primeiro, depois fallback para relativa
+          var baseUrl = '<?= base_url(); ?>';
+          var currentPath = window.location.pathname;
+          var url;
+          
+          // Se base_url estiver configurado e for válido, usar
+          if (baseUrl && baseUrl !== 'http://localhost:8000/' && baseUrl.indexOf('localhost:8000') === -1) {
+              // Produção ou desenvolvimento com base_url configurado
+              if (baseUrl.indexOf('index.php') === -1) {
+                  url = baseUrl.replace(/\/$/, '') + '/index.php/login/verificarLogin';
+              } else {
+                  url = baseUrl.replace(/\/$/, '') + '/login/verificarLogin';
+              }
+          } else {
+              // Desenvolvimento local - usar URL relativa
+              url = currentPath.replace(/\/login\/?$/, '') + '/login/verificarLogin';
+              // Garantir que tenha index.php se necessário
+              if (currentPath.indexOf('index.php') === -1 && url.indexOf('index.php') === -1) {
+                  url = url.replace(/\/login\/verificarLogin$/, '/index.php/login/verificarLogin');
+              }
+          }
+          
+          console.log('Tentando fazer login em:', url);
           
           $.ajax({
             type: "POST",
@@ -156,7 +183,8 @@
             dataType: 'json',
             timeout: 10000,
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': csrfTokenValue
             },
             success: function(data) {
                 if (data && data.result == true) {
