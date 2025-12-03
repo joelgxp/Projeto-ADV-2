@@ -93,12 +93,14 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
     `situacao` TINYINT(1) NOT NULL DEFAULT 1,
     `dataExpiracao` DATE NULL DEFAULT NULL,
     `permissoes_id` INT(11) NULL DEFAULT NULL COMMENT 'ID da permissão (FK para permissoes.idPermissao)',
+    `email_confirmado` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Se o e-mail foi confirmado (RN 1.1)',
     `dataCadastro` DATETIME NOT NULL,
     `url_image_user` VARCHAR(255) NULL DEFAULT NULL,
     PRIMARY KEY (`idUsuarios`),
     UNIQUE KEY `email` (`email`),
     UNIQUE KEY `cpf` (`cpf`),
     INDEX `idx_permissoes_id` (`permissoes_id`),
+    INDEX `idx_email_confirmado` (`email_confirmado`),
     CONSTRAINT `fk_usuarios_permissoes` FOREIGN KEY (`permissoes_id`) 
         REFERENCES `permissoes` (`idPermissao`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -180,6 +182,65 @@ CREATE TABLE IF NOT EXISTS `clientes` (
         REFERENCES `planos` (`idPlanos`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabela de contatos do cliente (RN 2.4)
+CREATE TABLE IF NOT EXISTS `contatos_cliente` (
+    `idContato` INT(11) NOT NULL AUTO_INCREMENT,
+    `clientes_id` INT(11) NOT NULL,
+    `tipo` ENUM('email', 'telefone', 'celular') NOT NULL,
+    `valor` VARCHAR(255) NOT NULL,
+    `observacoes` VARCHAR(255) NULL DEFAULT NULL,
+    `principal` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = contato principal',
+    `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+    `dataCadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idContato`),
+    INDEX `idx_clientes_id` (`clientes_id`),
+    INDEX `idx_principal` (`clientes_id`, `tipo`, `principal`),
+    CONSTRAINT `fk_contatos_cliente` FOREIGN KEY (`clientes_id`) 
+        REFERENCES `clientes` (`idClientes`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de endereços do cliente (RN 2.5)
+CREATE TABLE IF NOT EXISTS `enderecos_cliente` (
+    `idEndereco` INT(11) NOT NULL AUTO_INCREMENT,
+    `clientes_id` INT(11) NOT NULL,
+    `tipo` ENUM('Residencial', 'Comercial', 'Correspondencia', 'Judicial') NOT NULL DEFAULT 'Residencial',
+    `rua` VARCHAR(70) NOT NULL,
+    `numero` VARCHAR(15) NULL DEFAULT NULL,
+    `complemento` VARCHAR(45) NULL DEFAULT NULL,
+    `bairro` VARCHAR(45) NULL DEFAULT NULL,
+    `cidade` VARCHAR(45) NOT NULL,
+    `estado` VARCHAR(20) NOT NULL,
+    `cep` VARCHAR(20) NULL DEFAULT NULL,
+    `principal` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = endereço principal',
+    `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+    `dataCadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idEndereco`),
+    INDEX `idx_clientes_id` (`clientes_id`),
+    INDEX `idx_principal` (`clientes_id`, `principal`),
+    CONSTRAINT `fk_enderecos_cliente` FOREIGN KEY (`clientes_id`) 
+        REFERENCES `clientes` (`idClientes`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de interações do cliente (RN 2.3)
+CREATE TABLE IF NOT EXISTS `interacoes_cliente` (
+    `idInteracao` INT(11) NOT NULL AUTO_INCREMENT,
+    `clientes_id` INT(11) NOT NULL,
+    `tipo` ENUM('reuniao', 'telefonema', 'email', 'nota', 'outro') NOT NULL,
+    `data_hora` DATETIME NOT NULL,
+    `titulo` VARCHAR(255) NOT NULL,
+    `descricao` TEXT NULL DEFAULT NULL,
+    `usuarios_id` INT(11) NULL DEFAULT NULL COMMENT 'Usuário que registrou a interação',
+    `dataCadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idInteracao`),
+    INDEX `idx_clientes_id` (`clientes_id`),
+    INDEX `idx_data_hora` (`data_hora`),
+    INDEX `idx_usuarios_id` (`usuarios_id`),
+    CONSTRAINT `fk_interacoes_cliente` FOREIGN KEY (`clientes_id`) 
+        REFERENCES `clientes` (`idClientes`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_interacoes_usuario` FOREIGN KEY (`usuarios_id`) 
+        REFERENCES `usuarios` (`idUsuarios`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Tabela de reset de senha
 CREATE TABLE IF NOT EXISTS `resets_de_senha` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -187,8 +248,54 @@ CREATE TABLE IF NOT EXISTS `resets_de_senha` (
     `token` VARCHAR(255) NOT NULL,
     `data_expiracao` DATETIME NOT NULL,
     `token_utilizado` TINYINT(1) NOT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`idAdvogadoProcesso`),
     INDEX `idx_token` (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de confirmação de e-mail para novos usuários (RN 1.1)
+CREATE TABLE IF NOT EXISTS `confirmacoes_email` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `usuarios_id` INT(11) NOT NULL,
+    `token` VARCHAR(255) NOT NULL,
+    `data_expiracao` DATETIME NOT NULL,
+    `token_utilizado` TINYINT(1) NOT NULL DEFAULT 0,
+    `data_cadastro` DATETIME NOT NULL,
+    PRIMARY KEY (`idAdvogadoProcesso`),
+    INDEX `idx_token` (`token`),
+    INDEX `idx_usuarios_id` (`usuarios_id`),
+    CONSTRAINT `fk_confirmacoes_usuarios` FOREIGN KEY (`usuarios_id`) 
+        REFERENCES `usuarios` (`idUsuarios`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de tentativas de login (RN 1.4)
+CREATE TABLE IF NOT EXISTS `tentativas_login` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(200) NOT NULL,
+    `ip_address` VARCHAR(45) NOT NULL,
+    `user_agent` VARCHAR(500) NULL DEFAULT NULL,
+    `sucesso` TINYINT(1) NOT NULL DEFAULT 0,
+    `data_hora` DATETIME NOT NULL,
+    PRIMARY KEY (`idAdvogadoProcesso`),
+    INDEX `idx_email` (`email`),
+    INDEX `idx_ip` (`ip_address`),
+    INDEX `idx_data_hora` (`data_hora`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de bloqueios de conta (RN 1.4)
+CREATE TABLE IF NOT EXISTS `bloqueios_conta` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(200) NOT NULL,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `tentativas_falhadas` INT(11) NOT NULL DEFAULT 0,
+    `bloqueado_ate` DATETIME NOT NULL,
+    `data_bloqueio` DATETIME NOT NULL,
+    `desbloqueado` TINYINT(1) NOT NULL DEFAULT 0,
+    `desbloqueado_por` INT(11) NULL DEFAULT NULL COMMENT 'ID do admin que desbloqueou',
+    `data_desbloqueio` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`idAdvogadoProcesso`),
+    INDEX `idx_email` (`email`),
+    INDEX `idx_bloqueado_ate` (`bloqueado_ate`),
+    INDEX `idx_desbloqueado` (`desbloqueado`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -255,10 +362,10 @@ CREATE TABLE IF NOT EXISTS `categorias` (
 CREATE TABLE IF NOT EXISTS `lancamentos` (
     `idLancamentos` INT(11) NOT NULL AUTO_INCREMENT,
     `descricao` VARCHAR(255) NOT NULL,
-    `valor` DECIMAL(10,2) NOT NULL,
-    `desconto` DECIMAL(10,2) NULL DEFAULT 0,
+    `valor` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `desconto` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `tipo_desconto` VARCHAR(20) NULL DEFAULT NULL COMMENT 'real ou porcento',
-    `valor_desconto` DECIMAL(10,2) NULL DEFAULT 0,
+    `valor_desconto` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `data_vencimento` DATE NOT NULL,
     `data_pagamento` DATE NULL DEFAULT NULL,
     `baixado` TINYINT(1) NOT NULL DEFAULT 0,
@@ -474,6 +581,35 @@ CREATE TABLE IF NOT EXISTS `partes_processo` (
         REFERENCES `processos` (`idProcessos`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabela de advogados responsáveis por processo (suporta múltiplos advogados com papéis)
+CREATE TABLE IF NOT EXISTS `advogados_processo` (
+    `idAdvogadoProcesso` INT(11) NOT NULL AUTO_INCREMENT,
+    `processos_id` INT(11) NOT NULL COMMENT 'ID do processo',
+    `usuarios_id` INT(11) NOT NULL COMMENT 'ID do usuário (advogado)',
+    `papel` VARCHAR(50) NOT NULL DEFAULT 'coadjuvante' COMMENT 'Papel: principal, coadjuvante, estagiario',
+    `data_atribuicao` DATETIME NOT NULL COMMENT 'Data/hora da atribuição do advogado ao processo',
+    `data_remocao` DATETIME NULL DEFAULT NULL COMMENT 'Data/hora da remoção (soft delete)',
+    `ativo` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=ativo, 0=removido',
+    `notificado` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=notificado por email, 0=não notificado',
+    `data_notificacao` DATETIME NULL DEFAULT NULL COMMENT 'Data/hora da notificação por email',
+    `observacoes` TEXT NULL DEFAULT NULL COMMENT 'Observações sobre a atribuição',
+    PRIMARY KEY (`idAdvogadoProcesso`),
+    INDEX `idx_processos_id` (`processos_id`),
+    INDEX `idx_usuarios_id` (`usuarios_id`),
+    INDEX `idx_ativo` (`ativo`),
+    INDEX `idx_processo_usuario_ativo` (`processos_id`, `usuarios_id`, `ativo`),
+    CONSTRAINT `fk_advogados_processo_processos` 
+        FOREIGN KEY (`processos_id`) 
+        REFERENCES `processos` (`idProcessos`) 
+        ON DELETE CASCADE 
+        ON UPDATE CASCADE,
+    CONSTRAINT `fk_advogados_processo_usuarios` 
+        FOREIGN KEY (`usuarios_id`) 
+        REFERENCES `usuarios` (`idUsuarios`) 
+        ON DELETE CASCADE 
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Tabela de cache de processos (consultas API)
 CREATE TABLE IF NOT EXISTS `processos_cache` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -489,7 +625,7 @@ CREATE TABLE IF NOT EXISTS `processos_cache` (
     `updated_at` DATETIME NULL DEFAULT NULL,
     `created_at` DATETIME NULL DEFAULT NULL,
     `ttl` INT(11) NOT NULL DEFAULT 86400 COMMENT 'Time to live em segundos',
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`idAdvogadoProcesso`),
     UNIQUE KEY `numeroProcesso` (`numeroProcesso`),
     INDEX `idx_proxima_consulta` (`proxima_consulta`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -503,12 +639,14 @@ CREATE TABLE IF NOT EXISTS `logs` (
     `idLogs` INT(11) NOT NULL AUTO_INCREMENT,
     `usuario` VARCHAR(100) NOT NULL,
     `ip` VARCHAR(45) NOT NULL,
+    `user_agent` VARCHAR(500) NULL DEFAULT NULL COMMENT 'Navegador e informações do cliente (RN 1.4)',
     `tarefa` VARCHAR(255) NOT NULL,
     `data` DATE NOT NULL,
     `hora` TIME NOT NULL,
     PRIMARY KEY (`idLogs`),
     INDEX `idx_data` (`data`),
-    INDEX `idx_usuario` (`usuario`)
+    INDEX `idx_usuario` (`usuario`),
+    INDEX `idx_ip` (`ip`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de logs de auditoria
@@ -523,7 +661,7 @@ CREATE TABLE IF NOT EXISTS `logs_auditoria` (
     `ip_address` VARCHAR(45) NULL DEFAULT NULL,
     `user_agent` VARCHAR(255) NULL DEFAULT NULL,
     `data` DATETIME NOT NULL,
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`idAdvogadoProcesso`),
     INDEX `idx_usuario_id` (`usuario_id`),
     INDEX `idx_tabela` (`tabela`),
     INDEX `idx_data` (`data`)
@@ -539,7 +677,7 @@ CREATE TABLE IF NOT EXISTS `email_queue` (
     `attempts` INT(11) NOT NULL DEFAULT 0,
     `last_attempt` DATETIME NULL DEFAULT NULL,
     `created_at` DATETIME NOT NULL,
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`idAdvogadoProcesso`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -558,7 +696,7 @@ INSERT IGNORE INTO `permissoes` (`idPermissao`, `nome`, `permissoes`, `situacao`
 INSERT IGNORE INTO `usuarios` (
     `idUsuarios`,
     `nome`,
-    `rg`,
+    `oab`,
     `cpf`,
     `cep`,
     `rua`,
@@ -566,18 +704,18 @@ INSERT IGNORE INTO `usuarios` (
     `bairro`,
     `cidade`,
     `estado`,
+    `celular`,
     `email`,
     `senha`,
-    `telefone`,
-    `celular`,
     `situacao`,
-    `dataCadastro`,
+    `dataExpiracao`,
     `permissoes_id`,
-    `dataExpiracao`
+    `email_confirmado`,
+    `dataCadastro`
 ) VALUES (
     1,
     'Administrador',
-    'MG-00.000.000',
+    NULL,
     '000.000.000-00',
     '00000-000',
     'Rua Exemplo',
@@ -585,14 +723,14 @@ INSERT IGNORE INTO `usuarios` (
     'Centro',
     'Cidade',
     'MG',
+    '',
     'admin@admin.com',
     '$2y$10$lAW0AXb0JLZxR0yDdfcBcu3BN9c2AXKKjKTdug7Or0pr6cSGtgyGO',
-    '0000-0000',
-    '',
     1,
-    NOW(),
+    '2030-01-01',
     1,
-    '2030-01-01'
+    1,
+    NOW()
 );
 
 -- Criar planos padrão

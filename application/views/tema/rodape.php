@@ -36,6 +36,9 @@
                 ajaxUrl = '<?= site_url("cobrancas/gerenciar") ?>';
             } else if (currentUrl.indexOf('/planos') !== -1) {
                 ajaxUrl = '<?= site_url("planos/gerenciar") ?>';
+            } else if (currentUrl.indexOf('/emails') !== -1) {
+                // Emails não usa server-side, usa paginação do CodeIgniter
+                ajaxUrl = '';
             }
             
             // Se encontrou URL, usar server-side processing
@@ -51,7 +54,7 @@
                     "sAjaxSource": ajaxUrl,
                     "bPaginate": true,
                     "bLengthChange": false,
-                    "iDisplayLength": <?= $configuration['per_page'] ?? 20 ?>,
+                    "iDisplayLength": <?= isset($configuration['per_page']) ? intval($configuration['per_page']) : 20 ?>,
                     "bSort": false,
                     "bInfo": true,
                     "sPaginationType": "full_numbers",

@@ -12,14 +12,38 @@ class Email_model extends CI_Model
         $this->db->select($fields);
         $this->db->from($table);
         $this->db->order_by('id', 'desc');
-        $this->db->limit($perpage, $start);
+        
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
+        }
+        
         if ($where) {
             $this->db->where($where);
         }
 
         $query = $this->db->get();
+        
+        // Verificar se houve erro na query
+        if (!$query) {
+            $error = $this->db->error();
+            log_message('error', 'Erro ao buscar emails: ' . json_encode($error));
+            return [];
+        }
 
         $result = ! $one ? $query->result() : $query->row();
+        
+        // Garantir que sempre retorne um array quando não for 'one'
+        // O result() retorna um array de objetos, então verificar se é array ou se está vazio
+        if (!$one) {
+            // Se result() retornar false ou null, retornar array vazio
+            if ($result === false || $result === null) {
+                return [];
+            }
+            // Se não for array, converter para array
+            if (!is_array($result)) {
+                return [];
+            }
+        }
 
         return $result;
     }
@@ -34,11 +58,21 @@ class Email_model extends CI_Model
 
     public function add($table, $data)
     {
-        $this->db->insert($table, $data);
+        $result = $this->db->insert($table, $data);
+        
+        if (!$result) {
+            $error = $this->db->error();
+            log_message('error', 'Erro ao inserir na tabela ' . $table . ': ' . json_encode($error));
+            log_message('error', 'Dados que tentaram ser inseridos: ' . json_encode($data));
+            return false;
+        }
+        
         if ($this->db->affected_rows() == '1') {
+            log_message('info', 'Registro inserido com sucesso na tabela ' . $table . '. ID: ' . $this->db->insert_id());
             return true;
         }
 
+        log_message('warning', 'Insert executado mas affected_rows não é 1. Tabela: ' . $table . ', affected_rows: ' . $this->db->affected_rows());
         return false;
     }
 

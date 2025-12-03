@@ -12,6 +12,9 @@
             <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'cAuditoria')) { ?>
             <li><a data-toggle="tab" href="#tab5">Auditoria</a></li>
             <?php } ?>
+            <?php if (isset($interacoes) && !empty($interacoes)) { ?>
+            <li><a data-toggle="tab" href="#tab6">Interações</a></li>
+            <?php } ?>
         </ul>
     </div>
     <div class="widget-content tab-content">
@@ -570,6 +573,57 @@
                     </tbody>
                 </table>
             <?php } ?>
+        </div>
+        <?php } ?>
+        
+        <!--Tab 6 - Histórico de Interações-->
+        <?php if (isset($interacoes) && !empty($interacoes)) { ?>
+        <div id="tab6" class="tab-pane" style="min-height: 300px">
+            <div class="widget-box">
+                <div class="widget-title">
+                    <h5>Histórico de Interações do Cliente</h5>
+                </div>
+                <div class="widget-content">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Usuário</th>
+                                <th>Tipo</th>
+                                <th>Descrição</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($interacoes as $interacao) { 
+                                $tipo_labels = [
+                                    'criacao' => ['label' => 'Criação', 'cor' => '#4d9c79'],
+                                    'edicao' => ['label' => 'Edição', 'cor' => '#436eee'],
+                                    'exclusao' => ['label' => 'Exclusão', 'cor' => '#CD0000'],
+                                    'reuniao' => ['label' => 'Reunião', 'cor' => '#AEB404'],
+                                    'telefone' => ['label' => 'Telefone', 'cor' => '#FF7F00'],
+                                    'email' => ['label' => 'E-mail', 'cor' => '#436eee'],
+                                    'nota' => ['label' => 'Nota', 'cor' => '#808080'],
+                                    'status' => ['label' => 'Status', 'cor' => '#FF7F00'],
+                                ];
+                                $tipo_info = $tipo_labels[$interacao->tipo ?? ''] ?? ['label' => ucfirst($interacao->tipo ?? 'N/A'), 'cor' => '#E0E4CC'];
+                            ?>
+                                <tr>
+                                    <td><?php echo date('d/m/Y H:i:s', strtotime($interacao->data_hora ?? $interacao->dataCadastro ?? '')); ?></td>
+                                    <td><?php echo htmlspecialchars($interacao->nome_usuario ?? $interacao->usuario_nome ?? 'Sistema'); ?></td>
+                                    <td>
+                                        <span class="badge" style="background-color: <?php echo $tipo_info['cor']; ?>; border-color: <?php echo $tipo_info['cor']; ?>">
+                                            <?php echo $tipo_info['label']; ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($interacao->descricao ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars($interacao->ip_address ?? '-'); ?></td>
+                                </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <?php } ?>
     </div>

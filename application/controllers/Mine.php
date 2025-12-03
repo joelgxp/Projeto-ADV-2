@@ -188,28 +188,77 @@ class Mine extends CI_Controller
 
     public function gerarTokenResetarSenha()
     {
-        if (! $cliente = $this->check_credentials($this->input->post('email'))) {
-            $this->session->set_flashdata(['error' => 'Os dados de acesso estão incorretos.']);
-            $session_mine_data = $cliente ? ['nome' => $cliente->nomeCliente] : ['nome' => 'Inexistente'];
-            $this->session->set_userdata($session_mine_data);
-            log_info('Cliente solicitou alteração de senha. Porém falhou ao realizar solicitação!');
-            redirect($_SERVER['HTTP_REFERER']);
+        log_message('info', '=== INÍCIO gerarTokenResetarSenha ===');
+        log_message('info', 'Método: ' . $this->input->method());
+        log_message('info', 'POST data: ' . json_encode($this->input->post()));
+        
+        // Verificar se é POST
+        if ($this->input->method() !== 'post') {
+            log_message('info', 'Método não é POST, redirecionando');
+            $this->session->set_flashdata('error', 'Método não permitido.');
+            redirect('mine/resetarSenha');
+            return;
+        }
+        
+        // Validar e-mail
+        $this->load->library('form_validation');
+        $this->form_validation->set_rules('email', 'E-mail', 'required|valid_email|trim');
+        
+        if ($this->form_validation->run() == false) {
+            $errors = validation_errors();
+            log_message('info', 'Validação falhou: ' . $errors);
+            $this->session->set_flashdata('error', $errors ?: 'E-mail inválido.');
+            redirect('mine/resetarSenha');
+            return;
+        }
+        
+        $email = $this->input->post('email');
+            log_message('info', 'Email recebido: ' . $email);
+        
+        $cliente = $this->check_credentials($email);
+        if (! $cliente) {
+            log_message('info', 'Cliente NÃO encontrado para email: ' . $email);
+            $this->session->set_flashdata('error', 'E-mail não encontrado no sistema. Verifique se o e-mail está correto ou entre em contato com o administrador.');
+            // Não usar log_info aqui pois não há usuário logado (causa erro de NULL)
+            redirect('mine/resetarSenha');
         } else {
+            log_message('info', 'Cliente encontrado - ID: ' . $cliente->idClientes . ', Nome: ' . $cliente->nomeCliente);
+            
             $this->load->helper('string');
             $this->load->model('resetSenhas_model', '', true);
             $data = [
                 'email' => $cliente->email,
                 'token' => random_string('alnum', 32),
-                'data_expiracao' => date('Y-m-d H:i:s'),
+                'data_expiracao' => date('Y-m-d H:i:s', strtotime('+1 hour')), // RN 1.3: Token válido por 1 hora
             ];
-            if ($this->resetSenhas_model->add('resets_de_senha', $data) == true) {
-                $this->enviarRecuperarSenha($cliente->idClientes, $cliente->email, 'Recuperar Senha', json_encode($data));
+            log_message('info', 'Dados do token: ' . json_encode($data));
+            
+            $tokenInserido = $this->resetSenhas_model->add('resets_de_senha', $data);
+            log_message('info', 'Resultado inserção token: ' . ($tokenInserido ? 'true' : 'false'));
+            
+            if ($tokenInserido == true) {
+                log_message('info', 'Token inserido com sucesso, tentando enviar email...');
+                $emailEnviado = $this->enviarRecuperarSenha($cliente->idClientes, $cliente->email, 'Recuperar Senha', json_encode($data));
+                log_message('info', 'Resultado envio email: ' . ($emailEnviado ? 'true' : 'false'));
+                
                 $session_mine_data = ['nome' => $cliente->nomeCliente];
                 $this->session->set_userdata($session_mine_data);
-                log_info('Cliente solicitou alteração de senha.');
-                $this->session->set_flashdata('success', 'Solicitação realizada com sucesso! <br> Um e-mail com as instruções será enviado para ' . $cliente->email);
-                redirect(base_url() . 'index.php/mine');
+                
+                if ($emailEnviado) {
+                    log_info('Cliente solicitou alteração de senha. Email enviado com sucesso para: ' . $cliente->email);
+                    $this->session->set_flashdata('success', '✅ E-mail enviado com sucesso! <br> Um e-mail com as instruções de recuperação de senha foi enviado para <strong>' . $cliente->email . '</strong>. <br> Verifique sua caixa de entrada (e a pasta de spam).');
+                } else {
+                    log_message('error', 'Falha ao enviar email de recuperação de senha para: ' . $cliente->email);
+                    $this->session->set_flashdata('error', '⚠️ Falha ao enviar o e-mail! <br> O token foi gerado, mas houve um erro ao enviar o e-mail. <br> Por favor, tente novamente ou entre em contato com o administrador do sistema.');
+                }
+                
+                log_message('info', 'Redirecionando para mine/index');
+                redirect('mine');
             } else {
+                log_message('error', 'Falha ao inserir token na tabela resets_de_senha');
+                $db_error = $this->db->error();
+                log_message('error', 'Erro do banco: ' . json_encode($db_error));
+                
                 $this->session->set_flashdata('error', 'Falha ao realizar solicitação!');
                 $session_mine_data = $cliente->nomeCliente ? ['nome' => $cliente->nomeCliente] : ['nome' => 'Inexistente'];
                 $this->session->set_userdata($session_mine_data);
@@ -217,6 +266,7 @@ class Mine extends CI_Controller
                 redirect(current_url());
             }
         }
+        log_message('info', '=== FIM gerarTokenResetarSenha ===');
     }
 
     public function login()
@@ -760,18 +810,20 @@ class Mine extends CI_Controller
         return $this->db->get('resets_de_senha')->row();
     }
 
+    /**
+     * Valida se a data de expiração passou (RN 1.3: token válido por 1 hora)
+     * 
+     * @param string $date Data de expiração
+     * @param string $format Formato da data
+     * @return bool True se expirou, False se ainda é válida
+     */
     private function validateDate($date, $format = 'Y-m-d H:i:s')
     {
-        $dateStart = new \DateTime($date);
+        $dateExpiration = new \DateTime($date);
         $dateNow = new \DateTime(date($format));
 
-        $dateDiff = $dateStart->diff($dateNow);
-
-        if ($dateDiff->days >= 1) {
-            return true;
-        } else {
-            return false;
-        }
+        // Retorna true se a data de expiração já passou (token inválido)
+        return $dateExpiration < $dateNow;
     }
 
     /**
@@ -839,10 +891,10 @@ class Mine extends CI_Controller
         
         $email_data = [
             'to' => $email,
+            'subject' => $assunto,
             'message' => $html,
             'status' => 'pending',
-            'date' => date('Y-m-d H:i:s'),
-            'headers' => serialize($headers),
+            'created_at' => date('Y-m-d H:i:s'),
         ];
         
         if ($this->email_model->add('email_queue', $email_data)) {
@@ -856,41 +908,104 @@ class Mine extends CI_Controller
 
     private function enviarRecuperarSenha($idClientes, $clienteEmail, $assunto, $token)
     {
+        log_message('info', '=== INÍCIO enviarRecuperarSenha ===');
+        log_message('info', 'ID Cliente: ' . $idClientes . ', Email: ' . $clienteEmail . ', Assunto: ' . $assunto);
+        
         $dados = [];
         $this->load->model('sistema_model');
         $this->load->model('clientes_model', '', true);
 
         $dados['emitente'] = $this->sistema_model->getEmitente();
+        log_message('info', 'Emitente: ' . ($dados['emitente'] ? 'Encontrado' : 'NULL'));
+        
         $dados['cliente'] = $this->clientes_model->getById($idClientes);
+        log_message('info', 'Cliente carregado: ' . ($dados['cliente'] ? 'Sim' : 'Não'));
+        
         $dados['resets_de_senha'] = json_decode($token);
+        log_message('info', 'Token decodificado: ' . ($dados['resets_de_senha'] ? 'OK' : 'ERRO'));
 
         $emitente = $dados['emitente'];
         $remetente = $clienteEmail;
 
-        $html = $this->load->view('conecte/emails/clientenovasenha', $dados, true);
-
-        $this->load->model('email_model');
-
         if ($emitente == null) {
+            log_message('error', 'Emitente não configurado!');
             $this->session->set_flashdata(['error' => 'Cadastrar Emitente.\n\n Por favor contate o administrador do sistema.']);
-
-            return redirect(base_url() . 'index.php/mine/resetarSenha');
+            return false;
         }
 
-        $headers = [
-            'From' => "\"$emitente->nome\" <$emitente->email>",
-            'Subject' => $assunto,
-            'Return-Path' => '',
-        ];
-        $email = [
-            'to' => $remetente,
-            'message' => $html,
-            'status' => 'pending',
-            'date' => date('Y-m-d H:i:s'),
-            'headers' => serialize($headers),
-        ];
+        try {
+            $html = $this->load->view('conecte/emails/clientenovasenha', $dados, true);
+            log_message('info', 'View carregada. Tamanho HTML: ' . strlen($html) . ' bytes');
+        } catch (Exception $e) {
+            log_message('error', 'Erro ao carregar view: ' . $e->getMessage());
+            return false;
+        }
 
-        return $this->email_model->add('email_queue', $email);
+        // Enviar email diretamente (usando configurações da aba Email)
+        $this->load->library('email');
+        
+        // Obter configurações do arquivo email.php (que lê do .env configurado na aba Email)
+        $this->load->config('email');
+        $config = $this->config->item('email');
+        $smtp_user = $this->config->item('smtp_user');
+        $app_name = $this->config->item('app_name') ?: 'Adv';
+        
+        // Validar se o remetente está configurado
+        if (empty($smtp_user)) {
+            log_message('error', 'Erro: E-mail remetente não configurado. EMAIL_SMTP_USER não está definido nas configurações.');
+            $this->session->set_flashdata(['error' => 'E-mail remetente não configurado. Configure o EMAIL_SMTP_USER na aba Email das configurações.']);
+            return false;
+        }
+        
+        // Inicializar email com as configurações da aba Email (host, porta, criptografia, etc.)
+        if ($config) {
+            $this->email->initialize($config);
+        }
+        
+        // Configurar remetente e destinatário
+        $this->email->clear();
+        $this->email->from($smtp_user, $app_name);
+        $this->email->to($remetente);
+        $this->email->subject($assunto);
+        $this->email->message($html);
+        
+        log_message('info', 'Tentando enviar email de recuperação diretamente para: ' . $remetente . ' (usando remetente: ' . $smtp_user . ')');
+        
+        // Enviar diretamente (igual ao testarEmail que funciona)
+        if ($this->email->send(true)) {
+            log_message('info', '✅ Email de recuperação enviado com sucesso para: ' . $remetente);
+            
+            // Adicionar à fila para registro/auditoria (opcional)
+            $this->load->model('email_model');
+            $email_data = [
+                'to' => $remetente,
+                'subject' => $assunto,
+                'message' => $html,
+                'status' => 'sent',
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+            $this->email_model->add('email_queue', $email_data);
+            
+            return true;
+        } else {
+            $error_msg = $this->email->print_debugger();
+            log_message('error', '❌ Erro ao enviar email de recuperação para ' . $remetente . ': ' . $error_msg);
+            
+            // Adicionar à fila como failed para tentar depois
+            $this->load->model('email_model');
+            $email_data = [
+                'to' => $remetente,
+                'subject' => $assunto,
+                'message' => $html,
+                'status' => 'failed',
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+            $this->email_model->add('email_queue', $email_data);
+            
+            return false;
+        }
+        
+        log_message('info', '=== FIM enviarRecuperarSenha ===');
     }
 
 
@@ -918,10 +1033,10 @@ class Mine extends CI_Controller
         ];
         $email = [
             'to' => $remetente->email,
+            'subject' => $assunto,
             'message' => $html,
             'status' => 'pending',
-            'date' => date('Y-m-d H:i:s'),
-            'headers' => serialize($headers),
+            'created_at' => date('Y-m-d H:i:s'),
         ];
 
         return $this->email_model->add('email_queue', $email);
@@ -953,10 +1068,10 @@ class Mine extends CI_Controller
             ];
             $email = [
                 'to' => $usuario->email,
+                'subject' => $assunto,
                 'message' => $html,
                 'status' => 'pending',
-                'date' => date('Y-m-d H:i:s'),
-                'headers' => serialize($headers),
+                'created_at' => date('Y-m-d H:i:s'),
             ];
             $this->email_model->add('email_queue', $email);
         }

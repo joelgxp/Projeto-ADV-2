@@ -34,20 +34,28 @@
             <div class="widget-content nopadding tab-content">
 
                 <form action="<?php echo base_url() . "index.php/mine/gerarTokenResetarSenha" ?>" id="formCliente" method="post" class="form-horizontal">
+                    <?php
+                    // Adicionar token CSRF (RN: Proteção contra CSRF)
+                    $csrf_token_name = $this->config->item('csrf_token_name');
+                    $csrf_token = $this->security->get_csrf_hash();
+                    ?>
+                    <input type="hidden" name="<?php echo $csrf_token_name; ?>" value="<?php echo $csrf_token; ?>" />
 
-                    <div class="control-group" style="display: flex;margin-bottom: 7pxpx;grid-column-gap: 5px;justify-content: space-evenly;border-bottom: 0px">
+                    <div class="control-group" style="display: flex;margin-bottom: 7px;grid-column-gap: 5px;justify-content: space-evenly;border-bottom: 0px">
                         <label style="width: auto" for="email" class="control-label">Email<span class="required">*</span></label>
                         <div class="controls" style="margin: 0">
                             <input id="email" type="text" name="email" value="" />
                         </div>
                     </div>
 
-                    <div class="form-actions" style="background-color:transparent;border:none;padding: 10px;margin-top: 15px">
-                        <div class="span12">
-                            <div class="span6 offset3" style="display:flex;justify-content: center">
-                                <button type="submit" class="button btn btn-success btn-large"><span class="button__icon"><i class='bx bx-mail-send'></i></span><span class="button__text2">Enviar</span></button>
-                                <a href="<?php echo base_url() ?>index.php/mine" id="" class="button btn btn-warning"><span class="button__icon"><i class='bx bx-lock-alt'></i></span><span class="button__text2">Acessar</span></a>
-                            </div>
+                    <div class="form-actions" style="background-color:transparent;border:none;padding: 15px 10px;margin-top: 15px">
+                        <div class="span12" style="display:flex;justify-content: center;gap: 10px;flex-wrap: wrap">
+                            <button type="submit" class="btn btn-success btn-large">
+                                <i class='bx bx-mail-send'></i> Enviar
+                            </button>
+                            <a href="<?php echo base_url() ?>index.php/mine" class="btn btn-default btn-large">
+                                <i class='bx bx-arrow-back'></i> Voltar
+                            </a>
                         </div>
                     </div>
                 </form>
@@ -56,41 +64,56 @@
     </div>
 
     <script src="<?php echo base_url() ?>assets/js/jquery.validate.js"></script>
-    <script src="<?php echo base_url() ?>assets/js/sweetalert2.all.min.js"></script>
     <?php if ($this->session->flashdata('success') != null) { ?>
         <script>
-            Swal.fire({
-                position: 'center',
-                icon: 'success',
-                title: '<?php echo $this->session->flashdata('success'); ?>',
-                showConfirmButton: false,
-                timer: 4000
-            })
+            $(document).ready(function() {
+                Swal.fire({
+                    position: 'center',
+                    icon: 'success',
+                    html: <?php echo json_encode($this->session->flashdata('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+                    showConfirmButton: false,
+                    timer: 4000
+                });
+            });
         </script>
     <?php } ?>
 
     <?php if ($this->session->flashdata('error') != null) { ?>
         <script>
-            Swal.fire({
-                position: 'center',
-                icon: 'error',
-                title: '<?php echo $this->session->flashdata('error'); ?>',
-                showConfirmButton: false,
-                timer: 4000
-            })
+            $(document).ready(function() {
+                Swal.fire({
+                    position: 'center',
+                    icon: 'error',
+                    html: <?php echo json_encode($this->session->flashdata('error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+                    showConfirmButton: false,
+                    timer: 4000
+                });
+            });
         </script>
     <?php } ?>
     <script type="text/javascript">
         $(document).ready(function() {
+            // Garantir que o token CSRF está no formulário
+            var csrfTokenName = $('meta[name="csrf-token-name"]').attr('content');
+            var csrfCookieName = $('meta[name="csrf-cookie-name"]').attr('content');
+            
+            function getCookie(name) {
+                var value = "; " + document.cookie;
+                var parts = value.split("; " + name + "=");
+                if (parts.length == 2) return parts.pop().split(";").shift();
+            }
+            
             $('#formCliente').validate({
                 rules: {
                     email: {
-                        required: true
+                        required: true,
+                        email: true
                     }
                 },
                 messages: {
                     email: {
-                        required: 'Campo Requerido.'
+                        required: 'Campo Requerido.',
+                        email: 'Insira um e-mail válido'
                     }
                 },
 
@@ -102,6 +125,15 @@
                 unhighlight: function(element, errorClass, validClass) {
                     $(element).parents('.control-group').removeClass('error');
                     $(element).parents('.control-group').addClass('success');
+                },
+                submitHandler: function(form) {
+                    // Atualizar token CSRF antes do submit
+                    var csrfToken = getCookie(csrfCookieName);
+                    if (csrfToken) {
+                        $('input[name="' + csrfTokenName + '"]').val(csrfToken);
+                    }
+                    // Permitir submit normal do formulário após validação
+                    form.submit();
                 }
             });
         });

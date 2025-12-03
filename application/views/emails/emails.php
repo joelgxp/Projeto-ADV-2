@@ -4,6 +4,12 @@
             <i class="fas fa-envelope"></i>
         </span>
         <h5>Lista de envio de e-mails</h5>
+        <div style="float: right; margin-top: 5px;">
+            <a href="<?= site_url('adv/processarEmails') ?>" class="button btn btn-info" title="Processar e-mails pendentes">
+                <span class="button__icon"><i class="bx bx-send"></i></span>
+                <span class="button__text2">Processar E-mails</span>
+            </a>
+        </div>
     </div>
     <div class="widget-content nopadding tab-content">
         <table id="tabela" class="table table-bordered ">
@@ -17,30 +23,31 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!$results) { ?>
+                <?php if (empty($results) || (!is_array($results) && !is_object($results))) { ?>
                     <tr>
                         <td colspan="5">Nenhum e-mail na fila</td>
                     </tr>
+                <?php } else { ?>
+                    <?php foreach ($results as $r) {
+                        $status = [
+                            'pending' => '<span class="badge badge-default">Pendente</span>',
+                            'sending' => '<span class="badge badge-info">Enviando</span>',
+                            'sent' => '<span class="badge badge-success">Enviado</span>',
+                            'failed' => '<span class="badge badge-warning">Falhou</span>',
+                        ];
+                        $status_display = isset($status[$r->status]) ? $status[$r->status] : '<span class="badge">' . $r->status . '</span>';
+                        echo '<tr>';
+                        echo '<td>' . $r->id . '</td>';
+                        echo '<td>' . htmlspecialchars($r->to) . '</td>';
+                        echo '<td>' . $status_display . '</td>';
+                        $data_email = isset($r->created_at) ? $r->created_at : '';
+                        echo '<td>' . ($data_email ? date('d/m/Y H:i:s', strtotime($data_email)) : '-') . '</td>';
+                        echo '<td>';
+                        echo '<a href="#modal-excluir" role="button" data-toggle="modal" email="' . $r->id . '" class="btn-nwe4" title="Excluir item"><i class="bx bx-trash-alt"></i></a>  ';
+                        echo '</td>';
+                        echo '</tr>';
+                    } ?>
                 <?php } ?>
-
-                <?php foreach ($results as $r) {
-                    $status = [
-                                        'pending' => '<span class="badge badge-default">Pendente</span>',
-                                        'sending' => '<span class="badge badge-info">Enviando</span>',
-                                        'sent' => '<span class="badge badge-success">Enviado</span>',
-                                        'failed' => '<span class="badge badge-warning">Falhou</span>',
-                                    ];
-                    echo '<tr>';
-                    echo '<td>' . $r->id . '</td>';
-                    echo '<td>' . $r->to . '</td>';
-                    echo '<td>' . $status[$r->status] . '</td>';
-                    echo '<td>' . date('d/m/Y H:i:s', strtotime($r->date)) . '</td>';
-                    echo '<td>';
-                    echo '<a href="#modal-excluir" role="button" data-toggle="modal" email="' . $r->id . '" class="btn-nwe4" title="Excluir item"><i class="bx bx-trash-alt"></i></a>  ';
-                    echo '</td>';
-                    echo '</tr>';
-                } ?>
-
             </tbody>
         </table>
     </div>

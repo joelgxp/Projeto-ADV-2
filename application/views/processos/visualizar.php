@@ -98,17 +98,20 @@
                                         <?php echo $result->dataCadastro ? date('d/m/Y H:i', strtotime($result->dataCadastro)) : '-' ?>
                                     </td>
                                 </tr>
-                                <?php if (isset($result->ultimaConsultaAPI) && $result->ultimaConsultaAPI): ?>
                                 <tr>
-                                    <td style="text-align: right"><strong>Última Sincronização API</strong></td>
+                                    <td style="text-align: right"><strong>Última Atualização</strong></td>
                                     <td>
-                                        <?php echo date('d/m/Y H:i', strtotime($result->ultimaConsultaAPI)) ?>
-                                        <?php if (isset($result->proximaConsultaAPI) && $result->proximaConsultaAPI): ?>
-                                            <br><small style="color: #666;">Próxima: <?= date('d/m/Y H:i', strtotime($result->proximaConsultaAPI)) ?></small>
+                                        <?php if (isset($result->ultimaConsultaAPI) && $result->ultimaConsultaAPI): ?>
+                                            <?php echo date('d/m/Y H:i', strtotime($result->ultimaConsultaAPI)) ?>
+                                            <?php if (isset($result->proximaConsultaAPI) && $result->proximaConsultaAPI): ?>
+                                                <br><small style="color: #666;">Próxima sincronização: <?= date('d/m/Y H:i', strtotime($result->proximaConsultaAPI)) ?></small>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <?php echo $result->dataCadastro ? date('d/m/Y H:i', strtotime($result->dataCadastro)) : '-' ?>
+                                            <br><small style="color: #999; font-style: italic;">(Data de cadastro - ainda não foi sincronizado com a API)</small>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
-                                <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -142,21 +145,18 @@
                                 <tr>
                                     <td style="text-align: right"><strong>Tribunal</strong></td>
                                     <td>
-                                        <?php echo $result->tribunal ?? '-' ?>
+                                        <?php 
+                                        $this->load->helper('tribunais_endpoints');
+                                        echo $result->tribunal ? obter_nome_tribunal($result->tribunal, $result->segmento) : '-';
+                                        ?>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="text-align: right"><strong>Segmento</strong></td>
                                     <td>
                                         <?php 
-                                        $segmentos = [
-                                            'estadual' => 'Estadual',
-                                            'federal' => 'Federal',
-                                            'trabalho' => 'Trabalho',
-                                            'eleitoral' => 'Eleitoral',
-                                            'militar' => 'Militar',
-                                        ];
-                                        echo $segmentos[$result->segmento ?? ''] ?? ($result->segmento ?? '-');
+                                        $this->load->helper('tribunais_endpoints');
+                                        echo $result->segmento ? obter_nome_segmento($result->segmento) : '-';
                                         ?>
                                     </td>
                                 </tr>
@@ -298,6 +298,7 @@
                 <div style="margin-bottom: 15px; text-align: right;">
                     <a href="<?= site_url('consulta-processual/sincronizar/' . (isset($result->idProcessos) ? $result->idProcessos : ($result->id ?? 0))) ?>" 
                        class="button btn btn-mini btn-info" 
+                       style="display: inline-flex; width: auto; max-width: none;"
                        onclick="return confirm('Deseja sincronizar as movimentações deste processo com a API CNJ?');">
                         <span class="button__icon"><i class='bx bx-sync'></i></span>
                         <span class="button__text2">Sincronizar com API CNJ</span>

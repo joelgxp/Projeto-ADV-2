@@ -31,7 +31,7 @@ $config = [
         [
             'field' => 'email',
             'label' => 'Email',
-            'rules' => 'trim|valid_email|unique[clientes.email.' . get_instance()->uri->segment(3) . '.idClientes]',
+            'rules' => 'required|trim|valid_email|unique[clientes.email.' . get_instance()->uri->segment(3) . '.idClientes]',
         ],
         [
             'field' => 'rua',
@@ -122,9 +122,9 @@ $config = [
         [
             'field' => 'cpf',
             'label' => 'CPF',
-            'rules' => 'required|trim|verific_cpf_cnpj|is_unique[usuarios.cpf]',
+            'rules' => 'required|trim|verific_cpf|is_unique[usuarios.cpf]',
             'errors' => [
-                'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.',
+                'verific_cpf' => 'O campo %s deve ser um CPF válido (11 dígitos).',
             ],
         ],
         [
@@ -165,7 +165,10 @@ $config = [
         [
             'field' => 'senha',
             'label' => 'Senha',
-            'rules' => 'required|trim',
+            'rules' => 'required|trim|min_length[8]|callback_validar_senha_forte',
+            'errors' => [
+                'min_length' => 'A senha deve ter no mínimo 8 caracteres.',
+            ],
         ],
         [
             'field' => 'situacao',

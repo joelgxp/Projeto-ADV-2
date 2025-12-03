@@ -740,10 +740,14 @@
                                         <?php echo ucfirst($lancamento->tipo); ?>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-truncate"><?php echo $lancamento->cliente_fornecedor; ?></td>
-                                <td class="text-truncate"><?php echo $lancamento->descricao; ?></td>
-                                <td><?php echo date_format(date_create($lancamento->data_vencimento), 'd/m/Y'); ?></td>
-                                <td>R$ <?php echo number_format($lancamento->valor_desconto, 2, ',', '.'); ?></td>
+                                <td class="text-truncate"><?php echo isset($lancamento->cliente_fornecedor) ? $lancamento->cliente_fornecedor : '-'; ?></td>
+                                <td class="text-truncate"><?php echo isset($lancamento->descricao) ? $lancamento->descricao : '-'; ?></td>
+                                <td><?php echo isset($lancamento->data_vencimento) ? date_format(date_create($lancamento->data_vencimento), 'd/m/Y') : '-'; ?></td>
+                                <td>R$ <?php 
+                                    // Usar valor_desconto se > 0, senão usar valor
+                                    $valor = floatval($lancamento->valor_desconto > 0 ? $lancamento->valor_desconto : $lancamento->valor);
+                                    echo number_format($valor, 2, ',', '.'); 
+                                ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -849,9 +853,6 @@
                 failure: function(error) {
                     console.error('Erro ao buscar eventos do calendário:', error);
                     alert('Falha ao buscar eventos do calendário! Verifique o console para mais detalhes.');
-                },
-                success: function(response) {
-                    console.log('Eventos carregados com sucesso:', response);
                 },
             },
             eventClick: function(info) {

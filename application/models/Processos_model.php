@@ -62,12 +62,12 @@ class Processos_model extends CI_Model
             return false;
         }
 
-        $this->db->where('idProcessos', $id);
-        $this->db->limit(1);
-
+        // Selecionar todos os campos de processos primeiro
+        $this->db->select('processos.*');
+        
         // Join com clientes
         if ($this->db->table_exists('clientes')) {
-            $this->db->select('clientes.*');
+            $this->db->select('clientes.nomeCliente, clientes.idClientes');
             $this->db->join('clientes', 'clientes.idClientes = processos.clientes_id', 'left');
         }
 
@@ -76,6 +76,9 @@ class Processos_model extends CI_Model
             $this->db->select('usuarios.nome as nomeAdvogado, usuarios.email as emailAdvogado');
             $this->db->join('usuarios', 'usuarios.idUsuarios = processos.usuarios_id', 'left');
         }
+
+        $this->db->where('processos.idProcessos', $id);
+        $this->db->limit(1);
 
         $query = $this->db->get('processos');
         
@@ -272,7 +275,14 @@ class Processos_model extends CI_Model
         $numero_limpo = $validacao_formato['numero_limpo'];
         $dados = $validacao_formato['dados'];
 
-        // Validação de Campos de Origem (opcional - não bloqueia se falhar)
+        // 2. Validação do Dígito Verificador (OBRIGATÓRIA)
+        $validacao_digito = $this->validarDigitoVerificadorCNJ($numero_limpo, $dados);
+        if (!$validacao_digito['valido']) {
+            $resultado['erros'] = array_merge($resultado['erros'], $validacao_digito['erros']);
+            return $resultado;
+        }
+
+        // 3. Validação de Campos de Origem (opcional - não bloqueia se falhar)
         $validacao_campos = $this->validarCamposOrigemCNJ($dados);
         // Não bloqueia se a validação de campos falhar, apenas avisa
         if (!$validacao_campos['valido']) {
@@ -280,7 +290,7 @@ class Processos_model extends CI_Model
             // $resultado['erros'] = array_merge($resultado['erros'], $validacao_campos['erros']);
         }
 
-        // Validação passou (formato válido)
+        // Validação passou (formato + dígito verificador válidos)
         $resultado['valido'] = true;
         $resultado['dados'] = $dados;
         
@@ -731,6 +741,62 @@ class Processos_model extends CI_Model
     }
 
     /**
+     * Verifica se processo pode ser editado (não está encerrado)
+     * 
+     * @param int $id_processo ID do processo
+     * @return bool True se pode editar, False se está encerrado
+     */
+    public function podeEditar($id_processo)
+    {
+        $processo = $this->getById($id_processo);
+        
+        if (!$processo) {
+            return false;
+        }
+        
+        // Processos com status "finalizado" (Encerrado) não podem ser editados
+        if (isset($processo->status) && $processo->status == 'finalizado') {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Verifica se pode editar partes do processo
+     * 
+     * @param int $id_processo ID do processo
+     * @return bool True se pode editar, False se está encerrado
+     */
+    public function podeEditarPartes($id_processo)
+    {
+        return $this->podeEditar($id_processo);
+    }
+
+    /**
+     * Verifica se pode anexar documentos ao processo
+     * 
+     * @param int $id_processo ID do processo
+     * @return bool True se pode anexar, False se está encerrado
+     */
+    public function podeAnexarDocumento($id_processo)
+    {
+        // Processos encerrados não permitem upload de novos documentos
+        return $this->podeEditar($id_processo);
+    }
+
+    /**
+     * Verifica se processo pode ser excluído
+     * 
+     * @param int $id_processo ID do processo
+     * @return bool True se pode excluir, False se está encerrado
+     */
+    public function podeExcluir($id_processo)
+    {
+        return $this->podeEditar($id_processo);
+    }
+
+    /**
      * Verifica se o número de processo já existe na tabela de processos
      * 
      * Útil para validar unicidade de número de processo antes de inserir/atualizar.
@@ -762,6 +828,130 @@ class Processos_model extends CI_Model
         $query = $this->db->get('processos');
         
         return $query->num_rows() > 0;
+    }
+
+    /**
+     * Transições de status permitidas conforme RN 3.6
+     * 
+     * @var array
+     */
+    private $transicoes_permitidas = [
+        'em_andamento' => ['suspenso', 'arquivado', 'recurso', 'finalizado'],
+        'suspenso' => ['em_andamento', 'arquivado', 'finalizado'],
+        'recurso' => ['em_andamento', 'arquivado', 'finalizado'],
+        'arquivado' => ['em_andamento', 'finalizado'],
+        'finalizado' => [] // Não permite transições (imutável)
+    ];
+
+    /**
+     * Valida se uma transição de status é permitida
+     * 
+     * @param string $status_atual Status atual do processo
+     * @param string $status_novo Novo status desejado
+     * @return bool True se transição é permitida, False caso contrário
+     */
+    public function validarTransicao($status_atual, $status_novo)
+    {
+        // Normalizar status (lowercase)
+        $status_atual = strtolower($status_atual);
+        $status_novo = strtolower($status_novo);
+        
+        // Se status atual não existe no array, não permite transições
+        if (!isset($this->transicoes_permitidas[$status_atual])) {
+            return false;
+        }
+        
+        // Verificar se o novo status está na lista de transições permitidas
+        return in_array($status_novo, $this->transicoes_permitidas[$status_atual]);
+    }
+
+    /**
+     * Retorna lista de transições permitidas para um status
+     * 
+     * @param string $status_atual Status atual do processo
+     * @return array Lista de status possíveis
+     */
+    public function obterTransicoesPermitidas($status_atual)
+    {
+        $status_atual = strtolower($status_atual);
+        return $this->transicoes_permitidas[$status_atual] ?? [];
+    }
+
+    /**
+     * Altera status do processo com validação de transição
+     * 
+     * @param int $id_processo ID do processo
+     * @param string $novo_status Novo status
+     * @param string $motivo Motivo da mudança (opcional)
+     * @return array ['sucesso' => bool, 'mensagem' => string]
+     */
+    public function alterarStatus($id_processo, $novo_status, $motivo = '')
+    {
+        $processo = $this->getById($id_processo);
+        
+        if (!$processo) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Processo não encontrado.'
+            ];
+        }
+        
+        $status_atual = isset($processo->status) ? strtolower($processo->status) : 'em_andamento';
+        $novo_status_normalizado = strtolower($novo_status);
+        
+        // Validar transição
+        if (!$this->validarTransicao($status_atual, $novo_status_normalizado)) {
+            $status_labels = [
+                'em_andamento' => 'Ativo',
+                'suspenso' => 'Suspenso',
+                'arquivado' => 'Arquivado',
+                'recurso' => 'Recurso',
+                'finalizado' => 'Encerrado'
+            ];
+            
+            $atual_label = $status_labels[$status_atual] ?? ucfirst($status_atual);
+            $novo_label = $status_labels[$novo_status_normalizado] ?? ucfirst($novo_status_normalizado);
+            
+            return [
+                'sucesso' => false,
+                'mensagem' => "Transição de '{$atual_label}' para '{$novo_label}' não é permitida."
+            ];
+        }
+        
+        // Iniciar transação
+        $this->db->trans_start();
+        
+        // Atualizar status do processo
+        $this->db->where('idProcessos', $id_processo);
+        $this->db->update('processos', [
+            'status' => $novo_status_normalizado
+        ]);
+        
+        // Registrar histórico (se tabela existir)
+        if ($this->db->table_exists('historico_status_processo')) {
+            $this->db->insert('historico_status_processo', [
+                'id_processo' => $id_processo,
+                'status_anterior' => $status_atual,
+                'status_novo' => $novo_status_normalizado,
+                'motivo' => $motivo,
+                'usuario_id' => $this->session->userdata('idUsuarios') ?? null,
+                'data_mudanca' => date('Y-m-d H:i:s')
+            ]);
+        }
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === false) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Erro ao alterar status do processo.'
+            ];
+        }
+        
+        return [
+            'sucesso' => true,
+            'mensagem' => 'Status alterado com sucesso.'
+        ];
     }
 }
 

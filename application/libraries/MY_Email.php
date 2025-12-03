@@ -93,12 +93,10 @@ class MY_Email extends CI_Email
 
         $dbdata = [
             'to' => $to,
-            'cc' => $cc,
-            'bcc' => $bcc,
+            'subject' => $this->_subject ?: 'Sem assunto',
             'message' => $this->_body,
-            'headers' => serialize($this->_headers),
             'status' => 'pending',
-            'date' => $date,
+            'created_at' => $date,
         ];
 
         return $this->CI->db->insert($this->table_email_queue, $dbdata);
@@ -133,34 +131,69 @@ class MY_Email extends CI_Email
 
         $this->CI->db->where('status', 'pending');
         $this->CI->db->set('status', 'sending');
-        $this->CI->db->set('date', date('Y-m-d H:i:s'));
+        $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
         $this->CI->db->update($this->table_email_queue);
 
+        // Obter configurações de e-mail para definir remetente padrão
+        $this->CI->load->config('email');
+        $smtp_user = $this->CI->config->item('smtp_user');
+        $app_name = 'Adv'; // Nome padrão, pode ser obtido da configuração se necessário
+        
+        // Tentar obter nome do sistema
+        if (isset($this->CI->data['configuration']['app_name'])) {
+            $app_name = $this->CI->data['configuration']['app_name'];
+        }
+
         foreach ($emails as $email) {
-            $recipients = explode(', ', $email->to);
+            // Limpar e reconfigurar antes de processar
+            $this->clear();
+            
+            // Reconfigurar email com configurações do config
+            $config = $this->CI->config->item('email');
+            if ($config) {
+                $this->initialize($config);
+            }
+            
+            // Obter emitente para usar como remetente
+            $this->CI->load->model('sistema_model');
+            $emitente = $this->CI->sistema_model->getEmitente();
+            
+            // Definir remetente padrão
+            if ($emitente && !empty($emitente->email)) {
+                $from_name = $emitente->nome ?? $app_name;
+                $this->from($emitente->email, $from_name);
+            } elseif (!empty($smtp_user)) {
+                $this->from($smtp_user, $app_name);
+            }
 
-            $cc = ! empty($email->cc) ? explode(', ', $email->cc) : [];
-            $bcc = ! empty($email->bcc) ? explode(', ', $email->bcc) : [];
-
-            $this->_headers = unserialize($email->headers);
-
-            $this->to($recipients);
-            $this->cc($cc);
-            $this->bcc($bcc);
+            // Definir destinatário (pode ser string ou array)
+            $to = is_string($email->to) ? $email->to : (is_array($email->to) ? implode(', ', $email->to) : '');
+            if (!empty($to)) {
+                $this->to($to);
+            }
+            
+            // Definir assunto se existir
+            if (isset($email->subject) && !empty($email->subject)) {
+                $this->subject($email->subject);
+            }
 
             $this->message($email->message);
 
+            log_message('info', "Tentando enviar email ID {$email->id} para: {$to}");
+            
             if ($this->send(true)) {
                 $status = 'sent';
+                log_message('info', "Email ID {$email->id} enviado com sucesso para: {$to}");
             } else {
-                log_message('error', $this->print_debugger());
+                $error_msg = $this->print_debugger();
+                log_message('error', "Erro ao enviar e-mail ID {$email->id} da fila para {$to}: " . $error_msg);
                 $status = 'failed';
             }
 
             $this->CI->db->where('id', $email->id);
-
             $this->CI->db->set('status', $status);
-            $this->CI->db->set('date', date('Y-m-d H:i:s'));
+            $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+            $this->CI->db->set('attempts', 'attempts + 1', false);
             $this->CI->db->update($this->table_email_queue);
         }
     }
@@ -178,11 +211,121 @@ class MY_Email extends CI_Email
         $date_expire = date('Y-m-d H:i:s', $expire);
 
         $this->CI->db->set('status', 'pending');
-        $this->CI->db->where("(date < '{$date_expire}' AND status = 'sending')");
+        $this->CI->db->where("(last_attempt < '{$date_expire}' AND status = 'sending')");
         $this->CI->db->or_where("status = 'failed'");
 
         $this->CI->db->update($this->table_email_queue);
 
         log_message('debug', 'Email queue retrying...');
+    }
+
+    /**
+     * Processa e envia um email específico da fila
+     * 
+     * Método centralizado para processar um único email por ID.
+     * Todas as configurações de email devem ser feitas através deste método.
+     * 
+     * @param int $email_id ID do email na fila
+     * @return bool true se enviado com sucesso, false caso contrário
+     */
+    public function send_single($email_id)
+    {
+        // Buscar o email na fila
+        $email = $this->CI->db->where('id', $email_id)->get($this->table_email_queue)->row();
+        
+        if (!$email) {
+            log_message('error', "Email ID {$email_id} não encontrado na fila");
+            return false;
+        }
+
+        // Verificar se já foi enviado
+        if ($email->status === 'sent') {
+            log_message('info', "Email ID {$email_id} já foi enviado anteriormente");
+            return true;
+        }
+
+        // Marcar como sending
+        $this->CI->db->where('id', $email_id);
+        $this->CI->db->set('status', 'sending');
+        $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+        $this->CI->db->update($this->table_email_queue);
+
+        // Obter configurações de e-mail
+        $this->CI->load->config('email');
+        $config = $this->CI->config->item('email');
+        $smtp_user = $this->CI->config->item('smtp_user');
+        $app_name = 'Adv'; // Nome padrão
+        
+        // Tentar obter nome do sistema
+        if (isset($this->CI->data['configuration']['app_name'])) {
+            $app_name = $this->CI->data['configuration']['app_name'];
+        }
+
+        // Limpar e reconfigurar
+        $this->clear();
+        
+        if ($config) {
+            $this->initialize($config);
+        }
+        
+        // Obter emitente para usar como remetente
+        $this->CI->load->model('sistema_model');
+        $emitente = $this->CI->sistema_model->getEmitente();
+        
+        // Definir remetente padrão
+        if ($emitente && !empty($emitente->email)) {
+            $from_name = $emitente->nome ?? $app_name;
+            $this->from($emitente->email, $from_name);
+        } elseif (!empty($smtp_user)) {
+            $this->from($smtp_user, $app_name);
+        } else {
+            log_message('error', "Email ID {$email_id}: Remetente não configurado (emitente ou smtp_user)");
+            $this->CI->db->where('id', $email_id);
+            $this->CI->db->set('status', 'failed');
+            $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+            $this->CI->db->update($this->table_email_queue);
+            return false;
+        }
+
+        // Definir destinatário
+        $to = is_string($email->to) ? $email->to : (is_array($email->to) ? implode(', ', $email->to) : '');
+        if (empty($to)) {
+            log_message('error', "Email ID {$email_id}: Destinatário vazio");
+            $this->CI->db->where('id', $email_id);
+            $this->CI->db->set('status', 'failed');
+            $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+            $this->CI->db->update($this->table_email_queue);
+            return false;
+        }
+        
+        $this->to($to);
+        
+        // Definir assunto
+        if (isset($email->subject) && !empty($email->subject)) {
+            $this->subject($email->subject);
+        }
+        
+        $this->message($email->message);
+
+        log_message('info', "Tentando enviar email ID {$email_id} para: {$to}");
+        
+        // Tentar enviar
+        if ($this->send(true)) {
+            $status = 'sent';
+            log_message('info', "✅ Email ID {$email_id} enviado com sucesso para: {$to}");
+        } else {
+            $error_msg = $this->print_debugger();
+            log_message('error', "❌ Erro ao enviar email ID {$email_id} para {$to}: " . $error_msg);
+            $status = 'failed';
+        }
+
+        // Atualizar status
+        $this->CI->db->where('id', $email_id);
+        $this->CI->db->set('status', $status);
+        $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+        $this->CI->db->set('attempts', 'attempts + 1', false);
+        $this->CI->db->update($this->table_email_queue);
+
+        return $status === 'sent';
     }
 }

@@ -265,9 +265,9 @@ $estado_value = $valueOr('estado', 'estado');
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label for="email" class="control-label">E-mail</label>
+                                <label for="email" class="control-label">E-mail<span class="required">*</span></label>
                                 <div class="controls">
-                                    <input id="email" type="email" name="email" value="<?php echo htmlspecialchars($valueOr('email', 'email')); ?>" autocomplete="off">
+                                    <input id="email" type="email" name="email" value="<?php echo htmlspecialchars($valueOr('email', 'email')); ?>" autocomplete="off" required>
                                 </div>
                             </div>
                             <div class="control-group">
@@ -436,6 +436,30 @@ $estado_value = $valueOr('estado', 'estado');
                     estadoValue: '<?php echo addslashes($estado_value); ?>',
                     baseUrl: '<?php echo base_url(); ?>',
                     tipoCliente: '<?php echo addslashes($tipo_cliente_value); ?>'
+                });
+                
+                // Garantir que o evento funcione mesmo se o ClienteForm não anexou corretamente
+                $('#tipo_cliente_widget').on('change', function() {
+                    var tipo = $(this).val();
+                    console.log('Evento direto no select - tipo:', tipo);
+                    
+                    // Alternar campos manualmente
+                    if (tipo === 'juridica') {
+                        $('.campos-pf').addClass('is-hidden');
+                        $('.campos-pj').removeClass('is-hidden');
+                    } else {
+                        $('.campos-pf').removeClass('is-hidden');
+                        $('.campos-pj').addClass('is-hidden');
+                    }
+                    
+                    // Atualizar campos hidden
+                    $('#tipo_cliente_hidden').val(tipo);
+                    $('#tipo_cliente').val(tipo);
+                    
+                    // Chamar método do ClienteForm se disponível
+                    if (ClienteForm && typeof ClienteForm.toggleCampos === 'function') {
+                        ClienteForm.toggleCampos(tipo);
+                    }
                 });
             }
         });

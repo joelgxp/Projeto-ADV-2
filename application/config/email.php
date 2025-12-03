@@ -13,3 +13,14 @@ $config['newline'] = $_ENV['EMAIL_NEWLINE'] ?? "\r\n";
 $config['bcc_batch_mode'] = isset($_ENV['EMAIL_BCC_BATCH_MODE']) ? filter_var($_ENV['EMAIL_BCC_BATCH_MODE'], FILTER_VALIDATE_BOOLEAN) : false;
 $config['wordwrap'] = isset($_ENV['EMAIL_WORDWRAP']) ? filter_var($_ENV['EMAIL_WORDWRAP'], FILTER_VALIDATE_BOOLEAN) : false;
 $config['priority'] = $_ENV['EMAIL_PRIORITY'] ?? 3; // 1, 2, 3, 4, 5 | Email Priority. 1 = highest. 5 = lowest. 3 = normal.
+
+// Configurações adicionais para SSL/TLS
+// Para desenvolvimento/testes, pode desabilitar verificação de certificado (NÃO RECOMENDADO EM PRODUÇÃO)
+$config['smtp_timeout'] = $_ENV['EMAIL_SMTP_TIMEOUT'] ?? 5; // Timeout em segundos
+$config['smtp_keepalive'] = isset($_ENV['EMAIL_SMTP_KEEPALIVE']) ? filter_var($_ENV['EMAIL_SMTP_KEEPALIVE'], FILTER_VALIDATE_BOOLEAN) : false;
+
+// Nota: CodeIgniter não suporta diretamente desabilitar verificação SSL
+// Para problemas de certificado, considere:
+// 1. Usar TLS ao invés de SSL
+// 2. Verificar se o certificado do servidor SMTP é válido
+// 3. Configurar corretamente a porta (587 para TLS, 465 para SSL)

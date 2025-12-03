@@ -128,6 +128,30 @@ if (! function_exists('verific_cpf_cnpj')) {
     }
 }
 
+if (! function_exists('verific_cpf')) {
+    /**
+     * Valida apenas CPF (11 dígitos numéricos)
+     * Não aceita CNPJ
+     * 
+     * @param string $cpfValor
+     * @return bool
+     */
+    function verific_cpf($cpfValor)
+    {
+        // Remove tudo que não for número
+        $cpf = preg_replace('/[^0-9]/', '', $cpfValor);
+        $cpf = (string) $cpf;
+
+        // CPF deve ter exatamente 11 dígitos
+        if (strlen($cpf) !== 11 || !ctype_digit($cpf)) {
+            return false;
+        }
+
+        // Validar CPF
+        return valid_cpf($cpf);
+    }
+}
+
 if (! function_exists('unique')) {
     function unique($value, $params)
     {
