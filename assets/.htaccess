@@ -1,0 +1,32 @@
+# Configurações CORS para assets estáticos
+# Permite carregamento de fontes e outros recursos
+
+<IfModule mod_headers.c>
+    # Permitir todas as origens (para desenvolvimento)
+    # Em produção, substitua * pela origem específica
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+    Header set Access-Control-Max-Age "3600"
+</IfModule>
+
+# Configurar tipos MIME para fontes
+<IfModule mod_mime.c>
+    AddType application/font-woff2 .woff2
+    AddType application/font-woff .woff
+    AddType application/vnd.ms-fontobject .eot
+    AddType font/ttf .ttf
+    AddType font/otf .otf
+    AddType image/svg+xml .svg
+</IfModule>
+
+# Cache para fontes e assets estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+</IfModule>
+

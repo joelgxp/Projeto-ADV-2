@@ -188,6 +188,26 @@ class Clientes extends MY_Controller
                     $result = $this->clientes_model->add('clientes', $data);
 
                     if ($result !== false) {
+                        // RN 2.3: Registrar interação de criação
+                        registrar_interacao_cliente(
+                            $result,
+                            'criacao',
+                            'Cliente cadastrado no sistema',
+                            null,
+                            $data
+                        );
+                        
+                        // Enviar email de boas-vindas se houver email cadastrado
+                        $clienteEmail = !empty($data['email']) ? $data['email'] : null;
+                        if ($clienteEmail) {
+                            $emailEnviado = $this->enviarEmailBoasVindas($result);
+                            if ($emailEnviado) {
+                                log_message('info', "Email de boas-vindas enviado para cliente ID: {$result}, Email: {$clienteEmail}");
+                            } else {
+                                log_message('warning', "Email de boas-vindas NÃO foi enviado para cliente ID: {$result}, Email: {$clienteEmail}");
+                            }
+                        }
+                        
                         $this->session->set_flashdata('success', 'Cliente adicionado com sucesso!');
                         log_info('Adicionou um cliente.');
                         redirect(site_url('clientes/'));
@@ -242,9 +262,46 @@ class Clientes extends MY_Controller
                     $clienteAtual = $this->clientes_model->getById($idCliente);
                     $data = $this->_montarDadosCliente($clienteAtual);
 
+                    // RN 2.3: Preparar dados para histórico (comparar antes de salvar)
+                    $camposAlterados = [];
+                    if ($clienteAtual) {
+                        foreach ($data as $campo => $valorNovo) {
+                            $valorAnterior = isset($clienteAtual->$campo) ? $clienteAtual->$campo : null;
+                            
+                            // Converter para string para comparação
+                            $valorAnteriorStr = is_array($valorAnterior) ? json_encode($valorAnterior) : (string)$valorAnterior;
+                            $valorNovoStr = is_array($valorNovo) ? json_encode($valorNovo) : (string)$valorNovo;
+                            
+                            if ($valorAnteriorStr !== $valorNovoStr) {
+                                $camposAlterados[$campo] = [
+                                    'anterior' => $valorAnterior,
+                                    'novo' => $valorNovo
+                                ];
+                            }
+                        }
+                    }
+
                     $result = $this->clientes_model->edit('clientes', $data, 'idClientes', $idCliente);
 
                     if ($result !== false) {
+                        // RN 2.3: Registrar interação de edição com o que mudou
+                        if (!empty($camposAlterados)) {
+                            $descricao = 'Cliente editado. Campos alterados: ' . implode(', ', array_keys($camposAlterados));
+                            registrar_interacao_cliente(
+                                $idCliente,
+                                'edicao',
+                                $descricao,
+                                array_map(function($v) { return $v['anterior']; }, $camposAlterados),
+                                array_map(function($v) { return $v['novo']; }, $camposAlterados)
+                            );
+                        } else {
+                            registrar_interacao_cliente(
+                                $idCliente,
+                                'edicao',
+                                'Cliente editado (sem alterações detectadas)'
+                            );
+                        }
+                        
                         $this->session->set_flashdata('success', 'Cliente editado com sucesso!');
                         log_info('Alterou um cliente. ID' . $idCliente);
                         redirect(site_url('clientes/editar/') . $idCliente);
@@ -374,6 +431,11 @@ class Clientes extends MY_Controller
         $this->data['results'] = $this->clientes_model->getOsByCliente($clienteId);
         $this->data['result_vendas'] = $this->clientes_model->getAllVendasByClient($clienteId);
         $this->data['logs_auditoria'] = [];
+        
+        // RN 2.3: Carregar histórico de interações do cliente
+        $this->load->model('Interacoes_cliente_model');
+        $this->data['interacoes'] = $this->Interacoes_cliente_model->getByCliente($clienteId, null, 50);
+        
         $this->data['view'] = 'clientes/visualizar';
 
         return $this->layout();
@@ -403,10 +465,212 @@ class Clientes extends MY_Controller
             $this->clientes_model->removeClientVendas($vendas);
         }
 
+        // RN 2.3: Registrar interação de exclusão ANTES de deletar
+        $clienteExcluido = $this->clientes_model->getById($id);
+        if ($clienteExcluido) {
+            registrar_interacao_cliente(
+                $id,
+                'exclusao',
+                'Cliente excluído do sistema',
+                (array)$clienteExcluido,
+                null
+            );
+        }
+
         $this->clientes_model->delete('clientes', 'idClientes', $id);
         log_info('Removeu um cliente. ID' . $id);
 
         $this->session->set_flashdata('success', 'Cliente excluido com sucesso!');
         redirect(site_url('clientes/gerenciar/'));
+    }
+
+    /**
+     * Envia email de boas-vindas para novo cliente
+     * Usa o mesmo padrão do reset de senha (envio direto)
+     * 
+     * @param int $idClientes ID do cliente
+     * @return bool True se enviado com sucesso, False caso contrário
+     */
+    private function enviarEmailBoasVindas($idClientes)
+    {
+        log_message('info', '=== INÍCIO enviarEmailBoasVindas ===');
+        log_message('info', 'ID Cliente: ' . $idClientes);
+
+        $this->load->model('sistema_model');
+        $this->load->model('clientes_model');
+
+        $cliente = $this->clientes_model->getById($idClientes);
+        
+        if (!$cliente || empty($cliente->email)) {
+            log_message('error', 'Cliente não encontrado ou sem email. ID: ' . $idClientes);
+            return false;
+        }
+
+        $dados = [];
+        $dados['emitente'] = $this->sistema_model->getEmitente();
+        $dados['cliente'] = $cliente;
+        
+        log_message('info', 'Emitente: ' . ($dados['emitente'] ? 'Encontrado' : 'NULL'));
+        log_message('info', 'Cliente: ' . $cliente->nomeCliente . ' - Email: ' . $cliente->email);
+
+        if ($dados['emitente'] == null) {
+            log_message('error', 'Emitente não configurado!');
+            return false;
+        }
+
+        // Tentar carregar view de email de boas-vindas
+        // Se não encontrar, usar HTML básico
+        $html = null;
+        $view_paths = [
+            'emails/cliente_novo',
+            'conecte/emails/boas_vindas'
+        ];
+        
+        foreach ($view_paths as $view_path) {
+            // Verificar se o arquivo existe antes de tentar carregar
+            $view_file = APPPATH . 'views/' . $view_path . '.php';
+            if (file_exists($view_file)) {
+                try {
+                    $html = $this->load->view($view_path, $dados, true);
+                    log_message('info', 'View de email encontrada e carregada: ' . $view_path);
+                    break;
+                } catch (Exception $e) {
+                    log_message('debug', 'Erro ao carregar view: ' . $view_path . ' - ' . $e->getMessage());
+                    continue;
+                }
+            } else {
+                log_message('debug', 'View não encontrada (arquivo não existe): ' . $view_path);
+            }
+        }
+        
+        // Se não encontrou view, criar HTML básico
+        if (!$html) {
+            log_message('info', 'Nenhuma view de email encontrada, criando HTML básico');
+            $app_name = $this->config->item('app_name') ?: 'Sistema';
+            $nome_emitente = $dados['emitente']->nome ?? 'Equipe';
+            
+            // HTML básico de boas-vindas usando o mesmo estilo do clientenovasenha
+            $html = '
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        .invoice-box {
+            max-width: 1100px;
+            margin: auto;
+            padding: 10px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+            font-size: 16px;
+            line-height: 24px;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: #555;
+        }
+        .invoice-box table {
+            width: 100%;
+            line-height: inherit;
+            text-align: left;
+        }
+        .invoice-box table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .invoice-box table tr.details td {
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <table cellpadding="0" cellspacing="0">
+            <tr class="details">
+                <td colspan="4" style="text-align: left">
+                    <h2>Bem-vindo ao ' . htmlspecialchars($app_name) . '!</h2>
+                </td>
+            </tr>
+            <tr class="details">
+                <td colspan="4" style="text-align: left">
+                    Caro(a) <b>' . htmlspecialchars($cliente->nomeCliente) . '</b>,
+                    <br><br>
+                    Seu cadastro foi realizado com sucesso no nosso sistema.
+                    <br><br>
+                    Você já pode acessar o portal do cliente com suas credenciais de acesso.
+                    <br><br>
+                </td>
+            </tr>
+            <tr class="details">
+                <td colspan="4" style="text-align: left">
+                    Um abraço!<br>
+                    Equipe ' . htmlspecialchars($nome_emitente) . '
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>';
+        }
+
+        // Enviar email diretamente (mesmo padrão do testarEmail e reset de senha)
+        $this->load->library('email');
+        $this->load->config('email');
+        $config = $this->config->item('email');
+        $smtp_user = $this->config->item('smtp_user');
+        $app_name = $this->config->item('app_name') ?: 'Sistema';
+
+        if (empty($smtp_user)) {
+            log_message('error', 'Erro: E-mail remetente não configurado. EMAIL_SMTP_USER não está definido.');
+            return false;
+        }
+
+        // Inicializar email com configurações
+        if ($config) {
+            $this->email->initialize($config);
+        }
+
+        // Configurar remetente e destinatário
+        $this->email->clear();
+        $this->email->from($smtp_user, $app_name);
+        $this->email->to($cliente->email);
+        $this->email->subject('Bem-vindo ao ' . $app_name . '!');
+        $this->email->message($html);
+
+        log_message('info', 'Tentando enviar email de boas-vindas para: ' . $cliente->email . ' (usando remetente: ' . $smtp_user . ')');
+
+        // Enviar diretamente
+        if ($this->email->send(true)) {
+            log_message('info', '✅ Email de boas-vindas enviado com sucesso para: ' . $cliente->email);
+
+            // Adicionar à fila para registro/auditoria
+            $this->load->model('email_model');
+            $email_data = [
+                'to' => $cliente->email,
+                'subject' => 'Bem-vindo ao ' . $app_name . '!',
+                'message' => $html,
+                'status' => 'sent',
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+            $this->email_model->add('email_queue', $email_data);
+
+            log_message('info', '=== FIM enviarEmailBoasVindas (SUCESSO) ===');
+            return true;
+        } else {
+            $error_msg = $this->email->print_debugger();
+            log_message('error', '❌ Erro ao enviar email de boas-vindas para ' . $cliente->email . ': ' . $error_msg);
+
+            // Adicionar à fila como failed para tentar depois
+            $this->load->model('email_model');
+            $email_data = [
+                'to' => $cliente->email,
+                'subject' => 'Bem-vindo ao ' . $app_name . '!',
+                'message' => $html,
+                'status' => 'failed',
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+            $this->email_model->add('email_queue', $email_data);
+
+            log_message('info', '=== FIM enviarEmailBoasVindas (ERRO) ===');
+            return false;
+        }
     }
 }

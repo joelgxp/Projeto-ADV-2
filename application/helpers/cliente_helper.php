@@ -345,3 +345,119 @@ if (! function_exists('gerar_senha_padrao')) {
         return $senha;
     }
 }
+
+if (! function_exists('registrar_interacao_cliente')) {
+    /**
+     * Registra uma interação com um cliente
+     * 
+     * RN 2.3: Histórico completo de interações (timestamps, quem, o quê mudou)
+     *
+     * @param int $cliente_id ID do cliente
+     * @param string $tipo Tipo de interação (criacao, edicao, exclusao -> mapeado para 'outro'; reuniao, telefonema, email, nota)
+     * @param string $descricao Descrição da interação ou o que mudou
+     * @param array|null $dados_anteriores Dados anteriores (para edições) - armazenado na descricao
+     * @param array|null $dados_novos Dados novos (para edições) - armazenado na descricao
+     * @param string|null $nota Nota livre adicionada pelo usuário - armazenado na descricao
+     * @return int|false ID da interação ou false em caso de erro
+     */
+    function registrar_interacao_cliente($cliente_id, $tipo, $descricao, $dados_anteriores = null, $dados_novos = null, $nota = null)
+    {
+        $ci = &get_instance();
+        $ci->load->model('Interacoes_cliente_model');
+        
+        // Obter ID do usuário logado
+        $usuario_id = null;
+        if ($ci->session->userdata('idUsuarios')) {
+            $usuario_id = $ci->session->userdata('idUsuarios');
+        } elseif ($ci->session->userdata('cliente_id')) {
+            // Se for cliente logado, não há usuarios_id
+            $usuario_id = null;
+        }
+        
+        // Mapear tipos para os valores permitidos na tabela (ENUM)
+        $tipos_permitidos = ['reuniao', 'telefonema', 'email', 'nota', 'outro'];
+        
+        // Mapear tipos especiais para 'outro'
+        $tipos_mapeados = [
+            'criacao' => 'outro',
+            'edicao' => 'outro',
+            'exclusao' => 'outro',
+            'reuniao' => 'reuniao',
+            'telefone' => 'telefonema',
+            'telefonema' => 'telefonema',
+            'email' => 'email',
+            'nota' => 'nota',
+            'status' => 'outro',
+        ];
+        
+        $tipo_mapeado = isset($tipos_mapeados[$tipo]) ? $tipos_mapeados[$tipo] : 'outro';
+        
+        // Montar título baseado no tipo
+        $titulos = [
+            'criacao' => 'Cliente Cadastrado',
+            'edicao' => 'Cliente Editado',
+            'exclusao' => 'Cliente Excluído',
+            'reuniao' => 'Reunião',
+            'telefonema' => 'Telefonema',
+            'email' => 'E-mail',
+            'nota' => 'Nota',
+            'outro' => 'Interação',
+        ];
+        
+        $titulo = isset($titulos[$tipo]) ? $titulos[$tipo] : 'Interação';
+        
+        // Montar descrição completa com detalhes
+        $descricao_completa = $descricao;
+        
+        // Adicionar informações sobre dados alterados (para edições)
+        if ($dados_anteriores !== null && $dados_novos !== null && !empty($dados_anteriores)) {
+            $campos_alterados = array_keys($dados_anteriores);
+            $descricao_completa .= "\n\nCampos alterados: " . implode(', ', $campos_alterados);
+            
+            // Adicionar resumo das alterações principais
+            $alteracoes_detalhadas = [];
+            foreach ($campos_alterados as $campo) {
+                $valor_ant = $dados_anteriores[$campo] ?? 'N/A';
+                $valor_nov = $dados_novos[$campo] ?? 'N/A';
+                
+                // Limitar tamanho dos valores para não ficar muito longo
+                $valor_ant_str = is_string($valor_ant) ? substr($valor_ant, 0, 50) : (string)$valor_ant;
+                $valor_nov_str = is_string($valor_nov) ? substr($valor_nov, 0, 50) : (string)$valor_nov;
+                
+                $alteracoes_detalhadas[] = "\n  • {$campo}: '{$valor_ant_str}' → '{$valor_nov_str}'";
+            }
+            
+            if (!empty($alteracoes_detalhadas)) {
+                $descricao_completa .= "\n" . implode('', $alteracoes_detalhadas);
+            }
+        }
+        
+        // Adicionar nota se fornecida
+        if ($nota !== null && !empty($nota)) {
+            $descricao_completa .= "\n\nNota: " . $nota;
+        }
+        
+        // Adicionar informações do usuário e contexto
+        $usuario_info = 'Sistema';
+        if ($ci->session->userdata('nome_admin')) {
+            $usuario_info = $ci->session->userdata('nome_admin');
+        } elseif ($ci->session->userdata('nome')) {
+            $usuario_info = $ci->session->userdata('nome');
+        }
+        
+        $descricao_completa .= "\n\nUsuário: {$usuario_info}";
+        $descricao_completa .= "\nIP: " . $ci->input->ip_address();
+        
+        $data = [
+            'clientes_id' => $cliente_id,
+            'usuarios_id' => $usuario_id,
+            'tipo' => $tipo_mapeado,
+            'titulo' => $titulo,
+            'descricao' => $descricao_completa,
+            'data_hora' => date('Y-m-d H:i:s'),
+            'dataCadastro' => date('Y-m-d H:i:s'),
+        ];
+        
+        return $ci->Interacoes_cliente_model->add($data);
+    }
+}

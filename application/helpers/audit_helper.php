@@ -8,9 +8,21 @@ function log_info($task)
     $ci = &get_instance();
     $ci->load->model('Audit_model');
 
+    // Obter nome do usuário - pode ser admin ou cliente
+    $usuario = $ci->session->userdata('nome_admin');
+    if (empty($usuario)) {
+        // Tentar obter nome do cliente se não for admin
+        $usuario = $ci->session->userdata('nome');
+    }
+    if (empty($usuario)) {
+        // Se não houver usuário, usar valor padrão
+        $usuario = 'Sistema';
+    }
+
     $data = [
-        'usuario' => $ci->session->userdata('nome_admin'),
+        'usuario' => $usuario,
         'ip' => $ci->input->ip_address(),
+        'user_agent' => $ci->input->user_agent(), // RN 1.4: Registrar navegador
         'tarefa' => $task,
         'data' => date('Y-m-d'),
         'hora' => date('H:i:s'),

@@ -30,6 +30,12 @@ class Audit_model extends CI_Model
 
     public function add($data)
     {
+        // Adicionar user_agent se não foi fornecido (RN 1.4)
+        if (!isset($data['user_agent'])) {
+            $ci = &get_instance();
+            $data['user_agent'] = $ci->input->user_agent();
+        }
+        
         $this->db->insert('logs', $data);
         if ($this->db->affected_rows() == '1') {
             return true;

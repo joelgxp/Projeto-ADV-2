@@ -218,14 +218,6 @@
                     </div>
                 </form>
 
-                <div id="endpoint-info" style="margin-top: 15px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; display: none;">
-                    <small style="color: #666;">
-                        <strong>Endpoint utilizado:</strong> <span id="endpoint-url">-</span><br>
-                        <strong>Segmento:</strong> <span id="endpoint-segmento">-</span> | 
-                        <strong>Tribunal:</strong> <span id="endpoint-tribunal">-</span>
-                    </small>
-                </div>
-
                 <div id="resultado" style="margin-top: 20px; display: none;">
                     <h4>Resultado da Consulta</h4>
                     <div id="resultadoContent"></div>
@@ -486,7 +478,6 @@
             
             $('#loading').show();
             $('#resultado').hide();
-            $('#endpoint-info').hide();
             
             $.ajax({
                 url: '<?= site_url('consulta-processual/consultar') ?>',
@@ -501,30 +492,14 @@
                 success: function(response) {
                     $('#loading').hide();
                     
-                    // Tenta encontrar endpoint_info em diferentes locais
-                    var endpointInfo = null;
-                    if (response.success && response.data && response.data.endpoint_info) {
-                        endpointInfo = response.data.endpoint_info;
-                    } else if (response.endpoint_info) {
-                        endpointInfo = response.endpoint_info;
-                    } else if (response.data && response.data.endpoint_info) {
-                        endpointInfo = response.data.endpoint_info;
-                    }
-                    
-                    // Exibe informações do endpoint se disponível
-                    if (endpointInfo) {
-                        $('#endpoint-url').text(endpointInfo.url || '-');
-                        $('#endpoint-segmento').text(endpointInfo.segmento || '-');
-                        $('#endpoint-tribunal').text(endpointInfo.tribunal || '-');
-                        $('#endpoint-info').show();
-                    } else {
-                        $('#endpoint-info').hide();
-                    }
-                    
                     if (response.success) {
-                        exibirResultado(response.data);
-                        // Ativar botão de vincular cliente
-                        $('#btnVincularCliente').prop('disabled', false);
+                        exibirResultado(response.data, response.processo_salvo, response.processos_salvos || {});
+                        // Se o processo já está salvo, desabilita o botão de vincular cliente
+                        if (response.processo_salvo && response.processo_salvo.id) {
+                            $('#btnVincularCliente').prop('disabled', true);
+                        } else {
+                            $('#btnVincularCliente').prop('disabled', false);
+                        }
                     } else {
                         // Usa função helper para mostrar erro
                         showErrorAlert(
@@ -541,7 +516,6 @@
                 },
                 error: function(xhr, status, error) {
                     $('#loading').hide();
-                    $('#endpoint-info').hide();
                     $('#btnVincularCliente').prop('disabled', true);
                     window.dadosProcessoAtual = null;
                     
@@ -571,7 +545,7 @@
             });
         });
         
-        function exibirResultado(dados) {
+        function exibirResultado(dados, processoSalvo, processosSalvosMap) {
             var html = '<div class="span12">';
             
             // Verificar se é resultado único ou múltiplo
@@ -583,6 +557,12 @@
             } else {
                 // Resultado único (compatibilidade)
                 processos = [dados];
+            }
+            
+            // Função auxiliar para normalizar número de processo
+            function normalizarNumero(numero) {
+                if (!numero) return null;
+                return String(numero).replace(/[^0-9]/g, '');
             }
             
             // Função auxiliar para formatar classe
@@ -614,6 +594,34 @@
             
             // Exibir cada processo
             processos.forEach(function(processo, index) {
+                // Verificar se este processo específico já está salvo
+                var numProcesso = normalizarNumero(processo.numero_limpo || processo.numero);
+                var procSalvo = null;
+                if (numProcesso && processosSalvosMap && processosSalvosMap[numProcesso]) {
+                    procSalvo = processosSalvosMap[numProcesso];
+                }
+                
+                // Se o processo já está salvo, apenas exibir alerta e não mostrar dados
+                if (procSalvo && procSalvo.id) {
+                    if (processos.length > 1) {
+                        html += '<div style="margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">';
+                        html += '<h5 style="margin-top: 0; color: #333;">Processo ' + (index + 1) + ' de ' + processos.length + '</h5>';
+                    }
+                    html += '<div class="alert alert-info" style="margin-bottom: 15px;">';
+                    html += '<i class="bx bx-info-circle"></i> <strong>Este processo já está cadastrado no sistema.</strong> ';
+                    html += '<a href="<?= base_url() ?>index.php/processos/visualizar/' + procSalvo.id + '" class="btn btn-sm btn-primary" style="margin-left: 10px;">';
+                    html += '<i class="bx bx-show"></i> Visualizar Processo';
+                    html += '</a>';
+                    html += '</div>';
+                    // Fechar div se houver múltiplos processos
+                    if (processos.length > 1) {
+                        html += '</div>';
+                    }
+                    // Não exibir mais dados deste processo, continuar para o próximo
+                    return;
+                }
+                
+                // Se chegou aqui, o processo não está salvo, exibir dados normalmente
                 if (processos.length > 1) {
                     html += '<div style="margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">';
                     html += '<h5 style="margin-top: 0; color: #333;">Processo ' + (index + 1) + ' de ' + processos.length + '</h5>';
@@ -731,8 +739,21 @@
             
             // Armazenar dados do primeiro processo para o modal (ou permitir seleção)
             if (processos.length > 0) {
-                window.dadosProcessoAtual = processos[0]; // Usa o primeiro processo
-                $('#btnVincularCliente').prop('disabled', false);
+                // Verificar se o primeiro processo já está salvo
+                var primeiroProcesso = processos[0];
+                var numPrimeiroProcesso = normalizarNumero(primeiroProcesso.numero_limpo || primeiroProcesso.numero);
+                var primeiroProcSalvo = null;
+                if (numPrimeiroProcesso && processosSalvosMap && processosSalvosMap[numPrimeiroProcesso]) {
+                    primeiroProcSalvo = processosSalvosMap[numPrimeiroProcesso];
+                }
+                
+                window.dadosProcessoAtual = primeiroProcesso; // Usa o primeiro processo
+                // Se o processo já está salvo, desabilita o botão de vincular cliente
+                if (primeiroProcSalvo && primeiroProcSalvo.id) {
+                    $('#btnVincularCliente').prop('disabled', true);
+                } else {
+                    $('#btnVincularCliente').prop('disabled', false);
+                }
             }
             
             // Event handler para próxima página
@@ -765,7 +786,7 @@
                     success: function(response) {
                         $('#loading').hide();
                         if (response.success) {
-                            exibirResultado(response.data);
+                            exibirResultado(response.data, response.processo_salvo, response.processos_salvos || {});
                         } else {
                             showErrorAlert('Erro', response.message || 'Erro ao carregar próxima página.');
                         }
@@ -1049,7 +1070,6 @@
                     }
                     selecionarClienteModal(response.cliente);
                     ocultarFormCadastroRapidoModal();
-                    showAlert('Sucesso', response.message, 'success');
                 } else {
                     if (response.cliente_existente) {
                         if (confirm(response.message + '\n\nDeseja usar este cliente?')) {
@@ -1097,13 +1117,6 @@
             numeroProcesso = numeroProcesso.replace(/[^0-9]/g, '');
         }
         
-        // Confirmação
-        var msgConfirmacao = 'Deseja salvar este processo no sistema?\n\nCliente vinculado: ' + $('#cliente_nome_modal').text();
-        
-        if (!confirm(msgConfirmacao)) {
-            return;
-        }
-        
         // Desabilita botão para evitar duplo clique
         $('#btnSalvarProcessoModal').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Salvando...');
         
@@ -1120,7 +1133,6 @@
                 $('#btnSalvarProcessoModal').prop('disabled', false).html('<i class="bx bx-save"></i> Salvar Processo');
                 
                 if (response.success) {
-                    showAlert('Sucesso', response.message, 'success');
                         if (typeof $.fn.modal !== 'undefined') {
                             $('#modalVincularCliente').modal('hide');
                         } else {
@@ -1132,15 +1144,13 @@
                         }
                 } else {
                     if (response.processo_id) {
-                        if (confirm(response.message + '\n\nDeseja visualizar o processo existente?')) {
-                            // Fechar modal
-                            if (typeof $.fn.modal !== 'undefined') {
-                                $('#modalVincularCliente').modal('hide');
-                            } else {
-                                $('#modalVincularCliente').hide();
-                            }
-                            window.location.href = '<?= base_url() ?>index.php/processos/visualizar/' + response.processo_id;
+                        // Fechar modal
+                        if (typeof $.fn.modal !== 'undefined') {
+                            $('#modalVincularCliente').modal('hide');
+                        } else {
+                            $('#modalVincularCliente').hide();
                         }
+                        window.location.href = '<?= base_url() ?>index.php/processos/visualizar/' + response.processo_id;
                     } else {
                         showAlert('Erro', response.message || 'Erro ao salvar processo.', 'error');
                     }
@@ -1282,7 +1292,6 @@
                 if (response.success) {
                     selecionarCliente(index, response.cliente);
                     ocultarFormCadastroRapido(index);
-                    showAlert('Sucesso', response.message, 'success');
                 } else {
                     if (response.cliente_existente) {
                         if (confirm(response.message + '\n\nDeseja usar este cliente?')) {
@@ -1309,11 +1318,6 @@
             return;
         }
         
-        // Confirmação
-        if (!confirm('Deseja salvar este processo no sistema?' + (clienteId ? '\n\nCliente vinculado: ' + $('#cliente_nome_' + index).text() : '\n\nNenhum cliente vinculado.'))) {
-            return;
-        }
-        
         $.ajax({
             url: '<?= site_url('consulta-processual/salvar-processo') ?>',
             type: 'POST',
@@ -1325,15 +1329,12 @@
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    showAlert('Sucesso', response.message, 'success');
                         if (response.processo_id) {
                             window.location.href = '<?= base_url() ?>index.php/processos/visualizar/' + response.processo_id;
                         }
                 } else {
                     if (response.processo_id) {
-                        if (confirm(response.message + '\n\nDeseja visualizar o processo existente?')) {
-                            window.location.href = '<?= base_url() ?>index.php/processos/visualizar/' + response.processo_id;
-                        }
+                        window.location.href = '<?= base_url() ?>index.php/processos/visualizar/' + response.processo_id;
                     } else {
                         showErrorAlert('Erro', response.message);
                     }

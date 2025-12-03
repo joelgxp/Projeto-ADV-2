@@ -244,7 +244,9 @@ $config['allow_get_array'] = true;
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = 1;
+// Temporariamente aumentado para debug (4 = todas as mensagens incluindo debug)
+// Alterar para 1 em produção para apenas erros
+$config['log_threshold'] = 4;
 
 /*
 |--------------------------------------------------------------------------
@@ -447,7 +449,11 @@ $config['csrf_token_name'] = $_ENV['APP_CSRF_TOKEN_NAME'] ?? 'ADV_TOKEN';
 $config['csrf_cookie_name'] = $_ENV['APP_CSRF_COOKIE_NAME'] ?? 'ADV_COOKIE';
 $config['csrf_expire'] = $_ENV['APP_CSRF_EXPIRE'] ?? 7200;
 $config['csrf_regenerate'] = isset($_ENV['APP_CSRF_REGENERATE']) ? filter_var($_ENV['APP_CSRF_REGENERATE'], FILTER_VALIDATE_BOOLEAN) : true;
-$config['csrf_exclude_uris'] = ['api.*+'];
+$config['csrf_exclude_uris'] = [
+    'api.*+',
+    'mine.*',  // Área pública do cliente - não requer CSRF
+    'login/verificarLogin',  // Login - pode ser excluído ou usar CSRF normal
+];
 
 /*
 |--------------------------------------------------------------------------

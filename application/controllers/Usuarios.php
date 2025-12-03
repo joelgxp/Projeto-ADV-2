@@ -16,6 +16,7 @@ class Usuarios extends MY_Controller
         }
 
         $this->load->helper('form');
+        $this->load->helper('password');
         $this->load->model('usuarios_model');
         $this->data['menuUsuarios'] = 'Usuários';
         $this->data['menuConfiguracoes'] = 'Configurações';
@@ -105,7 +106,6 @@ class Usuarios extends MY_Controller
             $this->db->group_start();
             $this->db->like('usuarios.nome', $search);
             $this->db->or_like('usuarios.cpf', $search);
-            $this->db->or_like('usuarios.telefone', $search);
             $this->db->or_like('permissoes.nome', $search);
             $this->db->group_end();
             
@@ -119,7 +119,6 @@ class Usuarios extends MY_Controller
             $this->db->group_start();
             $this->db->like('usuarios.nome', $search);
             $this->db->or_like('usuarios.cpf', $search);
-            $this->db->or_like('usuarios.telefone', $search);
             $this->db->or_like('permissoes.nome', $search);
             $this->db->group_end();
             $this->db->limit($length, $start);
@@ -137,11 +136,15 @@ class Usuarios extends MY_Controller
                 // Ações
                 $acoes = '<a href="' . base_url('index.php/usuarios/editar/' . $r->idUsuarios) . '" class="btn-nwe3" title="Editar Usuário"><i class="bx bx-edit"></i></a>';
                 
+                // Não mostrar botão de excluir para usuário do sistema (ID 1)
+                if ($r->idUsuarios != 1) {
+                    $acoes .= ' <a href="#modal-excluir" role="button" data-toggle="modal" usuario="' . $r->idUsuarios . '" class="btn-nwe4" title="Excluir Usuário"><i class="bx bx-trash-alt"></i></a>';
+                }
+                
                 $data[] = [
                     $r->idUsuarios ?? '-',
                     $r->nome ?? '-',
                     $r->cpf ?? '-',
-                    $r->telefone ?? '-',
                     $r->permissao ?? '-',
                     '<span class="badge ' . $situacaoClasse . '">' . ucfirst($situacao) . '</span>',
                     $r->dataExpiracao ?? '-',
@@ -170,9 +173,9 @@ class Usuarios extends MY_Controller
         $this->data['custom_error'] = '';
 
         // Adicionar validação de unicidade para CPF e Email
-        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf_cnpj|is_unique[usuarios.cpf]', [
+        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf|is_unique[usuarios.cpf]', [
             'is_unique' => 'Este CPF já está cadastrado no sistema.',
-            'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.'
+            'verific_cpf' => 'O campo %s deve ser um CPF válido (11 dígitos).'
         ]);
         $this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email|is_unique[usuarios.email]', [
             'is_unique' => 'Este email já está cadastrado no sistema.',
@@ -184,7 +187,7 @@ class Usuarios extends MY_Controller
         } else {
             $data = [
                 'nome' => set_value('nome'),
-                'rg' => set_value('rg'),
+                'oab' => set_value('oab'),
                 'cpf' => set_value('cpf'),
                 'cep' => set_value('cep'),
                 'rua' => set_value('rua'),
@@ -194,20 +197,51 @@ class Usuarios extends MY_Controller
                 'estado' => set_value('estado'),
                 'email' => set_value('email'),
                 'senha' => password_hash($this->input->post('senha'), PASSWORD_DEFAULT),
-                'telefone' => set_value('telefone'),
                 'celular' => set_value('celular'),
                 'dataExpiracao' => set_value('dataExpiracao'),
                 'situacao' => set_value('situacao'),
                 'permissoes_id' => $this->input->post('permissoes_id'),
-                'dataCadastro' => date('Y-m-d'),
+                'email_confirmado' => 0, // RN 1.1: E-mail não confirmado inicialmente
+                'dataCadastro' => date('Y-m-d H:i:s'),
             ];
 
             if ($this->usuarios_model->add('usuarios', $data) == true) {
-                $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso!');
+                $usuario_id = $this->db->insert_id();
+                
+                // Criar token de confirmação de e-mail (RN 1.1)
+                $this->load->model('Confirmacoes_email_model');
+                $token_data = $this->Confirmacoes_email_model->criarToken($usuario_id);
+                
+                if ($token_data) {
+                    // Enviar e-mail de confirmação (RN 1.1)
+                    log_message('info', "Iniciando envio de email de confirmação para usuário ID: {$usuario_id}, Email: " . set_value('email'));
+                    $email_enviado = $this->enviarEmailConfirmacao(set_value('email'), set_value('nome'), $token_data['token']);
+                    
+                    if ($email_enviado) {
+                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada (e spam).');
+                        log_message('info', "✅ Processo de envio de email concluído com sucesso para: " . set_value('email'));
+                    } else {
+                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Porém, houve um problema ao enviar o e-mail. Verifique os logs e a fila de emails.');
+                        log_message('error', "❌ Falha no processo de envio de email para: " . set_value('email'));
+                    }
+                } else {
+                    log_message('error', '❌ Erro ao criar token de confirmação para usuário ID: ' . $usuario_id);
+                    $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Porém, não foi possível criar o token de confirmação.');
+                }
+                
                 log_info('Adicionou um usuário.');
-                redirect(site_url('usuarios/adicionar/'));
+                redirect(site_url('usuarios/gerenciar/'));
             } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro.</p></div>';
+                // Capturar erro do banco de dados para debug
+                $db_error = $this->db->error();
+                $error_message = 'Ocorreu um erro ao cadastrar o usuário.';
+                
+                if (!empty($db_error['message'])) {
+                    log_message('error', 'Erro ao cadastrar usuário: ' . $db_error['message']);
+                    $error_message .= ' Detalhes: ' . $db_error['message'];
+                }
+                
+                $this->data['custom_error'] = '<div class="form_error"><p>' . $error_message . '</p></div>';
             }
         }
 
@@ -230,24 +264,16 @@ class Usuarios extends MY_Controller
         $this->load->library('form_validation');
         $this->data['custom_error'] = '';
         $this->form_validation->set_rules('nome', 'Nome', 'trim|required');
-        $this->form_validation->set_rules('rg', 'RG', 'trim|required');
         // Validação de CPF único (exceto o próprio registro na edição)
-        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf_cnpj|callback_check_unique_cpf[' . $idUsuario . ']', [
-            'verific_cpf_cnpj' => 'O campo %s não é um CPF válido.',
+        $this->form_validation->set_rules('cpf', 'CPF', 'trim|required|verific_cpf|callback_check_unique_cpf[' . $idUsuario . ']', [
+            'verific_cpf' => 'O campo %s deve ser um CPF válido (11 dígitos).',
             'check_unique_cpf' => 'Este CPF já está cadastrado no sistema.'
         ]);
-        $this->form_validation->set_rules('cep', 'CEP', 'trim|required');
-        $this->form_validation->set_rules('rua', 'Rua', 'trim|required');
-        $this->form_validation->set_rules('numero', 'Número', 'trim|required');
-        $this->form_validation->set_rules('bairro', 'Bairro', 'trim|required');
-        $this->form_validation->set_rules('cidade', 'Cidade', 'trim|required');
-        $this->form_validation->set_rules('estado', 'Estado', 'trim|required');
         // Validação de Email único (exceto o próprio registro na edição)
         $this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email|callback_check_unique_email[' . $idUsuario . ']', [
             'valid_email' => 'O campo %s deve conter um email válido.',
             'check_unique_email' => 'Este email já está cadastrado no sistema.'
         ]);
-        $this->form_validation->set_rules('telefone', 'Telefone', 'trim|required');
         $this->form_validation->set_rules('situacao', 'Situação', 'trim|required');
         $this->form_validation->set_rules('permissoes_id', 'Permissão', 'trim|required');
 
@@ -265,7 +291,7 @@ class Usuarios extends MY_Controller
 
                 $data = [
                     'nome' => $this->input->post('nome'),
-                    'rg' => $this->input->post('rg'),
+                    'oab' => $this->input->post('oab'),
                     'cpf' => $this->input->post('cpf'),
                     'cep' => $this->input->post('cep'),
                     'rua' => $this->input->post('rua'),
@@ -275,7 +301,6 @@ class Usuarios extends MY_Controller
                     'estado' => $this->input->post('estado'),
                     'email' => $this->input->post('email'),
                     'senha' => $senha,
-                    'telefone' => $this->input->post('telefone'),
                     'celular' => $this->input->post('celular'),
                     'dataExpiracao' => set_value('dataExpiracao'),
                     'situacao' => $this->input->post('situacao'),
@@ -284,7 +309,7 @@ class Usuarios extends MY_Controller
             } else {
                 $data = [
                     'nome' => $this->input->post('nome'),
-                    'rg' => $this->input->post('rg'),
+                    'oab' => $this->input->post('oab'),
                     'cpf' => $this->input->post('cpf'),
                     'cep' => $this->input->post('cep'),
                     'rua' => $this->input->post('rua'),
@@ -293,7 +318,6 @@ class Usuarios extends MY_Controller
                     'cidade' => $this->input->post('cidade'),
                     'estado' => $this->input->post('estado'),
                     'email' => $this->input->post('email'),
-                    'telefone' => $this->input->post('telefone'),
                     'celular' => $this->input->post('celular'),
                     'dataExpiracao' => set_value('dataExpiracao'),
                     'situacao' => $this->input->post('situacao'),
@@ -321,9 +345,33 @@ class Usuarios extends MY_Controller
 
     public function excluir()
     {
-        $id = $this->uri->segment(3);
+        // Aceitar ID via POST (modal) ou GET (URL direta)
+        $id = $this->input->post('id') ?: $this->uri->segment(3);
+        
+        if (!$id) {
+            $this->session->set_flashdata('error', 'ID do usuário não informado.');
+            redirect(site_url('usuarios/gerenciar/'));
+            return;
+        }
+        
+        // Proteger usuário do sistema (ID 1 - super admin)
+        if ($id == 1) {
+            $this->session->set_flashdata('error', 'O usuário do sistema não pode ser excluído!');
+            redirect(site_url('usuarios/gerenciar/'));
+            return;
+        }
+        
+        // Verificar se o usuário existe
+        $usuario = $this->usuarios_model->getById($id);
+        if (!$usuario) {
+            $this->session->set_flashdata('error', 'Usuário não encontrado.');
+            redirect(site_url('usuarios/gerenciar/'));
+            return;
+        }
+        
         $this->usuarios_model->delete('usuarios', 'idUsuarios', $id);
 
+        $this->session->set_flashdata('success', 'Usuário excluído com sucesso!');
         log_info('Removeu um usuário. ID: ' . $id);
 
         redirect(site_url('usuarios/gerenciar/'));
@@ -363,5 +411,172 @@ class Usuarios extends MY_Controller
             return false;
         }
         return true;
+    }
+
+    /**
+     * Callback para validar senha forte (RN 1.1)
+     */
+    public function validar_senha_forte($senha)
+    {
+        $validacao = validar_senha_forte($senha);
+        
+        if (!$validacao['valido']) {
+            $this->form_validation->set_message('validar_senha_forte', implode(' ', $validacao['erros']));
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Envia e-mail de confirmação para novo usuário (RN 1.1)
+     * Envia imediatamente e também adiciona à fila como backup
+     * 
+     * @param string $email Email do destinatário
+     * @param string $nome Nome do usuário
+     * @param string $token Token de confirmação
+     * @return bool True se enviado com sucesso, False caso contrário
+     */
+    private function enviarEmailConfirmacao($email, $nome, $token)
+    {
+        try {
+            // IMPORTANTE: Carregar config ANTES da biblioteca para garantir que as configurações sejam aplicadas
+            $this->load->config('email');
+            $this->load->library('email');
+            $this->load->model('email_model');
+            
+            $link_confirmacao = site_url('usuarios/confirmar_email/' . $token);
+            $data_expiracao = date('d/m/Y H:i', strtotime('+24 hours'));
+            
+            $mensagem = "
+            <html>
+            <body>
+                <h2>Confirmação de E-mail - Sistema Adv</h2>
+                <p>Olá, <strong>{$nome}</strong>!</p>
+                <p>Bem-vindo ao sistema. Para ativar sua conta, por favor clique no link abaixo para confirmar seu e-mail:</p>
+                <p><a href=\"{$link_confirmacao}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>Confirmar E-mail</a></p>
+                <p>Ou copie e cole este link no seu navegador:</p>
+                <p>{$link_confirmacao}</p>
+                <p><strong>Este link expira em 24 horas.</strong> (válido até {$data_expiracao})</p>
+                <p>Se você não solicitou este cadastro, ignore este e-mail.</p>
+                <hr>
+                <p style='color: #666; font-size: 12px;'>Este é um e-mail automático, por favor não responda.</p>
+            </body>
+            </html>
+            ";
+            
+            // Obter configurações de e-mail (já carregadas acima)
+            $smtp_user = $this->config->item('smtp_user');
+            $app_name = isset($this->data['configuration']['app_name']) ? $this->data['configuration']['app_name'] : 'Adv';
+            
+            // Validar se o remetente está configurado
+            if (empty($smtp_user)) {
+                log_message('error', 'Erro: E-mail remetente não configurado. Configure o EMAIL_SMTP_USER nas configurações.');
+                // Adicionar à fila mesmo sem remetente configurado (pode ser configurado depois)
+                $email_data = [
+                    'to' => $email,
+                    'subject' => 'Confirmação de E-mail - Sistema Adv',
+                    'message' => $mensagem,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                $this->email_model->add('email_queue', $email_data);
+                return false;
+            }
+            
+            // Adicionar à fila e processar imediatamente usando método centralizado
+            $email_data = [
+                'to' => $email,
+                'subject' => 'Confirmação de E-mail - Sistema Adv',
+                'message' => $mensagem,
+                'status' => 'pending',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            if ($this->email_model->add('email_queue', $email_data)) {
+                $email_id = $this->db->insert_id();
+                log_message('info', "Email de confirmação adicionado à fila. ID: {$email_id}, Para: {$email} (Token: {$token})");
+                
+                // Processar imediatamente usando método centralizado
+                $this->load->library('email');
+                $enviado = $this->email->send_single($email_id);
+                
+                if ($enviado) {
+                    log_message('info', "✅ Email de confirmação enviado com SUCESSO para: {$email} (Token: {$token})");
+                    return true;
+                } else {
+                    log_message('warning', "⚠️ Email de confirmação adicionado à fila mas falhou no envio. ID: {$email_id}");
+                    return false;
+                }
+            } else {
+                log_message('error', "❌ Erro ao adicionar email de confirmação à fila para: {$email}");
+                return false;
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Exceção ao enviar email de confirmação: ' . $e->getMessage());
+            
+            // Em caso de exceção, tentar adicionar à fila
+            try {
+                $link_confirmacao = site_url('usuarios/confirmar_email/' . $token);
+                $data_expiracao = date('d/m/Y H:i', strtotime('+24 hours'));
+                $mensagem = "
+                <html>
+                <body>
+                    <h2>Confirmação de E-mail - Sistema Adv</h2>
+                    <p>Olá, <strong>{$nome}</strong>!</p>
+                    <p>Bem-vindo ao sistema. Para ativar sua conta, por favor clique no link abaixo para confirmar seu e-mail:</p>
+                    <p><a href=\"{$link_confirmacao}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>Confirmar E-mail</a></p>
+                    <p>Ou copie e cole este link no seu navegador:</p>
+                    <p>{$link_confirmacao}</p>
+                    <p><strong>Este link expira em 24 horas.</strong> (válido até {$data_expiracao})</p>
+                    <p>Se você não solicitou este cadastro, ignore este e-mail.</p>
+                    <hr>
+                    <p style='color: #666; font-size: 12px;'>Este é um e-mail automático, por favor não responda.</p>
+                </body>
+                </html>
+                ";
+                
+                $email_data = [
+                    'to' => $email,
+                    'subject' => 'Confirmação de E-mail - Sistema Adv',
+                    'message' => $mensagem,
+                    'status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                $this->email_model->add('email_queue', $email_data);
+                return true;
+            } catch (Exception $e2) {
+                log_message('error', 'Erro ao adicionar email à fila após exceção: ' . $e2->getMessage());
+            }
+            
+            return false;
+        }
+    }
+
+    /**
+     * Confirma e-mail do usuário via token (RN 1.1)
+     */
+    public function confirmar_email($token = null)
+    {
+        if (!$token) {
+            $this->session->set_flashdata('error', 'Token de confirmação inválido.');
+            redirect('login');
+            return;
+        }
+        
+        $this->load->model('Confirmacoes_email_model');
+        $usuario = $this->Confirmacoes_email_model->validarToken($token);
+        
+        if ($usuario) {
+            // Atualizar usuário como confirmado
+            $this->db->where('idUsuarios', $usuario->idUsuarios);
+            $this->db->update('usuarios', ['email_confirmado' => 1]);
+            
+            $this->session->set_flashdata('success', 'E-mail confirmado com sucesso! Você já pode fazer login no sistema.');
+            redirect('login');
+        } else {
+            $this->session->set_flashdata('error', 'Token de confirmação inválido ou expirado. Entre em contato com o administrador.');
+            redirect('login');
+        }
     }
 }

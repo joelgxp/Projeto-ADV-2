@@ -19,7 +19,79 @@ class ConsultaProcessual extends MY_Controller
         $this->load->model('movimentacoes_processuais_model');
         $this->load->model('clientes_model');
         $this->load->model('processos_cache_model');
+        $this->load->helper('tribunais_endpoints');
         $this->data['menuConsultaProcessual'] = 'consulta-processual';
+    }
+    
+    /**
+     * Verifica quais processos já estão salvos no sistema
+     * 
+     * @param array $dadosProcessos Dados dos processos retornados pela API
+     * @param string $numeroLimpo Número limpo do processo consultado (opcional)
+     * @return array Array com ['processo_salvo' => objeto|null, 'processos_salvos' => array]
+     */
+    private function verificarProcessosSalvos($dadosProcessos, $numeroLimpo = null)
+    {
+        $processosSalvos = [];
+        $numerosParaVerificar = [];
+        
+        // Coleta todos os números de processos retornados
+        if (isset($dadosProcessos['processos']) && is_array($dadosProcessos['processos'])) {
+            // Múltiplos processos
+            foreach ($dadosProcessos['processos'] as $proc) {
+                $num = $proc['numero_limpo'] ?? $proc['numero'] ?? null;
+                if ($num) {
+                    $numLimpo = normalizar_numero_processo($num);
+                    if ($numLimpo && strlen($numLimpo) == 20) {
+                        $numerosParaVerificar[] = $numLimpo;
+                    }
+                }
+            }
+        } elseif (isset($dadosProcessos['numero'])) {
+            // Processo único
+            $num = $dadosProcessos['numero_limpo'] ?? $dadosProcessos['numero'] ?? null;
+            if ($num) {
+                $numLimpo = normalizar_numero_processo($num);
+                if ($numLimpo && strlen($numLimpo) == 20) {
+                    $numerosParaVerificar[] = $numLimpo;
+                }
+            }
+        }
+        
+        // Também verifica o número consultado original
+        if (!empty($numeroLimpo) && strlen($numeroLimpo) == 20 && !in_array($numeroLimpo, $numerosParaVerificar)) {
+            $numerosParaVerificar[] = $numeroLimpo;
+        }
+        
+        // Busca todos os processos salvos de uma vez
+        if (!empty($numerosParaVerificar)) {
+            $this->db->where_in('numeroProcesso', $numerosParaVerificar);
+            $processosEncontrados = $this->db->get('processos')->result();
+            
+            foreach ($processosEncontrados as $procSalvo) {
+                $numProc = $procSalvo->numeroProcesso;
+                $processosSalvos[$numProc] = [
+                    'id' => $procSalvo->idProcessos ?? $procSalvo->id,
+                    'numero' => $procSalvo->numeroProcesso,
+                    'cliente_id' => $procSalvo->clientes_id ?? null,
+                    'status' => $procSalvo->status ?? null,
+                ];
+            }
+        }
+        
+        // Para compatibilidade, mantém processo_salvo com o primeiro encontrado ou o consultado
+        $processoSalvo = null;
+        if (!empty($numeroLimpo) && isset($processosSalvos[$numeroLimpo])) {
+            $processoSalvo = $processosSalvos[$numeroLimpo];
+        } elseif (!empty($processosSalvos)) {
+            // Pega o primeiro processo salvo encontrado
+            $processoSalvo = reset($processosSalvos);
+        }
+        
+        return [
+            'processo_salvo' => $processoSalvo,
+            'processos_salvos' => $processosSalvos
+        ];
     }
 
     public function index()
@@ -64,7 +136,6 @@ class ConsultaProcessual extends MY_Controller
         $size = max(1, min(10000, $size));
 
         // Detecta endpoint antes de consultar (para exibir mesmo em caso de erro)
-        $this->load->helper('tribunais_endpoints');
         $numeroLimpo = normalizar_numero_processo($numeroProcesso);
         $dadosTribunal = false;
         $endpointInfo = null;
@@ -74,14 +145,21 @@ class ConsultaProcessual extends MY_Controller
             $cachePayload = json_decode($cacheRow->payload, true);
             $ultimoFetch = $cacheRow->ultimo_fetch ? strtotime($cacheRow->ultimo_fetch) : 0;
             if ($cachePayload && $ultimoFetch && (time() - $ultimoFetch) < $this->cacheTtlSeconds) {
+                // Verifica quais processos já estão salvos no sistema
+                $verificacao = $this->verificarProcessosSalvos($cachePayload, $numeroLimpo);
+                
+                $response = [
+                    'success' => true,
+                    'data' => $cachePayload,
+                    'from_cache' => true,
+                    'cache_timestamp' => $cacheRow->ultimo_fetch,
+                    'processo_salvo' => $verificacao['processo_salvo'],
+                    'processos_salvos' => $verificacao['processos_salvos'],
+                ];
+                
                 $this->output
                     ->set_content_type('application/json')
-                    ->set_output(json_encode([
-                        'success' => true,
-                        'data' => $cachePayload,
-                        'from_cache' => true,
-                        'cache_timestamp' => $cacheRow->ultimo_fetch,
-                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                    ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
                 return;
             }
         }
@@ -109,16 +187,23 @@ class ConsultaProcessual extends MY_Controller
 
         if ($resultado === false) {
             if ($cachePayload) {
+                // Verifica quais processos já estão salvos no sistema
+                $verificacao = $this->verificarProcessosSalvos($cachePayload, $numeroLimpo);
+                
+                $response = [
+                    'success' => true,
+                    'data' => $cachePayload,
+                    'from_cache' => true,
+                    'cache_timestamp' => $cacheRow->ultimo_fetch ?? null,
+                    'cache_stale' => true,
+                    'message' => 'Exibindo dados armazenados. Não foi possível atualizar a consulta agora.',
+                    'processo_salvo' => $verificacao['processo_salvo'],
+                    'processos_salvos' => $verificacao['processos_salvos'],
+                ];
+                
                 $this->output
                     ->set_content_type('application/json')
-                    ->set_output(json_encode([
-                        'success' => true,
-                        'data' => $cachePayload,
-                        'from_cache' => true,
-                        'cache_timestamp' => $cacheRow->ultimo_fetch ?? null,
-                        'cache_stale' => true,
-                        'message' => 'Exibindo dados armazenados. Não foi possível atualizar a consulta agora.'
-                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                    ->set_output(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
                 return;
             }
 
@@ -212,6 +297,11 @@ class ConsultaProcessual extends MY_Controller
                 'api_debug' => $resultado['_debug'] ?? null
             ];
         }
+        
+        // Verifica quais processos já estão salvos no sistema
+        $verificacao = $this->verificarProcessosSalvos($resultado, $numeroLimpo);
+        $response['processo_salvo'] = $verificacao['processo_salvo'];
+        $response['processos_salvos'] = $verificacao['processos_salvos'];
         
         $payloadJson = json_encode($resultado, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $hashPayload = hash('sha256', $payloadJson);

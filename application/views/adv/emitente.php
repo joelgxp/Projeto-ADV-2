@@ -59,7 +59,7 @@
         <div class="span12">
             <div class="widget-box">
                 <div class="widget-title">
-                    <h5>Dados do Emitente</h5>
+                    <h5>Dados do Escritório</h5>
                 </div>
                 <div class="widget-content ">
                     <div class="alert alert-danger">Nenhum dado foi cadastrado até o momento.</div>
@@ -73,26 +73,20 @@
         <form action="<?= site_url('adv/cadastrarEmitente'); ?>" id="formCadastrar" enctype="multipart/form-data" method="post" class="form-horizontal">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                <h5 id="myModalLabel" style="text-align-last:center">Cadastrar Dados do Emitente</h5>
+                <h5 id="myModalLabel" style="text-align-last:center">Cadastrar Dados do Escritório</h5>
             </div>
             <div class="modal-body" style="display: grid;grid-template-columns: 1fr 1fr">
                 <div class="control-group">
                     <label for="nome" class="control-label"><span class="required"></span></label>
                     <div class="controls">
-                        <input id="nomeEmitente" placeholder="Razão Social*" type="text" name="nome" value="" />
+                        <input id="nomeEmitente" placeholder="Nome do Escritório*" type="text" name="nome" value="" />
                     </div>
                 </div>
                 <div class="control-group">
-                    <label for="cnpj" class="control-label"><span class="required"></span></label>
+                    <label for="cnpj" class="control-label"></label>
                     <div class="controls">
-                        <input class="cnpjEmitente" placeholder="CNPJ*" id="documento" type="text" name="cnpj" value="" title="Para ocultar o CNPJ digite 00.000.000/000-00" />
+                        <input class="cnpjEmitente" placeholder="CNPJ" id="documento" type="text" name="cnpj" value="" title="Para ocultar o CNPJ digite 00.000.000/000-00" />
                         <button style="top:34px;right:40px;position:absolute" id="buscar_info_cnpj" class="btn btn-xs" type="button"><i class="fas fa-search"></i></button>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label for="descricao" class="control-label"></label>
-                    <div class="controls">
-                        <input type="text" placeholder="IE" name="ie" value="" />
                     </div>
                 </div>
                 <div class="control-group">
@@ -138,9 +132,21 @@
                     </div>
                 </div>
                 <div class="control-group">
+                    <label for="descricao" class="control-label"></label>
+                    <div class="controls">
+                        <input id="celular" type="text" placeholder="Celular" name="celular" value="" />
+                    </div>
+                </div>
+                <div class="control-group">
                     <label for="descricao" class="control-label"><span class="required"></span></label>
                     <div class="controls">
                         <input id="email" type="text" placeholder="E-mail*" name="email" value="" />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="descricao" class="control-label"></label>
+                    <div class="controls">
+                        <input id="site" type="text" placeholder="Site (opcional)" name="site" value="" />
                     </div>
                 </div>
                 <div class="control-group">
@@ -165,20 +171,20 @@
                     <span class="icon">
                         <i class="fas fa-align-justify"></i>
                     </span>
-                    <h5>Dados do Emitente</h5>
+                    <h5>Dados do Escritório</h5>
                 </div>
                 <div class="widget-content ">
-                    <div class="alert alert-info">Os dados abaixo serão utilizados no cabeçalho das telas de impressão.</div>
+                    <div class="alert alert-info">Os dados abaixo serão utilizados no cabeçalho dos documentos e relatórios do escritório.</div>
                     <table class="table table-bordered">
                         <tbody>
                             <tr>
                                 <td style="width: 25%"><img src="<?= $dados->url_logo; ?>"></td>
                                 <td>
                                     <span style="font-size: 20px; "><b><?= $dados->nome; ?></b></span></br>
-                                    <i class="fas fa-fingerprint" style="margin:5px 1px"></i> <?= $dados->cnpj; ?> <?php if (!empty($dados->ie)) echo ' - IE:' . $dados->ie ?></br>
+                                    <?php if (!empty($dados->cnpj)): ?><i class="fas fa-fingerprint" style="margin:5px 1px"></i> CNPJ: <?= $dados->cnpj; ?></br><?php endif; ?>
                                     <i class="fas fa-map-marker-alt" style="margin:4px 3px"></i> <?= $dados->rua . ', ' . $dados->numero . ', ' . $dados->bairro . ' - ' . $dados->cep . ', ' . $dados->cidade . '/' . $dados->uf; ?></br>
-                                    <i class="fas fa-phone" style="margin:5px 1px"></i> <?= $dados->telefone; ?></br>
-                                    <i class="fas fa-envelope" style="margin:5px 1px"></i> <?= $dados->email; ?></br>
+                                    <i class="fas fa-phone" style="margin:5px 1px"></i> <?= $dados->telefone; ?> <?php if (!empty($dados->celular)) echo ' | ' . $dados->celular; ?></br>
+                                    <i class="fas fa-envelope" style="margin:5px 1px"></i> <?= $dados->email; ?> <?php if (!empty($dados->site)) echo '</br><i class="fas fa-globe" style="margin:5px 1px"></i> ' . $dados->site; ?></br>
                                     </span>
                                 </td>
                             </tr>
@@ -199,27 +205,21 @@
         <form action="<?= site_url('adv/editarEmitente'); ?>" id="formAlterar" enctype="multipart/form-data" method="post" class="form-horizontal">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
-                <h3 id="">Editar Dados do Emitente</h3>
+                <h3 id="">Editar Dados do Escritório</h3>
             </div>
             <div class="modal-body" style="display: grid;grid-template-columns: 1fr 1fr">
                 <div class="control-group">
                     <label for="nome" class="control-label"><span class="required"></span></label>
                     <div class="controls">
-                        <input id="nomeEmitente" type="text" name="nome" value="<?= $dados->nome; ?>" placeholder="Razão Social*" />
+                        <input id="nomeEmitente" type="text" name="nome" value="<?= $dados->nome; ?>" placeholder="Nome do Escritório*" />
                         <input id="nome" type="hidden" name="id" value="<?= $dados->id; ?>" />
                     </div>
                 </div>
                 <div class="control-group">
-                    <label for="cnpj" class="control-label"><span class="required"></span></label>
+                    <label for="cnpj" class="control-label"></label>
                     <div class="controls">
-                        <input class="cnpjEmitente" type="text" id="documento" name="cnpj" value="<?= $dados->cnpj; ?>" placeholder="CNPJ*" title="Para ocultar o CNPJ digite 00.000.000/000-00" />
+                        <input class="cnpjEmitente" type="text" id="documento" name="cnpj" value="<?= $dados->cnpj; ?>" placeholder="CNPJ" title="Para ocultar o CNPJ digite 00.000.000/000-00" />
                         <button style="top:34px;right:40px;position:absolute" id="buscar_info_cnpj" class="btn btn-xs" type="button"><i class="fas fa-search"></i></button>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label for="descricao" class="control-label"></label>
-                    <div class="controls">
-                        <input type="text" name="ie" value="<?= $dados->ie; ?>" placeholder="IE" />
                     </div>
                 </div>
                 <div class="control-group">
@@ -267,9 +267,21 @@
                     </div>
                 </div>
                 <div class="control-group">
+                    <label for="descricao" class="control-label"></label>
+                    <div class="controls">
+                        <input type="text" id="celular" name="celular" value="<?= isset($dados->celular) ? $dados->celular : ''; ?>" placeholder="Celular" />
+                    </div>
+                </div>
+                <div class="control-group">
                     <label for="descricao" class="control-label"><span class="required"></span></label>
                     <div class="controls">
                         <input id="email" type="text" name="email" value="<?= $dados->email; ?>" placeholder="E-mail*" />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="descricao" class="control-label"></label>
+                    <div class="controls">
+                        <input type="text" id="site" name="site" value="<?= isset($dados->site) ? $dados->site : ''; ?>" placeholder="Site (opcional)" />
                     </div>
                 </div>
             </div>
@@ -340,7 +352,7 @@
                     required: true
                 },
                 cnpj: {
-                    required: true
+                    required: false
                 },
                 logradouro: {
                     required: true
@@ -362,6 +374,12 @@
                 },
                 email: {
                     required: true
+                },
+                celular: {
+                    required: false
+                },
+                site: {
+                    required: false
                 }
             },
             messages: {
@@ -369,9 +387,6 @@
                     required: 'Campo Requerido.'
                 },
                 nome: {
-                    required: 'Campo Requerido.'
-                },
-                cnpj: {
                     required: 'Campo Requerido.'
                 },
                 logradouro: {
@@ -418,7 +433,7 @@
                     required: true
                 },
                 cnpj: {
-                    required: true
+                    required: false
                 },
                 logradouro: {
                     required: true
@@ -440,6 +455,12 @@
                 },
                 email: {
                     required: true
+                },
+                celular: {
+                    required: false
+                },
+                site: {
+                    required: false
                 }
             },
             messages: {
@@ -447,9 +468,6 @@
                     required: 'Campo Requerido.'
                 },
                 nome: {
-                    required: 'Campo Requerido.'
-                },
-                cnpj: {
                     required: 'Campo Requerido.'
                 },
                 logradouro: {

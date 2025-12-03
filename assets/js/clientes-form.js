@@ -19,6 +19,8 @@ var ClienteForm = {
         var $select = $('select[name="tipo_cliente"]').not('#tipo_cliente_widget');
         var $widgetSelect = $('#tipo_cliente_widget');
         var $hidden = $('#tipo_cliente_hidden');
+        
+        console.log('setupTipoClienteToggle - widgetSelect encontrado:', $widgetSelect.length); // Debug
 
         var updateValue = function(tipo) {
             if ($select.length) {
@@ -53,11 +55,14 @@ var ClienteForm = {
 
         if ($widgetSelect.length) {
             $widgetSelect.on('change', function() {
-                handleSelectChange($(this).val());
+                var valor = $(this).val();
+                console.log('Select tipo_cliente_widget mudou para:', valor); // Debug
+                handleSelectChange(valor);
             });
 
             var initialTipoWidget = this.config.tipoCliente || ($hidden.length ? $hidden.val() : null) || $widgetSelect.val() || 'fisica';
             $widgetSelect.val(initialTipoWidget);
+            console.log('Inicializando tipo cliente:', initialTipoWidget); // Debug
             handleSelectChange(initialTipoWidget);
 
             if ($select.length) {
@@ -109,9 +114,25 @@ var ClienteForm = {
      */
     toggleCampos: function(tipo) {
         tipo = tipo || this.getTipoCliente();
+        
+        console.log('toggleCampos chamado com tipo:', tipo); // Debug
 
-        $('.campos-pf').toggleClass('is-hidden', tipo === 'juridica');
-        $('.campos-pj').toggleClass('is-hidden', tipo !== 'juridica');
+        // Esconder/mostrar campos PF
+        if (tipo === 'juridica') {
+            $('.campos-pf').addClass('is-hidden');
+        } else {
+            $('.campos-pf').removeClass('is-hidden');
+        }
+        
+        // Esconder/mostrar campos PJ
+        if (tipo !== 'juridica') {
+            $('.campos-pj').addClass('is-hidden');
+        } else {
+            $('.campos-pj').removeClass('is-hidden');
+        }
+        
+        console.log('Campos PF:', $('.campos-pf').length, 'visíveis:', $('.campos-pf:not(.is-hidden)').length); // Debug
+        console.log('Campos PJ:', $('.campos-pj').length, 'visíveis:', $('.campos-pj:not(.is-hidden)').length); // Debug
 
         // Habilitar/desabilitar campos de acordo com o tipo
         // Campos PF: habilitados apenas quando tipo é 'fisica'
@@ -695,6 +716,7 @@ var ClienteForm = {
                     }
                 },
                 email: {
+                    required: true,
                     email: true,
                     unique_email: true
                 }
@@ -718,8 +740,9 @@ var ClienteForm = {
                     required: 'Razão social é obrigatória.'
                 },
                 email: {
+                    required: 'O campo e-mail é obrigatório.',
                     email: 'Por favor, insira um e-mail válido.',
-                    unique_email: 'Por favor, insira um e-mail válido.'
+                    unique_email: 'Este e-mail já está cadastrado.'
                 }
             },
             errorClass: "help-inline",

@@ -35,7 +35,11 @@ class Sistema_model extends CI_Model
 
         $this->db->select($fields);
         $this->db->from($table);
-        $this->db->limit($perpage, $start);
+        
+        // Aplicar LIMIT apenas se perpage > 0 (quando 0, retornar todos os registros)
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
+        }
         
         if ($where) {
             // Se $where for array, usar where() com array (mais seguro)
@@ -227,7 +231,7 @@ class Sistema_model extends CI_Model
             return [];
         }
         
-        $this->db->select('idLancamentos, tipo, cliente_fornecedor, descricao, data_vencimento, forma_pgto, baixado');
+        $this->db->select('idLancamentos, tipo, cliente_fornecedor, descricao, data_vencimento, forma_pgto, baixado, valor, valor_desconto');
         $this->db->from('lancamentos');
         $this->db->where('baixado', 0);
         $this->db->order_by('idLancamentos', 'DESC');
@@ -240,6 +244,7 @@ class Sistema_model extends CI_Model
             log_message('error', 'Erro na query getLancamentos: ' . ($error['message'] ?? 'Erro desconhecido'));
             return [];
         }
+        
         return $query->result();
     }
 
@@ -446,19 +451,61 @@ class Sistema_model extends CI_Model
      */
     public function getEmitente()
     {
-        $query = $this->db->get('emitente');
-        if ($query === false) {
-            log_message('error', 'Erro na query getEmitente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
-            return false;
+        log_message('info', '=== INÍCIO getEmitente ===');
+        
+        // Verificar se a tabela existe
+        if (!$this->db->table_exists('emitente')) {
+            log_message('error', 'Tabela emitente não existe no banco de dados');
+            return null;
         }
-        return $query->row();
+        
+        log_message('info', 'Tabela emitente existe');
+        
+        // Contar registros
+        $this->db->from('emitente');
+        $total = $this->db->count_all_results();
+        log_message('info', 'Total de emitentes na tabela: ' . $total);
+        
+        if ($total == 0) {
+            log_message('info', 'Nenhum emitente cadastrado na tabela');
+            return null;
+        }
+        
+        // Buscar primeiro emitente (geralmente só existe um)
+        $this->db->limit(1);
+        $query = $this->db->get('emitente');
+        
+        if ($query === false) {
+            $error = $this->db->error();
+            log_message('error', 'Erro na query getEmitente: ' . json_encode($error));
+            return null;
+        }
+        
+        $emitente = $query->row();
+        
+        if (!$emitente) {
+            log_message('error', 'Query executada mas nenhum emitente retornado (row() retornou null/empty)');
+            log_message('error', 'Num rows: ' . $query->num_rows());
+            return null;
+        }
+        
+        // Garantir que url_logo existe (a view espera este campo mas a tabela tem 'logo')
+        if (isset($emitente->logo)) {
+            $emitente->url_logo = $emitente->logo;
+        } else {
+            $emitente->url_logo = '';
+        }
+        
+        log_message('info', '✅ Emitente encontrado: ID ' . ($emitente->id ?? 'N/A') . ', Nome: ' . ($emitente->nome ?? 'N/A') . ', Email: ' . ($emitente->email ?? 'N/A'));
+        log_message('info', '=== FIM getEmitente ===');
+        
+        return $emitente;
     }
 
-    public function addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo)
+    public function addEmitente($nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site, $logo)
     {
         $this->db->set('nome', $nome);
         $this->db->set('cnpj', $cnpj);
-        $this->db->set('ie', $ie);
         $this->db->set('cep', $cep);
         $this->db->set('rua', $logradouro);
         $this->db->set('numero', $numero);
@@ -466,17 +513,18 @@ class Sistema_model extends CI_Model
         $this->db->set('cidade', $cidade);
         $this->db->set('uf', $uf);
         $this->db->set('telefone', $telefone);
+        $this->db->set('celular', $celular);
         $this->db->set('email', $email);
+        $this->db->set('site', $site);
         $this->db->set('url_logo', $logo);
 
         return $this->db->insert('emitente');
     }
 
-    public function editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email)
+    public function editEmitente($id, $nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site)
     {
         $this->db->set('nome', $nome);
         $this->db->set('cnpj', $cnpj);
-        $this->db->set('ie', $ie);
         $this->db->set('cep', $cep);
         $this->db->set('rua', $logradouro);
         $this->db->set('numero', $numero);
@@ -484,7 +532,9 @@ class Sistema_model extends CI_Model
         $this->db->set('cidade', $cidade);
         $this->db->set('uf', $uf);
         $this->db->set('telefone', $telefone);
+        $this->db->set('celular', $celular);
         $this->db->set('email', $email);
+        $this->db->set('site', $site);
         $this->db->where('id', $id);
 
         return $this->db->update('emitente');

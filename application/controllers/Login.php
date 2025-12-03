@@ -22,29 +22,167 @@ class Login extends CI_Controller
 
     public function verificarLogin()
     {
-        header('Access-Control-Allow-Origin: ' . base_url());
+        // Tratar requisição OPTIONS (preflight) - PRIMEIRO
+        if ($this->input->method() === 'options' || (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS')) {
+            $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+            // Em desenvolvimento, permitir qualquer origem; em produção, validar
+            if (ENVIRONMENT !== 'production') {
+                header('Access-Control-Allow-Origin: *');
+            } else {
+                header('Access-Control-Allow-Origin: ' . $origin);
+            }
+            header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+            header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, ' . $this->security->get_csrf_token_name());
+            header('Access-Control-Max-Age: 3600');
+            http_response_code(200);
+            exit(0);
+        }
+        
+        // Configurar headers CORS - permitir origem específica em produção
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+        $allowed_origins = [
+            base_url(),
+            rtrim(base_url(), '/'),
+            'https://adv.joelsouza.com.br',
+            'https://www.adv.joelsouza.com.br'
+        ];
+        
+        // Verificar se a origem está permitida ou permitir todas em desenvolvimento
+        if (ENVIRONMENT !== 'production') {
+            header('Access-Control-Allow-Origin: *');
+        } else {
+            // Em produção, verificar se a origem está na lista de permitidas
+            if (in_array($origin, $allowed_origins) || empty($origin)) {
+                header('Access-Control-Allow-Origin: ' . ($origin ?: base_url()));
+            } else {
+                // Se não estiver na lista, usar a origem da requisição se for do mesmo domínio
+                $base_host = parse_url(base_url(), PHP_URL_HOST);
+                $origin_host = parse_url($origin, PHP_URL_HOST);
+                if ($base_host === $origin_host) {
+                    header('Access-Control-Allow-Origin: ' . $origin);
+                } else {
+                    header('Access-Control-Allow-Origin: ' . base_url());
+                }
+            }
+        }
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Max-Age: 1000');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, ' . $this->security->get_csrf_token_name());
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 3600');
+        
+        // Verifica se é requisição AJAX pelo header ou parâmetro
+        $is_ajax = $this->input->is_ajax_request() || 
+                   (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') ||
+                   $this->input->get('ajax') === '1';
+        
+        // Se não for requisição AJAX, redireciona para a página de login
+        if (!$is_ajax) {
+            redirect('login');
+            return;
+        }
+
+        header('Content-Type: application/json');
 
         $this->load->library('form_validation');
         $this->form_validation->set_rules('email', 'E-mail', 'valid_email|required|trim');
         $this->form_validation->set_rules('senha', 'Senha', 'required|trim');
         if ($this->form_validation->run() == false) {
             $json = ['result' => false, 'message' => validation_errors()];
-            echo json_encode($json);
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode($json));
+            return;
         } else {
             $email = $this->input->post('email');
             $password = $this->input->post('senha');
+            $ip_address = $this->input->ip_address();
+            $user_agent = $this->input->user_agent();
+            
+            // Carregar models
             $this->load->model('Sistema_model');
+            $this->load->model('Tentativas_login_model');
+            $this->load->model('Bloqueios_conta_model');
+            
+            // Buscar usuário primeiro para verificar se é admin
             $user = $this->Sistema_model->check_credentials($email);
+            
+            // Verificar se é usuário administrador (exceção: não bloqueia)
+            $is_admin = false;
+            if ($user) {
+                $nivel_usuario = isset($user->nivel) ? strtolower($user->nivel) : null;
+                $user_permissao = isset($user->permissoes_id) ? $user->permissoes_id : null;
+                
+                // Verificar se é admin pelo nível
+                if ($nivel_usuario === 'admin') {
+                    $is_admin = true;
+                }
+                
+                // Verificar se é admin pela permissão
+                if (!$is_admin && $user_permissao) {
+                    // Se for string "admin" ou "administrador"
+                    if (is_string($user_permissao) && (strtolower($user_permissao) === 'admin' || strtolower($user_permissao) === 'administrador')) {
+                        $is_admin = true;
+                    }
+                    
+                    // Se for numérico, verificar na tabela de permissões
+                    if (!$is_admin && is_numeric($user_permissao) && $this->db->table_exists('permissoes')) {
+                        $this->db->select('nome');
+                        $this->db->where('idPermissao', $user_permissao);
+                        $this->db->limit(1);
+                        $perm = $this->db->get('permissoes')->row();
+                        if ($perm && isset($perm->nome)) {
+                            $permissao_nome = strtolower($perm->nome);
+                            if (in_array($permissao_nome, ['admin', 'administrador'])) {
+                                $is_admin = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Verificar se a conta está bloqueada (RN 1.4) - EXCETO se for admin
+            if (!$is_admin) {
+                $bloqueio = $this->Bloqueios_conta_model->verificarBloqueio($email);
+                if ($bloqueio) {
+                    $minutos_restantes = ceil((strtotime($bloqueio->bloqueado_ate) - time()) / 60);
+                    $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
+                    
+                    $json = [
+                        'result' => false, 
+                        'message' => "Conta bloqueada devido a múltiplas tentativas de login falhadas. Tente novamente em {$minutos_restantes} minuto(s).",
+                        'ADV_TOKEN' => $this->security->get_csrf_hash()
+                    ];
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_output(json_encode($json));
+                    return;
+                }
+            }
 
             if ($user) {
                 // Verificar se acesso está expirado (se a coluna existir)
                 if (isset($user->dataExpiracao) && $this->chk_date($user->dataExpiracao)) {
+                    $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
                     $json = ['result' => false, 'message' => 'A conta do usuário está expirada, por favor entre em contato com o administrador do sistema.'];
-                    echo json_encode($json);
-                    exit();
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_output(json_encode($json));
+                    return;
+                }
+                
+                // Verificar se e-mail foi confirmado (RN 1.1)
+                if (isset($user->email_confirmado) && $user->email_confirmado == 0) {
+                    $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
+                    $json = [
+                        'result' => false, 
+                        'message' => 'Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.',
+                        'ADV_TOKEN' => $this->security->get_csrf_hash()
+                    ];
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_output(json_encode($json));
+                    return;
                 }
 
                 // Verificar credenciais do usuário
@@ -82,6 +220,10 @@ class Login extends CI_Controller
                         'logado' => true,
                         'nivel_admin' => $nivel_usuario
                     ];
+                    // Login bem-sucedido - registrar tentativa e limpar bloqueios
+                    $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, true);
+                    $this->Bloqueios_conta_model->desbloquear($email);
+                    
                     $this->session->set_userdata($session_admin_data);
                     log_info('Efetuou login no sistema');
                     $json = [
@@ -89,25 +231,70 @@ class Login extends CI_Controller
                         'message' => 'Login realizado com sucesso!',
                         'ADV_TOKEN' => $this->security->get_csrf_hash()
                     ];
-                    echo json_encode($json);
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_output(json_encode($json));
+                    return;
                 } else {
-                    $json = [
-                        'result' => false, 
-                        'message' => 'Os dados de acesso estão incorretos.', 
-                        'ADV_TOKEN' => $this->security->get_csrf_hash()
-                    ];
-                    echo json_encode($json);
+                    // Senha incorreta - registrar tentativa falhada
+                    $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
+                    
+                    // Verificar se é admin (não bloqueia admin)
+                    // Reutilizar a variável $is_admin já definida acima
+                    
+                    if (!$is_admin) {
+                        // Contar tentativas falhadas (RN 1.4) - apenas para não-admins
+                        $tentativas_falhadas = $this->Tentativas_login_model->contarFalhas($email, $ip_address);
+                        
+                        // Bloquear após 5 tentativas (RN 1.4)
+                        if ($tentativas_falhadas >= 5) {
+                            $this->Bloqueios_conta_model->bloquear($email, $ip_address, $tentativas_falhadas);
+                            
+                            $json = [
+                                'result' => false, 
+                                'message' => 'Muitas tentativas de login falhadas. Sua conta foi bloqueada por 15 minutos. Tente novamente mais tarde.',
+                                'ADV_TOKEN' => $this->security->get_csrf_hash()
+                            ];
+                        } else {
+                            $tentativas_restantes = 5 - $tentativas_falhadas;
+                            $json = [
+                                'result' => false, 
+                                'message' => "Os dados de acesso estão incorretos. Você tem {$tentativas_restantes} tentativa(s) restante(s).",
+                                'ADV_TOKEN' => $this->security->get_csrf_hash()
+                            ];
+                        }
+                    } else {
+                        // Admin: não bloqueia, apenas informa erro
+                        $json = [
+                            'result' => false, 
+                            'message' => 'Os dados de acesso estão incorretos. Verifique seu e-mail e senha.',
+                            'ADV_TOKEN' => $this->security->get_csrf_hash()
+                        ];
+                    }
+                    
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_output(json_encode($json));
+                    return;
                 }
             } else {
+                // Usuário não encontrado - registrar tentativa falhada
+                // Nota: Não contamos tentativas para usuários inexistentes (segurança)
+                // Mas ainda registramos para auditoria
+                $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
+                
+                // Mensagem genérica para não revelar se o usuário existe (segurança)
                 $json = [
                     'result' => false, 
-                    'message' => 'Usuário não encontrado, verifique se suas credenciais estão corretas.', 
+                    'message' => 'Os dados de acesso estão incorretos. Verifique seu e-mail e senha.',
                     'ADV_TOKEN' => $this->security->get_csrf_hash()
                 ];
-                echo json_encode($json);
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode($json));
+                return;
             }
         }
-        exit();
     }
 
     private function chk_date($data_banco)

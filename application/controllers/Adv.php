@@ -214,7 +214,9 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('cidade', 'Cidade', 'required|trim');
         $this->form_validation->set_rules('uf', 'UF', 'required|trim');
         $this->form_validation->set_rules('telefone', 'Telefone', 'required|trim');
+        $this->form_validation->set_rules('celular', 'Celular', 'trim');
         $this->form_validation->set_rules('email', 'E-mail', 'required|trim');
+        $this->form_validation->set_rules('site', 'Site', 'trim');
 
         if ($this->form_validation->run() == false) {
             $this->session->set_flashdata('error', 'Campos obrigatórios não foram preenchidos.');
@@ -222,7 +224,6 @@ class Adv extends MY_Controller {
         } else {
             $nome = $this->input->post('nome');
             $cnpj = $this->input->post('cnpj');
-            $ie = $this->input->post('ie');
             $cep = $this->input->post('cep');
             $logradouro = $this->input->post('logradouro');
             $numero = $this->input->post('numero');
@@ -230,11 +231,13 @@ class Adv extends MY_Controller {
             $cidade = $this->input->post('cidade');
             $uf = $this->input->post('uf');
             $telefone = $this->input->post('telefone');
+            $celular = $this->input->post('celular');
             $email = $this->input->post('email');
+            $site = $this->input->post('site');
             $image = $this->do_upload();
             $logo = base_url() . 'assets/uploads/' . $image;
 
-            $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email, $logo);
+            $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site, $logo);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram inseridas com sucesso.');
                 log_info('Adicionou informações de emitente.');
@@ -253,9 +256,8 @@ class Adv extends MY_Controller {
         }
 
         $this->load->library('form_validation');
-        $this->form_validation->set_rules('nome', 'Razão Social', 'required|trim');
-        $this->form_validation->set_rules('cnpj', 'CNPJ', 'required|trim');
-        $this->form_validation->set_rules('ie', 'IE', 'trim');
+        $this->form_validation->set_rules('nome', 'Nome do Escritório', 'required|trim');
+        $this->form_validation->set_rules('cnpj', 'CNPJ', 'trim');
         $this->form_validation->set_rules('cep', 'CEP', 'required|trim');
         $this->form_validation->set_rules('logradouro', 'Logradouro', 'required|trim');
         $this->form_validation->set_rules('numero', 'Número', 'required|trim');
@@ -263,7 +265,9 @@ class Adv extends MY_Controller {
         $this->form_validation->set_rules('cidade', 'Cidade', 'required|trim');
         $this->form_validation->set_rules('uf', 'UF', 'required|trim');
         $this->form_validation->set_rules('telefone', 'Telefone', 'required|trim');
+        $this->form_validation->set_rules('celular', 'Celular', 'trim');
         $this->form_validation->set_rules('email', 'E-mail', 'required|trim');
+        $this->form_validation->set_rules('site', 'Site', 'trim');
 
         if ($this->form_validation->run() == false) {
             $this->session->set_flashdata('error', 'Campos obrigatórios não foram preenchidos.');
@@ -271,7 +275,6 @@ class Adv extends MY_Controller {
         } else {
             $nome = $this->input->post('nome');
             $cnpj = $this->input->post('cnpj');
-            $ie = $this->input->post('ie');
             $cep = $this->input->post('cep');
             $logradouro = $this->input->post('logradouro');
             $numero = $this->input->post('numero');
@@ -279,10 +282,12 @@ class Adv extends MY_Controller {
             $cidade = $this->input->post('cidade');
             $uf = $this->input->post('uf');
             $telefone = $this->input->post('telefone');
+            $celular = $this->input->post('celular');
             $email = $this->input->post('email');
+            $site = $this->input->post('site');
             $id = $this->input->post('id');
 
-            $retorno = $this->sistema_model->editEmitente($id, $nome, $cnpj, $ie, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $email);
+            $retorno = $this->sistema_model->editEmitente($id, $nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site);
             if ($retorno) {
                 $this->session->set_flashdata('success', 'As informações foram alteradas com sucesso.');
                 log_info('Alterou informações de emitente.');
@@ -368,14 +373,60 @@ class Adv extends MY_Controller {
 
         $this->data['configuration']['base_url'] = site_url('adv/emails/');
         $this->data['configuration']['total_rows'] = $this->email_model->count('email_queue');
+        
+        // Verificar se per_page está definido
+        if (!isset($this->data['configuration']['per_page']) || empty($this->data['configuration']['per_page'])) {
+            $this->data['configuration']['per_page'] = 20;
+        }
 
         $this->pagination->initialize($this->data['configuration']);
 
-        $this->data['results'] = $this->email_model->get('email_queue', '*', '', $this->data['configuration']['per_page'], $this->uri->segment(3));
+        $offset = $this->uri->segment(3) ? (int)$this->uri->segment(3) : 0;
+        
+        // Log para debug antes da query
+        log_message('debug', 'Buscando emails - per_page: ' . $this->data['configuration']['per_page'] . ', offset: ' . $offset);
+        
+        $this->data['results'] = $this->email_model->get('email_queue', '*', '', $this->data['configuration']['per_page'], $offset);
+        
+        // Verificar se houve erro na query
+        $db_error = $this->db->error();
+        if (!empty($db_error['message'])) {
+            log_message('error', 'Erro ao buscar emails: ' . json_encode($db_error));
+        }
+        
+        // Garantir que results seja sempre um array
+        if (!is_array($this->data['results'])) {
+            log_message('debug', 'Results não é array, convertendo. Tipo: ' . gettype($this->data['results']));
+            $this->data['results'] = [];
+        }
+        
+        // Log para debug
+        log_message('debug', 'Total de emails na fila: ' . $this->data['configuration']['total_rows']);
+        log_message('debug', 'Emails retornados: ' . count($this->data['results']));
 
         $this->data['view'] = 'emails/emails';
 
         return $this->layout();
+    }
+
+    public function processarEmails()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'cEmail')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para processar e-mails');
+            redirect(base_url());
+        }
+
+        $this->load->library('email');
+        
+        try {
+            $this->email->send_queue();
+            $this->session->set_flashdata('success', 'E-mails processados com sucesso!');
+        } catch (Exception $e) {
+            log_message('error', 'Erro ao processar emails: ' . $e->getMessage());
+            $this->session->set_flashdata('error', 'Erro ao processar e-mails: ' . $e->getMessage());
+        }
+        
+        redirect(site_url('adv/emails'));
     }
 
     public function excluirEmail()
@@ -398,6 +449,76 @@ class Adv extends MY_Controller {
 
         $this->session->set_flashdata('success', 'E-mail removido da fila de envio!');
         redirect(site_url('adv/emails/'));
+    }
+
+    /**
+     * Envia um e-mail de teste para validar a configuração
+     */
+    public function testarEmail()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'cSistema')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para testar e-mail.');
+            redirect(base_url());
+        }
+
+        $email_destino = $this->input->post('email_teste');
+        
+        // Validar e-mail
+        if (empty($email_destino) || !filter_var($email_destino, FILTER_VALIDATE_EMAIL)) {
+            $this->session->set_flashdata('error', 'E-mail inválido. Por favor, informe um e-mail válido.');
+            redirect(site_url('adv/configurar'));
+        }
+
+        $this->load->library('email');
+        
+        // Obter configurações
+        $this->load->config('email');
+        $smtp_user = $this->config->item('smtp_user');
+        $app_name = $this->data['configuration']['app_name'] ?? 'Adv';
+        
+        // Validar se o remetente está configurado
+        if (empty($smtp_user)) {
+            $this->session->set_flashdata('error', 'Erro: E-mail remetente não configurado. Configure o EMAIL_SMTP_USER nas configurações.');
+            redirect(site_url('adv/configurar'));
+        }
+        
+        // Preparar e-mail de teste
+        $mensagem = "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4CAF50;'>✅ E-mail de Teste - Sistema {$app_name}</h2>
+                <p>Olá!</p>
+                <p>Este é um <strong>e-mail de teste</strong> para verificar se a configuração de e-mail do sistema está funcionando corretamente.</p>
+                <div style='background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                    <p style='margin: 0;'><strong>Data/Hora do envio:</strong> " . date('d/m/Y H:i:s') . "</p>
+                    <p style='margin: 5px 0 0 0;'><strong>Usuário que testou:</strong> " . htmlspecialchars($this->session->userdata('nome_admin') ?? 'Sistema') . "</p>
+                </div>
+                <p>Se você recebeu este e-mail, significa que a configuração está <strong>funcionando corretamente</strong>! 🎉</p>
+                <hr style='border: none; border-top: 1px solid #ddd; margin: 20px 0;'>
+                <p style='color: #666; font-size: 12px;'>Este é um e-mail automático de teste do sistema {$app_name}.</p>
+            </div>
+        </body>
+        </html>
+        ";
+
+        // Configurar remetente e destinatário
+        $this->email->clear();
+        $this->email->from($smtp_user, $app_name);
+        $this->email->to($email_destino);
+        $this->email->subject('E-mail de Teste - Sistema ' . $app_name);
+        $this->email->message($mensagem);
+        
+        if ($this->email->send(true)) {
+            $this->session->set_flashdata('success', "✅ E-mail de teste enviado com sucesso para: {$email_destino}. Verifique sua caixa de entrada (e spam)!");
+            log_info("Enviou e-mail de teste para: {$email_destino}");
+        } else {
+            $error_msg = $this->email->print_debugger();
+            $this->session->set_flashdata('error', "⚠️ Erro ao enviar e-mail. Verifique a configuração. Erro: " . strip_tags($error_msg));
+            log_message('error', 'Erro ao enviar e-mail de teste: ' . $error_msg);
+        }
+
+        redirect(site_url('adv/configurar'));
     }
 
     public function configurar()
@@ -428,11 +549,23 @@ class Adv extends MY_Controller {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert">' . validation_errors() . '</div>' : false);
         } else {
             // Edição do .env
+            $smtp_port = (int)$this->input->post('EMAIL_SMTP_PORT');
+            $smtp_crypto = $this->input->post('EMAIL_SMTP_CRYPTO');
+            
+            // Validação e correção automática: porta 465 requer SSL, porta 587 requer TLS
+            if ($smtp_port === 465 && strtolower($smtp_crypto) !== 'ssl') {
+                $smtp_crypto = 'ssl';
+                $this->session->set_flashdata('info', '⚠️ Porta 465 detectada. Criptografia alterada automaticamente para SSL.');
+            } elseif ($smtp_port === 587 && strtolower($smtp_crypto) !== 'tls') {
+                $smtp_crypto = 'tls';
+                $this->session->set_flashdata('info', '⚠️ Porta 587 detectada. Criptografia alterada automaticamente para TLS.');
+            }
+            
             $dataDotEnv = [
                 'EMAIL_PROTOCOL' => $this->input->post('EMAIL_PROTOCOL'),
                 'EMAIL_SMTP_HOST' => $this->input->post('EMAIL_SMTP_HOST'),
-                'EMAIL_SMTP_CRYPTO' => $this->input->post('EMAIL_SMTP_CRYPTO'),
-                'EMAIL_SMTP_PORT' => $this->input->post('EMAIL_SMTP_PORT'),
+                'EMAIL_SMTP_CRYPTO' => $smtp_crypto,
+                'EMAIL_SMTP_PORT' => $smtp_port,
                 'EMAIL_SMTP_USER' => $this->input->post('EMAIL_SMTP_USER'),
                 'EMAIL_SMTP_PASS' => $this->input->post('EMAIL_SMTP_PASS'),
             ];

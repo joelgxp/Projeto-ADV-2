@@ -161,5 +161,20 @@ $(document).ready(function(){
 	
 	});
 
+	// Show section if anchor provided
+	var anchor = window.location.hash;
+	if(anchor !== ''){
+		// Remove o # do anchor para usar como ID
+		var anchorId = anchor.substring(1);
+		// Tenta encontrar o elemento com o ID correspondente no accordion
+		var $targetElement = $('dl.accordion dd[id="' + anchorId + '"], .accordion-body[id="' + anchorId + '"]');
+		if($targetElement.length > 0){
+			// Se encontrou, mostra o elemento e abre o accordion
+			$targetElement.show().addClass('in');
+			// Se houver um link relacionado, também ativa ele
+			$('a[href="' + anchor + '"]').click();
+		}
+	}
+
 });
 

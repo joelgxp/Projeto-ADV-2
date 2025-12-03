@@ -113,8 +113,7 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="idCliente" name="id" value="" />
-            <h5 style="text-align: center">Deseja realmente excluir este cliente e os dados associados a ele (OS,
-                Vendas, Receitas)?</h5>
+            <h5 style="text-align: center">Atenção! Esta ação não pode ser desfeita. Ao excluir este cliente, todos os processos, prazos, audiências e documentos vinculados também serão removidos permanentemente. Deseja continuar?</h5>
         </div>
         <div class="modal-footer" style="display:flex;justify-content: center">
             <button type="button" class="button btn btn-warning" data-dismiss="modal" aria-hidden="true"><span class="button__icon"><i
