@@ -4,9 +4,20 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Pecas_geradas_model extends CI_Model
 {
+    /** @var string|null Último erro do banco (para diagnóstico) */
+    private $lastError = null;
+
     public function __construct()
     {
         parent::__construct();
+    }
+
+    /**
+     * Retorna o último erro do banco (para diagnóstico em produção)
+     */
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
     }
 
     public function get($where = [], $perpage = 0, $start = 0, $one = false)
@@ -94,7 +105,10 @@ class Pecas_geradas_model extends CI_Model
 
     public function add($data)
     {
+        $this->lastError = null;
+
         if (!$this->db->table_exists('pecas_geradas')) {
+            $this->lastError = 'Tabela pecas_geradas não existe. Execute as migrations.';
             return false;
         }
 
@@ -104,10 +118,18 @@ class Pecas_geradas_model extends CI_Model
 
         $this->db->insert('pecas_geradas', $data);
 
+        $err = $this->db->error();
+        if ($err['code'] !== 0) {
+            $this->lastError = $err['message'] . ' (código: ' . $err['code'] . ')';
+            log_message('error', 'Pecas_geradas_model::add - Erro SQL: ' . $this->lastError . ' | Query: ' . $this->db->last_query());
+            return false;
+        }
+
         if ($this->db->affected_rows() == 1) {
             return $this->db->insert_id();
         }
 
+        $this->lastError = 'Nenhuma linha inserida (affected_rows=' . $this->db->affected_rows() . ')';
         return false;
     }
 

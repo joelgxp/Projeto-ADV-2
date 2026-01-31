@@ -243,24 +243,26 @@ class PecasGeradas extends MY_Controller
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
+        // Sanitizar: converter strings vazias em null para campos INT (evita erro MySQL)
         $pecaData = [
-            'processos_id' => $processos_id,
-            'prazos_id' => $prazos_id,
-            'contratos_id' => $contratos_id,
+            'processos_id' => $processos_id ? (int) $processos_id : null,
+            'prazos_id' => $prazos_id ? (int) $prazos_id : null,
+            'contratos_id' => $contratos_id ? (int) $contratos_id : null,
             'tipo_peca' => $params['tipo_peca'],
             'status' => 'rascunho_ia',
-            'modelos_pecas_id' => $params['modelos_pecas_id'],
-            'usuarios_gerador_id' => $user_id,
-            'tese_principal' => $tese_principal,
-            'pontos_enfatizar' => $params['pontos_enfatizar'],
-            'tom' => $params['tom'],
-            'clientes_id' => $clientes_id,
-            'contexto_manual' => $contexto_manual,
+            'modelos_pecas_id' => $params['modelos_pecas_id'] ? (int) $params['modelos_pecas_id'] : null,
+            'usuarios_gerador_id' => $user_id ? (int) $user_id : null,
+            'tese_principal' => $tese_principal ?: null,
+            'pontos_enfatizar' => $params['pontos_enfatizar'] ?: null,
+            'tom' => $params['tom'] ?: null,
+            'clientes_id' => $clientes_id ? (int) $clientes_id : null,
+            'contexto_manual' => $contexto_manual ?: null,
         ];
 
         $peca_id = $this->pecas_geradas_model->add($pecaData);
         if (!$peca_id) {
-            $this->session->set_flashdata('error', 'Erro ao salvar a peça gerada.');
+            $this->_pecasDebugLog('FALHA add peca: ' . ($this->pecas_geradas_model->getLastError() ?? 'erro desconhecido'));
+            $this->session->set_flashdata('error', 'Erro ao salvar a peça gerada. Verifique application/logs/pecas_debug.log para detalhes.');
             redirect('pecasGeradas/listar');
         }
 
