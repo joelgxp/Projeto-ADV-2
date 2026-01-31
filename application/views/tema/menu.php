@@ -116,6 +116,28 @@
                         </a>
                     </li>
                 <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vContrato')) { ?>
+                    <li class="<?php if (isset($menuContratos)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('contratos') ?>"><i class="bx bx-file-blank iconX"></i>
+                            <span class="title">Contratos</span>
+                            <span class="title-tooltip">Contratos</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vFatura')) { ?>
+                    <li class="<?php if (isset($menuFaturas)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('faturas') ?>"><i class="bx bx-receipt iconX"></i>
+                            <span class="title">Faturas</span>
+                            <span class="title-tooltip">Faturas</span>
+                        </a>
+                    </li>
+                <?php } ?>
                 <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vCobranca')) { ?>
                     <li class="<?php if (isset($menuCobrancas)) {
                         echo 'active';

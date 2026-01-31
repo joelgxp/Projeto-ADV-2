@@ -96,6 +96,7 @@ class MY_Email extends CI_Email
             'subject' => $this->_subject ?: 'Sem assunto',
             'message' => $this->_body,
             'status' => 'pending',
+            'prioridade' => 'normal',
             'created_at' => $date,
         ];
 
@@ -127,11 +128,17 @@ class MY_Email extends CI_Email
     public function send_queue()
     {
         $this->set_status('pending');
+        
+        // Ordenar por prioridade (critica > alta > normal > baixa)
+        $this->CI->db->order_by("FIELD(prioridade, 'critica', 'alta', 'normal', 'baixa')", 'ASC', false);
+        $this->CI->db->order_by('created_at', 'ASC');
+        
         $emails = $this->get();
 
         $this->CI->db->where('status', 'pending');
         $this->CI->db->set('status', 'sending');
         $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
+        $this->CI->db->set('updated_at', date('Y-m-d H:i:s'));
         $this->CI->db->update($this->table_email_queue);
 
         // Obter configurações de e-mail para definir remetente padrão
@@ -181,19 +188,44 @@ class MY_Email extends CI_Email
 
             log_message('info', "Tentando enviar email ID {$email->id} para: {$to}");
             
-            if ($this->send(true)) {
-                $status = 'sent';
-                log_message('info', "Email ID {$email->id} enviado com sucesso para: {$to}");
-            } else {
-                $error_msg = $this->print_debugger();
-                log_message('error', "Erro ao enviar e-mail ID {$email->id} da fila para {$to}: " . $error_msg);
+            // Verificar se excedeu tentativas máximas
+            $tentativas = isset($email->tentativas) ? (int)$email->tentativas : 0;
+            $max_tentativas = isset($email->max_tentativas) ? (int)$email->max_tentativas : 3;
+            
+            if ($tentativas >= $max_tentativas) {
                 $status = 'failed';
+                $erro = "Excedeu número máximo de tentativas ({$max_tentativas})";
+                log_message('error', "Email ID {$email->id} falhou após {$tentativas} tentativas");
+            } else {
+                // Verificar se tem template e renderizar
+                if (isset($email->template) && !empty($email->template)) {
+                    $this->CI->load->helper('email_template');
+                    $dados_template = !empty($email->dados_template) ? json_decode($email->dados_template, true) : [];
+                    $mensagem_template = render_email_template($email->template, $dados_template);
+                    $this->message($mensagem_template);
+                }
+                
+                if ($this->send(true)) {
+                    $status = 'sent';
+                    log_message('info', "Email ID {$email->id} enviado com sucesso para: {$to}");
+                } else {
+                    $error_msg = $this->print_debugger();
+                    log_message('error', "Erro ao enviar e-mail ID {$email->id} da fila para {$to}: " . $error_msg);
+                    $status = 'failed';
+                    $erro = $error_msg;
+                }
             }
 
             $this->CI->db->where('id', $email->id);
             $this->CI->db->set('status', $status);
             $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
-            $this->CI->db->set('attempts', 'attempts + 1', false);
+            $this->CI->db->set('updated_at', date('Y-m-d H:i:s'));
+            $this->CI->db->set('tentativas', 'tentativas + 1', false);
+            
+            if (isset($erro)) {
+                $this->CI->db->set('erro', $erro);
+            }
+            
             $this->CI->db->update($this->table_email_queue);
         }
     }

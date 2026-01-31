@@ -103,6 +103,15 @@
                                     <a href="<?php echo site_url('relatorios/financeiro') ?>" class="btn btn-primary btn-block">
                                         <i class="fas fa-hand-holding-usd"></i> Relatório Financeiro
                                     </a>
+                                    <a href="<?php echo site_url('relatorios/contasReceber') ?>" class="btn btn-primary btn-block" style="margin-top: 5px;">
+                                        <i class="fas fa-file-invoice-dollar"></i> Contas a Receber
+                                    </a>
+                                    <a href="<?php echo site_url('relatorios/inadimplencia') ?>" class="btn btn-primary btn-block" style="margin-top: 5px;">
+                                        <i class="fas fa-exclamation-triangle"></i> Inadimplência
+                                    </a>
+                                    <a href="<?php echo site_url('relatorios/fluxoCaixa') ?>" class="btn btn-primary btn-block" style="margin-top: 5px;">
+                                        <i class="fas fa-chart-line"></i> Fluxo de Caixa
+                                    </a>
                                 </div>
                             </div>
                         </div>

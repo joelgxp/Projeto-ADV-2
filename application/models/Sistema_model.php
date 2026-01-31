@@ -67,7 +67,12 @@ class Sistema_model extends CI_Model
             return false;
         }
 
-        $result = ! $one ? $query->result() : $query->row();
+        // Respeitar o parâmetro $array para retornar como array ou objeto
+        if ($array === 'array' || $array === true) {
+            $result = ! $one ? $query->result_array() : $query->row_array();
+        } else {
+            $result = ! $one ? $query->result() : $query->row();
+        }
 
         return $result;
     }

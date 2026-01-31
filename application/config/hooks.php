@@ -30,5 +30,19 @@ $hook['pre_system'][] = [
     'params' => [],
 ];
 
+// FASE 11: Rate Limiting (RN 12.3)
+// DESABILITADO: Rate limiting implementado no MY_Controller::__construct()
+// Hook causava erro "Attempt to read property 'load' on null" porque get_instance() retorna null no hook
+// TODO: Reativar hook quando CodeIgniter estiver totalmente inicializado ou usar middleware alternativo
+/*
+$hook['pre_controller'][] = [
+    'class' => 'Rate_limit',
+    'function' => 'aplicar',
+    'filename' => 'rate_limit.php',
+    'filepath' => 'hooks',
+    'params' => [],
+];
+*/
+
 /* End of file hooks.php */
 /* Location: ./application/config/hooks.php */

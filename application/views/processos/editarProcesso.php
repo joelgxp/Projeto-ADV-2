@@ -663,9 +663,9 @@
                                             <?php foreach ($documentos as $doc): ?>
                                                 <li style="padding: 5px; background: #e8f5e9; margin-bottom: 5px; border-radius: 3px;">
                                                     <i class="bx bx-file"></i> 
-                                                    <?= htmlspecialchars($doc->titulo) ?> 
+                                                    <?= htmlspecialchars($doc->nome ?? $doc->titulo ?? '-') ?> 
                                                     (<?= isset($doc->tamanho) ? number_format($doc->tamanho / 1024, 2) : '0' ?> KB)
-                                                    - <?= isset($doc->dataUpload) ? date('d/m/Y H:i', strtotime($doc->dataUpload)) : '' ?>
+                                                    - <?= isset($doc->dataCadastro) ? date('d/m/Y H:i', strtotime($doc->dataCadastro)) : (isset($doc->dataUpload) ? date('d/m/Y H:i', strtotime($doc->dataUpload)) : '') ?>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>

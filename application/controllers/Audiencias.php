@@ -244,35 +244,104 @@ class Audiencias extends MY_Controller
         }
 
         $this->load->library('form_validation');
+        $this->load->model('prazos_model');
+        $this->load->model('usuarios_model', 'sistema_model');
         $this->data['custom_error'] = '';
 
-        $this->form_validation->set_rules('processos_id', 'Processo', 'required|trim');
-        $this->form_validation->set_rules('tipo', 'Tipo', 'required|trim');
+        // Validações base
+        $this->form_validation->set_rules('tipo_compromisso', 'Tipo de Compromisso', 'required|trim|in_list[audiencia,reuniao,diligencia,prazo,evento]');
         $this->form_validation->set_rules('dataHora', 'Data e Hora', 'required|trim');
+        $this->form_validation->set_rules('usuarios_id', 'Responsável', 'required|trim|integer');
+        $this->form_validation->set_rules('visibilidade', 'Visibilidade', 'trim|in_list[privado,publico,equipe]');
+        
+        // Validações condicionais por tipo
+        $tipo_compromisso = $this->input->post('tipo_compromisso');
+        if ($tipo_compromisso == 'audiencia' || $tipo_compromisso == 'prazo') {
+            // Audiência e Prazo precisam de processo
+            $this->form_validation->set_rules('processos_id', 'Processo', 'required|trim|integer');
+        }
+        if ($tipo_compromisso == 'prazo') {
+            // Prazo precisa estar vinculado a um prazo
+            $this->form_validation->set_rules('prazos_id', 'Prazo', 'required|trim|integer');
+        }
         
         if ($this->form_validation->run() == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="form_error">' . validation_errors() . '</div>' : false);
         } else {
+            // Montar data básica
+            $hora = $this->input->post('hora') ?: '09:00';
+            $dataHoraCompleta = $this->input->post('dataHora') . ' ' . $hora . ':00';
+            
             $data = [
-                'processos_id' => $this->input->post('processos_id'),
-                'tipo' => $this->input->post('tipo'),
-                'dataHora' => $this->input->post('dataHora') . ' ' . ($this->input->post('hora') ?: '09:00:00'),
+                'tipo_compromisso' => $tipo_compromisso,
+                'processos_id' => $this->input->post('processos_id') ?: null,
+                'prazos_id' => $this->input->post('prazos_id') ?: null,
+                'tipo' => $this->input->post('tipo') ?: '', // Mantido para compatibilidade (ex: tipo de audiência)
+                'dataHora' => $dataHoraCompleta,
+                'duracao_estimada' => $this->input->post('duracao_estimada') ? intval($this->input->post('duracao_estimada')) : 60,
                 'local' => $this->input->post('local'),
                 'observacoes' => $this->input->post('observacoes'),
-                'status' => $this->input->post('status') ?: 'Agendada',
-                'usuarios_id' => $this->session->userdata('id_admin'),
+                'status' => $this->input->post('status') ?: 'agendada',
+                'usuarios_id' => intval($this->input->post('usuarios_id')),
+                'visibilidade' => $this->input->post('visibilidade') ?: 'publico',
             ];
 
-            if ($this->audiencias_model->add('audiencias', $data) == true) {
-                $this->session->set_flashdata('success', 'Audiência adicionada com sucesso!');
-                log_info('Adicionou uma audiência.');
-                redirect(site_url('audiencias/gerenciar'));
+            // Campos específicos por tipo
+            if ($tipo_compromisso == 'audiencia') {
+                $data['tribunal'] = $this->input->post('tribunal');
+                $data['juiz'] = $this->input->post('juiz');
+                $data['tipo_audiencia'] = $this->input->post('tipo_audiencia') ?: $this->input->post('tipo');
+            }
+            
+            if ($tipo_compromisso == 'reuniao') {
+                $participantes = $this->input->post('participantes');
+                if (is_array($participantes)) {
+                    $data['participantes'] = json_encode($participantes);
+                } else {
+                    $data['participantes'] = $participantes ?: null;
+                }
+            }
+            
+            if ($tipo_compromisso == 'diligencia') {
+                $data['tipo_diligencia'] = $this->input->post('tipo_diligencia');
+            }
+            
+            if ($tipo_compromisso == 'evento') {
+                $data['tipo_evento'] = $this->input->post('tipo_evento');
+                $data['abrangencia'] = $this->input->post('abrangencia') ?: 'pessoal';
+            }
+
+            // Verificar disponibilidade (double booking)
+            if ($this->audiencias_model->verificarDisponibilidade($data['usuarios_id'], $dataHoraCompleta, $data['duracao_estimada'])) {
+                $this->data['custom_error'] = '<div class="form_error"><p>Já existe um compromisso agendado neste horário para o responsável selecionado. Por favor, escolha outro horário ou outro responsável.</p></div>';
             } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao adicionar a audiência.</p></div>';
+                if ($this->audiencias_model->add('audiencias', $data) == true) {
+                    $this->session->set_flashdata('success', 'Compromisso adicionado com sucesso!');
+                    log_info('Adicionou um compromisso do tipo: ' . $tipo_compromisso);
+                    redirect(site_url('audiencias/gerenciar'));
+                } else {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao adicionar o compromisso.</p></div>';
+                }
             }
         }
 
+        // Carregar dados para a view
         $this->data['processos'] = $this->processos_model->get('processos', '*', '', 0, 0, false, 'array');
+        $this->data['prazos'] = $this->prazos_model->get('prazos', '*', "status IN ('pendente', 'proximo_vencer', 'vencendo_hoje')", 0, 0, false, 'array');
+        
+        // Carregar usuários ativos para o campo Responsável (usando query builder direto)
+        $this->db->select('idUsuarios, nome, email');
+        $this->db->from('usuarios');
+        $this->db->where('situacao', 1); // Apenas usuários ativos
+        $this->db->order_by('nome', 'ASC');
+        $query_usuarios = $this->db->get();
+        
+        if ($query_usuarios !== false && $query_usuarios->num_rows() > 0) {
+            $this->data['usuarios'] = $query_usuarios->result();
+        } else {
+            $this->data['usuarios'] = [];
+            log_message('warning', 'Audiencias::adicionar() - Nenhum usuário ativo encontrado. Verifique a tabela usuarios.');
+        }
         $this->data['view'] = 'audiencias/adicionarAudiencia';
 
         return $this->layout();
@@ -291,35 +360,103 @@ class Audiencias extends MY_Controller
         }
 
         $this->load->library('form_validation');
+        $this->load->model('prazos_model');
+        $this->load->model('usuarios_model', 'sistema_model');
         $this->data['custom_error'] = '';
 
-        $this->form_validation->set_rules('processos_id', 'Processo', 'required|trim');
-        $this->form_validation->set_rules('tipo', 'Tipo', 'required|trim');
+        // Validações base
+        $this->form_validation->set_rules('tipo_compromisso', 'Tipo de Compromisso', 'required|trim|in_list[audiencia,reuniao,diligencia,prazo,evento]');
         $this->form_validation->set_rules('dataHora', 'Data e Hora', 'required|trim');
+        $this->form_validation->set_rules('usuarios_id', 'Responsável', 'required|trim|integer');
+        $this->form_validation->set_rules('visibilidade', 'Visibilidade', 'trim|in_list[privado,publico,equipe]');
+        
+        // Validações condicionais por tipo
+        $tipo_compromisso = $this->input->post('tipo_compromisso');
+        if ($tipo_compromisso == 'audiencia' || $tipo_compromisso == 'prazo') {
+            $this->form_validation->set_rules('processos_id', 'Processo', 'required|trim|integer');
+        }
+        if ($tipo_compromisso == 'prazo') {
+            $this->form_validation->set_rules('prazos_id', 'Prazo', 'required|trim|integer');
+        }
         
         if ($this->form_validation->run() == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="form_error">' . validation_errors() . '</div>' : false);
         } else {
+            // Montar data básica
+            $hora = $this->input->post('hora') ?: '09:00';
+            $dataHoraCompleta = $this->input->post('dataHora') . ' ' . $hora . ':00';
+            
             $data = [
-                'processos_id' => $this->input->post('processos_id'),
-                'tipo' => $this->input->post('tipo'),
-                'dataHora' => $this->input->post('dataHora') . ' ' . ($this->input->post('hora') ?: '09:00:00'),
+                'tipo_compromisso' => $tipo_compromisso,
+                'processos_id' => $this->input->post('processos_id') ?: null,
+                'prazos_id' => $this->input->post('prazos_id') ?: null,
+                'tipo' => $this->input->post('tipo') ?: '',
+                'dataHora' => $dataHoraCompleta,
+                'duracao_estimada' => $this->input->post('duracao_estimada') ? intval($this->input->post('duracao_estimada')) : 60,
                 'local' => $this->input->post('local'),
                 'observacoes' => $this->input->post('observacoes'),
                 'status' => $this->input->post('status'),
+                'usuarios_id' => intval($this->input->post('usuarios_id')),
+                'visibilidade' => $this->input->post('visibilidade') ?: 'publico',
             ];
 
-            if ($this->audiencias_model->edit('audiencias', $data, 'idAudiencias', $id) == true) {
-                $this->session->set_flashdata('success', 'Audiência editada com sucesso!');
-                log_info('Alterou uma audiência. ID: ' . $id);
-                redirect(site_url('audiencias/gerenciar'));
+            // Campos específicos por tipo
+            if ($tipo_compromisso == 'audiencia') {
+                $data['tribunal'] = $this->input->post('tribunal');
+                $data['juiz'] = $this->input->post('juiz');
+                $data['tipo_audiencia'] = $this->input->post('tipo_audiencia') ?: $this->input->post('tipo');
+            }
+            
+            if ($tipo_compromisso == 'reuniao') {
+                $participantes = $this->input->post('participantes');
+                if (is_array($participantes)) {
+                    $data['participantes'] = json_encode($participantes);
+                } else {
+                    $data['participantes'] = $participantes ?: null;
+                }
+            }
+            
+            if ($tipo_compromisso == 'diligencia') {
+                $data['tipo_diligencia'] = $this->input->post('tipo_diligencia');
+            }
+            
+            if ($tipo_compromisso == 'evento') {
+                $data['tipo_evento'] = $this->input->post('tipo_evento');
+                $data['abrangencia'] = $this->input->post('abrangencia') ?: 'pessoal';
+            }
+
+            // Verificar disponibilidade (double booking) - excluir o próprio compromisso
+            if ($this->audiencias_model->verificarDisponibilidade($data['usuarios_id'], $dataHoraCompleta, $data['duracao_estimada'], $id)) {
+                $this->data['custom_error'] = '<div class="form_error"><p>Já existe um compromisso agendado neste horário para o responsável selecionado. Por favor, escolha outro horário ou outro responsável.</p></div>';
             } else {
-                $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao editar a audiência.</p></div>';
+                if ($this->audiencias_model->edit('audiencias', $data, 'idAudiencias', $id) == true) {
+                    $this->session->set_flashdata('success', 'Compromisso editado com sucesso!');
+                    log_info('Alterou um compromisso. ID: ' . $id);
+                    redirect(site_url('audiencias/gerenciar'));
+                } else {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao editar o compromisso.</p></div>';
+                }
             }
         }
 
+        // Carregar dados para a view
         $this->data['result'] = $this->audiencias_model->getById($id);
         $this->data['processos'] = $this->processos_model->get('processos', '*', '', 0, 0, false, 'array');
+        $this->data['prazos'] = $this->prazos_model->get('prazos', '*', "status IN ('pendente', 'proximo_vencer', 'vencendo_hoje')", 0, 0, false, 'array');
+        
+        // Carregar usuários ativos para o campo Responsável (usando query builder direto)
+        $this->db->select('idUsuarios, nome, email');
+        $this->db->from('usuarios');
+        $this->db->where('situacao', 1); // Apenas usuários ativos
+        $this->db->order_by('nome', 'ASC');
+        $query_usuarios = $this->db->get();
+        
+        if ($query_usuarios !== false && $query_usuarios->num_rows() > 0) {
+            $this->data['usuarios'] = $query_usuarios->result();
+        } else {
+            $this->data['usuarios'] = [];
+            log_message('warning', 'Audiencias::editar() - Nenhum usuário ativo encontrado. Verifique a tabela usuarios.');
+        }
         $this->data['view'] = 'audiencias/editarAudiencia';
 
         return $this->layout();
@@ -364,6 +501,71 @@ class Audiencias extends MY_Controller
         }
 
         redirect(site_url('audiencias/gerenciar'));
+    }
+
+    /**
+     * Método de debug para verificar carregamento de usuários
+     * Acesse: /audiencias/debug_usuarios
+     */
+    public function debug_usuarios()
+    {
+        echo "<h2>Debug: Carregamento de Usuários</h2>";
+        
+        // Teste 1: Query direta com filtro de ativos
+        echo "<h3>Teste 1: Query Builder Direto (Filtro: situacao = 1)</h3>";
+        $this->db->select('idUsuarios, nome, email, situacao');
+        $this->db->from('usuarios');
+        $this->db->where('situacao', 1);
+        $this->db->order_by('nome', 'ASC');
+        $query1 = $this->db->get();
+        $resultado1 = ($query1 !== false) ? $query1->result() : [];
+        
+        echo "<p><strong>Quantidade encontrada:</strong> " . count($resultado1) . "</p>";
+        echo "<pre>";
+        print_r($resultado1);
+        echo "</pre>";
+        
+        // Teste 2: Todos os usuários (sem filtro)
+        echo "<h3>Teste 2: Todos os Usuários (Sem Filtro)</h3>";
+        $this->db->reset_query();
+        $this->db->select('idUsuarios, nome, email, situacao');
+        $this->db->from('usuarios');
+        $query2 = $this->db->get();
+        $resultado2 = ($query2 !== false) ? $query2->result() : [];
+        
+        echo "<p><strong>Quantidade total:</strong> " . count($resultado2) . "</p>";
+        echo "<pre>";
+        print_r($resultado2);
+        echo "</pre>";
+        
+        // Teste 3: Sistema_model
+        echo "<h3>Teste 3: Sistema_model</h3>";
+        $this->load->model('sistema_model');
+        $this->db->reset_query();
+        $resultado3 = $this->sistema_model->get('usuarios', '*', '', 0, 0, false);
+        
+        echo "<p><strong>Quantidade:</strong> " . (is_array($resultado3) ? count($resultado3) : 'N/A') . "</p>";
+        echo "<p><strong>Tipo de retorno:</strong> " . gettype($resultado3) . "</p>";
+        if (!empty($resultado3)) {
+            echo "<pre>";
+            print_r(is_array($resultado3) ? array_slice($resultado3, 0, 3) : $resultado3);
+            echo "</pre>";
+        }
+        
+        // Teste 4: Verificar estrutura da tabela
+        echo "<h3>Teste 4: Estrutura da Tabela usuarios</h3>";
+        if ($this->db->table_exists('usuarios')) {
+            $fields = $this->db->list_fields('usuarios');
+            echo "<p><strong>Campos da tabela:</strong></p>";
+            echo "<pre>";
+            print_r($fields);
+            echo "</pre>";
+        } else {
+            echo "<p style='color: red;'><strong>ERRO: Tabela usuarios não existe!</strong></p>";
+        }
+        
+        echo "<hr>";
+        echo "<p><strong>Recomendação:</strong> Se o Teste 1 retornou 0 usuários, você precisa criar usuários ativos no sistema ou verificar o valor do campo 'situacao' na tabela usuarios.</p>";
     }
 }
 

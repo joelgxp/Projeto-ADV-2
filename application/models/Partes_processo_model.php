@@ -17,7 +17,7 @@ class Partes_processo_model extends CI_Model
         }
 
         $this->db->where('processos_id', $processos_id);
-        $this->db->order_by('tipo_polo', 'ASC');
+        $this->db->order_by('tipo', 'ASC');
         $this->db->order_by('dataCadastro', 'ASC');
         
         $query = $this->db->get('partes_processo');
@@ -177,7 +177,7 @@ class Partes_processo_model extends CI_Model
         }
 
         $this->db->where('processos_id', $processos_id);
-        $this->db->where('tipo_polo', $tipo_polo);
+        $this->db->where('tipo', $tipo_polo);
         $this->db->from('partes_processo');
         return $this->db->count_all_results();
     }

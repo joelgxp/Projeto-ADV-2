@@ -56,10 +56,8 @@
                                         ?>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td style="text-align: right"><strong>Valor da Causa</strong></td>
-                                    <td><?php echo $result->valorCausa ? 'R$ ' . number_format($result->valorCausa, 2, ',', '.') : '-' ?></td>
-                                </tr>
+                                <?php /* Fase 6 - Sprint 3: Ocultar informações financeiras do cliente */ ?>
+                                <!-- Valor da Causa oculto para cliente (informação financeira sensível) -->
                                 <tr>
                                     <td style="text-align: right"><strong>Data de Distribuição</strong></td>
                                     <td><?php echo $result->dataDistribuicao ? date('d/m/Y', strtotime($result->dataDistribuicao)) : '-' ?></td>
@@ -103,23 +101,8 @@
                         </div>
                     </div>
                 </div>
-                <?php if ($result->observacoes) { ?>
-                <div class="accordion-group widget-box">
-                    <div class="accordion-heading">
-                        <div class="widget-title">
-                            <a data-parent="#collapse-group" href="#collapseGThree" data-toggle="collapse">
-                                <span><i class='bx bx-note icon-cli' ></i></span>
-                                <h5 style="padding-left: 28px">Observações</h5>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="collapse accordion-body" id="collapseGThree">
-                        <div class="widget-content">
-                            <p><?php echo nl2br($result->observacoes) ?></p>
-                        </div>
-                    </div>
-                </div>
-                <?php } ?>
+                <?php /* Fase 6 - Sprint 3: Ocultar observações/comentários internos do cliente */ ?>
+                <!-- Observações ocultas para cliente (podem conter comentários internos) -->
             </div>
         </div>
         <!--Tab 2 - Movimentações-->
@@ -153,10 +136,10 @@
                     <tbody>
                     <?php
                     foreach ($movimentacoes as $m) {
-                        $dataMov = date('d/m/Y H:i', strtotime($m->dataMovimentacao));
+                        $dataMov = date('d/m/Y H:i', strtotime($m->data ?? $m->dataMovimentacao ?? date('Y-m-d H:i:s')));
                         echo '<tr>';
                         echo '<td>' . $dataMov . '</td>';
-                        echo '<td>' . ($m->titulo ?? '-') . '</td>';
+                        echo '<td>' . ($m->tipo ?? '-') . '</td>';
                         echo '<td>' . ($m->descricao ? substr($m->descricao, 0, 200) . (strlen($m->descricao) > 200 ? '...' : '') : '-') . '</td>';
                         $origem_label = ($m->origem == 'API' || $m->importado_api == 1) ? 'API CNJ' : 'Manual';
                         $origem_class = ($m->origem == 'API' || $m->importado_api == 1) ? 'label-info' : 'label-default';
@@ -290,7 +273,8 @@
                         $status = $a->status ?? 'agendada';
                         $status_info = $status_labels[$status] ?? ['label' => ucfirst($status), 'cor' => '#E0E4CC'];
                         echo '<td><span class="badge" style="background-color: ' . $status_info['cor'] . '; border-color: ' . $status_info['cor'] . '">' . $status_info['label'] . '</span></td>';
-                        echo '<td>' . ($a->observacoes ? substr($a->observacoes, 0, 100) . (strlen($a->observacoes) > 100 ? '...' : '') : '-') . '</td>';
+                        <?php /* Fase 6 - Sprint 3: Ocultar observações de audiências (podem conter comentários internos) */ ?>
+                        <td>-</td>
                         echo '</tr>';
                     } ?>
                     </tbody>

@@ -79,6 +79,14 @@
                     <li class="<?php if (isset($menuCobrancas)) {
                                     echo 'active';
                                 }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/cobrancas"><i class='bx bx-credit-card-front iconX'></i> <span class="title">Cobranças</span></a></li>
+                    <li class="<?php if (isset($menuTickets)) {
+                                    echo 'active';
+                                }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/tickets">
+                        <i class='bx bx-message-dots iconX'></i> <span class="title">Tickets</span>
+                        <?php if (isset($nao_lidos) && $nao_lidos > 0) : ?>
+                            <span class="badge badge-danger" style="margin-left: 5px;"><?php echo $nao_lidos; ?></span>
+                        <?php endif; ?>
+                    </a></li>
                     <li class="<?php if (isset($menuConta)) {
                                     echo 'active';
                                 }; ?>"><a class="tip-bottom" title="" href="<?php echo base_url() ?>index.php/mine/conta"><i class="bx bx-user-circle iconX"></i> <span class="title">Minha Conta</span></a></li>
