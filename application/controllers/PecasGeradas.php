@@ -141,6 +141,12 @@ class PecasGeradas extends MY_Controller
     {
         $this->verificarPermissaoGerar();
 
+        // API de IA pode demorar 30-90s; evita timeout em produção
+        set_time_limit(120);
+        if (function_exists('ini_set')) {
+            @ini_set('memory_limit', '256M');
+        }
+
         if ($this->input->method() !== 'post') {
             redirect('pecasGeradas/gerar');
         }

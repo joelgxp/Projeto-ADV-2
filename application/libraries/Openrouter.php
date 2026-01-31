@@ -42,9 +42,17 @@ class Openrouter
      */
     private function createClient(): Client
     {
+        // Timeout 90s - OpenRouter pode demorar em respostas longas
+        $timeout = (int) ($_ENV['OPENROUTER_TIMEOUT'] ?? 90);
+        $guzzle = new \GuzzleHttp\Client([
+            'timeout' => $timeout,
+            'connect_timeout' => 15,
+        ]);
+
         $factory = \OpenAI::factory()
             ->withApiKey($this->apiKey)
-            ->withBaseUri(rtrim($this->baseUrl, '/'));
+            ->withBaseUri(rtrim($this->baseUrl, '/'))
+            ->withHttpClient($guzzle);
 
         $siteUrl = $_ENV['APP_BASEURL'] ?? '';
         if (! empty($siteUrl)) {
@@ -81,7 +89,18 @@ class Openrouter
 
             $response = $this->client->chat()->create($params);
 
-            $content = $response->choices[0]->message->content ?? null;
+            // Resposta pode vir em formatos diferentes; tratar com segurança
+            $choices = $response->choices ?? [];
+            if (empty($choices) || ! isset($choices[0])) {
+                log_message('error', 'Openrouter: resposta sem choices (API retornou estrutura inesperada)');
+                return null;
+            }
+            $content = $choices[0]->message->content ?? null;
+            if ($content === null || $content === '') {
+                $c0 = $choices[0];
+                $finish = property_exists($c0, 'finishReason') ? $c0->finishReason : (property_exists($c0, 'finish_reason') ? $c0->finish_reason : '?');
+                log_message('warning', 'Openrouter: conteúdo vazio. finish_reason=' . $finish);
+            }
 
             return $content;
         } catch (Throwable $e) {
