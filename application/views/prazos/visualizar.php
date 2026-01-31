@@ -143,6 +143,12 @@
                                 </a>
                             <?php } ?>
                         <?php } ?>
+                        <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'gPeticaoIA')) { ?>
+                            <a href="<?= site_url('pecas-geradas/gerar?prazos_id=' . $result->idPrazos . (isset($result->processos_id) ? '&processos_id=' . $result->processos_id : '')) ?>" class="button btn btn-mini btn-primary">
+                                <span class="button__icon"><i class='bx bx-magic-wand'></i></span>
+                                <span class="button__text2">Gerar peça para este prazo</span>
+                            </a>
+                        <?php } ?>
                         <a href="<?= base_url() ?>index.php/prazos" class="button btn btn-mini btn-warning">
                             <span class="button__icon"><i class='bx bx-arrow-back'></i></span>
                             <span class="button__text2">Voltar</span>

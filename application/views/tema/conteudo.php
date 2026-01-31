@@ -19,8 +19,8 @@
     <div class="container-flu">
       <div class="row-fluid">
         <div class="span12">
-          <?php if ($var = $this->session->flashdata('error')): ?><script>swal("Falha!", "<?php echo str_replace('"', '', $var); ?>", "error");</script><?php endif; ?>
-          <?php if ($var = $this->session->flashdata('success')): ?><script>swal("Sucesso!", "<?php echo str_replace('"', '', $var); ?>", "success");</script><?php endif; ?>
+          <?php if ($var = $this->session->flashdata('error')): ?><script>var _m=<?= json_encode(str_replace(["\r","\n"],[' ',' '], $var)) ?>;if(typeof Swal!=="undefined"){Swal.fire({title:"Falha!",text:_m,icon:"error"});}else{alert("Falha! "+_m);}</script><?php endif; ?>
+          <?php if ($var = $this->session->flashdata('success')): ?><script>var _m=<?= json_encode(str_replace(["\r","\n"],[' ',' '], $var)) ?>;if(typeof Swal!=="undefined"){Swal.fire({title:"Sucesso!",text:_m,icon:"success"});}else{alert("Sucesso! "+_m);}</script><?php endif; ?>
           <?php if (isset($view)) {
               // Passar todas as variáveis do escopo atual (incluindo $this->data) para a view
               $view_data = get_defined_vars();

@@ -95,6 +95,17 @@
                     </li>
                 <?php } ?>
 
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'gPeticaoIA')) { ?>
+                    <li class="<?php if (isset($menuPecasGeradas)) {
+                        echo 'active';
+                    }; ?>">
+                        <a class="tip-bottom" title="" href="<?= site_url('pecas-geradas') ?>"><i class='bx bx-bot iconX'></i>
+                            <span class="title">Petições IA</span>
+                            <span class="title-tooltip">Gerar petições com IA</span>
+                        </a>
+                    </li>
+                <?php } ?>
+
                 <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'vServico')) { ?>
                     <li class="<?php if (isset($menuServicos)) {
                         echo 'active';

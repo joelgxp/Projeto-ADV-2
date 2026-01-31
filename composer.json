@@ -12,7 +12,9 @@
         "phpoffice/phpword": "^0.18.3",
         "piggly/php-pix": "^2.0.2",
         "vlucas/phpdotenv": "^5.6.2",
-        "filp/whoops": "^2.18.3"
+        "filp/whoops": "^2.18.3",
+        "openai-php/client": "^0.18.0",
+        "guzzlehttp/guzzle": "^7.9"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.75.0",

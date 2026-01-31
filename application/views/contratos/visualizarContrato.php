@@ -115,6 +115,12 @@
                     <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eContrato')) { ?>
                         <a href="<?= base_url() ?>index.php/contratos/editar/<?= $result->id ?>" class="button btn btn-warning">Editar</a>
                     <?php } ?>
+                    <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'gPeticaoIA')) { ?>
+                        <a href="<?= site_url('pecas-geradas/gerar?contratos_id=' . $result->id . '&clientes_id=' . ($result->clientes_id ?? '')) ?>" class="button btn btn-primary">
+                            <span class="button__icon"><i class='bx bx-magic-wand'></i></span>
+                            Gerar adendo/notificação com IA
+                        </a>
+                    <?php } ?>
                     <a href="<?= base_url() ?>index.php/contratos" class="button btn">Voltar</a>
                 </div>
             </div>

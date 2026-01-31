@@ -634,6 +634,12 @@
                         <span class="button__text2">Sincronizar API</span>
                     </a>
                 <?php } ?>
+                <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'gPeticaoIA')) { ?>
+                    <a href="<?= site_url('pecas-geradas/gerar?processos_id=' . (isset($result->idProcessos) ? $result->idProcessos : ($result->id ?? 0))) ?>" class="button btn btn-primary">
+                        <span class="button__icon"><i class='bx bx-magic-wand'></i></span>
+                        <span class="button__text2">Gerar petição com IA</span>
+                    </a>
+                <?php } ?>
                 <a href="<?= base_url() ?>index.php/processos" class="button btn btn-warning"><span class="button__icon"><i class='bx bx-arrow-back'></i></span><span class="button__text2">Voltar</span></a>
             </div>
         </div>

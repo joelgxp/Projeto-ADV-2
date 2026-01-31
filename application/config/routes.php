@@ -77,6 +77,23 @@ $route['consulta-processual/buscar-cliente'] = 'consultaProcessual/buscar_client
 $route['consulta-processual/cadastrar-cliente-rapido'] = 'consultaProcessual/cadastrar_cliente_rapido';
 $route['consulta-processual/salvar-processo'] = 'consultaProcessual/salvar_processo';
 
+$route['pecas-geradas'] = 'pecasGeradas/listar';
+$route['pecas-geradas/dashboard'] = 'pecasGeradas/dashboard';
+$route['pecas-geradas/listar'] = 'pecasGeradas/listar';
+$route['pecas-geradas/gerar'] = 'pecasGeradas/gerar';
+$route['pecas-geradas/gerar/(:num)'] = 'pecasGeradas/gerar/$1';
+$route['pecas-geradas/executar-geracao'] = 'pecasGeradas/executar_geracao';
+$route['pecas-geradas/visualizar/(:num)'] = 'pecasGeradas/visualizar/$1';
+$route['pecas-geradas/salvar-edicao/(:num)'] = 'pecasGeradas/salvar_edicao/$1';
+$route['pecas-geradas/refinar'] = 'pecasGeradas/refinar';
+$route['pecas-geradas/salvar-checklist/(:num)'] = 'pecasGeradas/salvar_checklist/$1';
+$route['pecas-geradas/aprovar/(:num)'] = 'pecasGeradas/aprovar/$1';
+$route['pecas-geradas/exportar/(:num)'] = 'pecasGeradas/exportar/$1';
+$route['pecas-geradas/jurisprudencia'] = 'pecasGeradas/jurisprudencia';
+$route['pecas-geradas/adicionar-jurisprudencia'] = 'pecasGeradas/adicionar_jurisprudencia';
+$route['pecas-geradas/modelos'] = 'pecasGeradas/modelos';
+$route['pecas-geradas/adicionar-modelo'] = 'pecasGeradas/adicionar_modelo';
+$route['pecas-geradas/editar-modelo/(:num)'] = 'pecasGeradas/editar_modelo/$1';
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */
