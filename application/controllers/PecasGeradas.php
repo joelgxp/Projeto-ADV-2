@@ -135,11 +135,33 @@ class PecasGeradas extends MY_Controller
     }
 
     /**
+     * Escreve em arquivo de debug (funciona mesmo quando log do CI não grava)
+     */
+    private function _pecasDebugLog(string $msg): void
+    {
+        $path = FCPATH . 'application/logs/pecas_debug.log';
+        $line = date('Y-m-d H:i:s') . ' | ' . $msg . "\n";
+        @file_put_contents($path, $line, FILE_APPEND | LOCK_EX);
+    }
+
+    /**
      * Executa a geração (POST)
      */
     public function executar_geracao()
     {
         $this->verificarPermissaoGerar();
+
+        // Captura fatal errors e grava em arquivo próprio
+        register_shutdown_function(function () {
+            $err = error_get_last();
+            if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+                $path = FCPATH . 'application/logs/pecas_debug.log';
+                $msg = date('Y-m-d H:i:s') . ' | FATAL: ' . ($err['message'] ?? '') . ' em ' . ($err['file'] ?? '') . ':' . ($err['line'] ?? '') . "\n";
+                @file_put_contents($path, $msg, FILE_APPEND | LOCK_EX);
+            }
+        });
+
+        $this->_pecasDebugLog('INICIO executar_geracao');
 
         // API de IA pode demorar 30-90s; evita timeout em produção
         set_time_limit(120);
@@ -181,9 +203,11 @@ class PecasGeradas extends MY_Controller
 
         try {
             $this->load->library('PeticaoGenerator');
+            $this->_pecasDebugLog('PeticaoGenerator carregado OK');
         } catch (Throwable $e) {
+            $this->_pecasDebugLog('ERRO carregar PeticaoGenerator: ' . $e->getMessage());
             log_message('error', 'PecasGeradas executar_geracao: Erro ao carregar PeticaoGenerator - ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
-            $this->session->set_flashdata('error', 'Erro técnico: ' . $e->getMessage() . '. Verifique application/logs/ e composer install.');
+            $this->session->set_flashdata('error', 'Erro técnico: ' . $e->getMessage() . '. Verifique application/logs/pecas_debug.log e composer install.');
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
@@ -202,15 +226,19 @@ class PecasGeradas extends MY_Controller
             'anexos_ids' => $this->input->post('anexos_ids') ?: [],
         ];
 
+        $this->_pecasDebugLog('Chamando peticaogenerator->gerar...');
         try {
             $resultado = $this->peticaogenerator->gerar($params);
+            $this->_pecasDebugLog('gerar retornou: sucesso=' . ($resultado['sucesso'] ? '1' : '0') . ' erro=' . ($resultado['erro'] ?? ''));
         } catch (Throwable $e) {
+            $this->_pecasDebugLog('ERRO gerar: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
             log_message('error', 'PecasGeradas executar_geracao: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString());
-            $this->session->set_flashdata('error', 'Erro na geração: ' . $e->getMessage() . '. Consulte application/logs/log-' . date('Y-m-d') . '.php');
+            $this->session->set_flashdata('error', 'Erro na geração: ' . $e->getMessage() . '. Consulte application/logs/pecas_debug.log');
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
         if (!$resultado['sucesso']) {
+            $this->_pecasDebugLog('Falha: ' . ($resultado['erro'] ?? ''));
             $this->session->set_flashdata('error', $resultado['erro']);
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
@@ -249,6 +277,7 @@ class PecasGeradas extends MY_Controller
             $user_id
         );
 
+        $this->_pecasDebugLog('SUCESSO peca_id=' . $peca_id);
         log_info('Gerou petição com IA (ID: ' . $peca_id . ')');
         $this->session->set_flashdata('success', 'Petição gerada com sucesso. Revise e aprove antes de usar.');
         redirect('pecasGeradas/visualizar/' . $peca_id);
@@ -699,6 +728,35 @@ class PecasGeradas extends MY_Controller
         $this->data['tipos_peca'] = $this->modelos_pecas_model->getTiposPeca();
         $this->data['areas'] = $this->modelos_pecas_model->getAreas();
         $this->data['view'] = 'pecas_geradas/form_modelo';
+        return $this->layout();
+    }
+
+    /**
+     * Diagnóstico do ambiente (PHP, extensões, paths) - compare local vs produção
+     */
+    public function diagnostico()
+    {
+        $this->verificarPermissaoGerar();
+
+        $info = [
+            'PHP_VERSION' => PHP_VERSION,
+            'max_execution_time' => ini_get('max_execution_time'),
+            'memory_limit' => ini_get('memory_limit'),
+            'log_errors' => ini_get('log_errors'),
+            'error_log' => ini_get('error_log') ?: '(vazio - usa padrão)',
+            'display_errors' => ini_get('display_errors'),
+            'FCPATH' => FCPATH,
+            'logs_path' => FCPATH . 'application/logs/',
+            'logs_writable' => is_writable(FCPATH . 'application/logs/'),
+            'pecas_debug_exists' => file_exists(FCPATH . 'application/logs/pecas_debug.log'),
+            'vendor_autoload' => file_exists(FCPATH . 'application/vendor/autoload.php'),
+            'OpenAI_class' => (class_exists('OpenAI\Client') || class_exists('OpenAI\Factory')) ? 'SIM' : 'NAO',
+            'OPENROUTER_API_KEY' => !empty($_ENV['OPENROUTER_API_KEY']) ? '(configurado)' : '(vazio)',
+            'PETICAO_IA_MODELO' => $_ENV['PETICAO_IA_MODELO'] ?? '(não definido)',
+        ];
+
+        $this->data['info'] = $info;
+        $this->data['view'] = 'pecas_geradas/diagnostico';
         return $this->layout();
     }
 

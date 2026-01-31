@@ -94,6 +94,7 @@ $route['pecas-geradas/adicionar-jurisprudencia'] = 'pecasGeradas/adicionar_juris
 $route['pecas-geradas/modelos'] = 'pecasGeradas/modelos';
 $route['pecas-geradas/adicionar-modelo'] = 'pecasGeradas/adicionar_modelo';
 $route['pecas-geradas/editar-modelo/(:num)'] = 'pecasGeradas/editar_modelo/$1';
+$route['pecas-geradas/diagnostico'] = 'pecasGeradas/diagnostico';
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */

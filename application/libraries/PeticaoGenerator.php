@@ -13,6 +13,12 @@ class PeticaoGenerator
     /** @var object */
     private $ci;
 
+    private static function _debugLog(string $msg): void
+    {
+        $path = FCPATH . 'application/logs/pecas_debug.log';
+        @file_put_contents($path, date('Y-m-d H:i:s') . ' | PeticaoGenerator: ' . $msg . "\n", FILE_APPEND | LOCK_EX);
+    }
+
     /** @var string */
     private $modelo;
 
@@ -323,15 +329,19 @@ class PeticaoGenerator
             ['role' => 'user', 'content' => $userContent],
         ];
 
+        self::_debugLog('Chamando OpenRouter chat modelo=' . $this->modelo);
         try {
             $resposta = $this->ci->openrouter->chat($this->modelo, $messages, [
                 'temperature' => 0.4,
                 'max_tokens' => 4096,
             ]);
         } catch (Throwable $e) {
+            self::_debugLog('ERRO chat: ' . $e->getMessage());
             log_message('error', 'PeticaoGenerator gerar: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
             return ['sucesso' => false, 'conteudo' => null, 'erro' => 'Erro na API de IA: ' . $e->getMessage()];
         }
+
+        self::_debugLog('Resposta recebida: ' . ($resposta === null ? 'NULL' : 'OK len=' . strlen($resposta ?? '')));
 
         if ($resposta === null) {
             return ['sucesso' => false, 'conteudo' => null, 'erro' => 'Erro ao comunicar com o serviço de IA. Verifique OPENROUTER_API_KEY no .env e application/logs/'];

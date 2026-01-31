@@ -28,6 +28,12 @@
                 <span class="button__text2">Metricas</span>
             </a>
         </div>
+        <div class="span3">
+            <a href="<?= site_url('pecas-geradas/diagnostico') ?>" class="button btn btn-mini" style="max-width: 180px" title="Diagnóstico do ambiente (produção vs local)">
+                <span class="button__icon"><i class='bx bx-cog'></i></span>
+                <span class="button__text2">Diagnóstico</span>
+            </a>
+        </div>
         <form class="span6" method="get" action="<?= site_url('pecas-geradas/listar') ?>" style="display: flex; justify-content: flex-end;">
             <div class="span2">
                 <select name="tipo" class="span12">
