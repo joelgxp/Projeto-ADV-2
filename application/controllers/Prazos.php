@@ -258,12 +258,17 @@ class Prazos extends MY_Controller
                 'descricao' => $this->input->post('descricao'),
                 'dataPrazo' => $this->input->post('dataPrazo'),
                 'dataVencimento' => $this->input->post('dataVencimento'),
-                'status' => $this->input->post('status') ?: 'Pendente',
+                'diasUteis' => $this->input->post('diasUteis') ? intval($this->input->post('diasUteis')) : null,
+                'legislacao' => $this->input->post('legislacao') ?: 'CPC',
+                'status' => $this->input->post('status') ?: 'pendente',
                 'prioridade' => $this->input->post('prioridade') ?: 'Normal',
                 'usuarios_id' => $this->session->userdata('id_admin'),
             ];
 
-            if ($this->prazos_model->add('prazos', $data) == true) {
+            // Verificar double booking (prazo na mesma data para o mesmo processo)
+            if ($this->prazos_model->existePrazoNaData($data['processos_id'], $data['dataVencimento'])) {
+                $this->data['custom_error'] = '<div class="form_error"><p>Já existe um prazo agendado para esta data neste processo. Por favor, escolha outra data ou verifique os prazos existentes.</p></div>';
+            } elseif ($this->prazos_model->add('prazos', $data) == true) {
                 $this->session->set_flashdata('success', 'Prazo adicionado com sucesso!');
                 log_info('Adicionou um prazo processual.');
                 redirect(site_url('prazos/gerenciar'));
@@ -307,11 +312,16 @@ class Prazos extends MY_Controller
                 'descricao' => $this->input->post('descricao'),
                 'dataPrazo' => $this->input->post('dataPrazo'),
                 'dataVencimento' => $this->input->post('dataVencimento'),
+                'diasUteis' => $this->input->post('diasUteis') ? intval($this->input->post('diasUteis')) : null,
+                'legislacao' => $this->input->post('legislacao') ?: 'CPC',
                 'status' => $this->input->post('status'),
                 'prioridade' => $this->input->post('prioridade'),
             ];
 
-            if ($this->prazos_model->edit('prazos', $data, 'idPrazos', $id) == true) {
+            // Verificar double booking (prazo na mesma data para o mesmo processo) - excluir o próprio prazo
+            if ($this->prazos_model->existePrazoNaData($data['processos_id'], $data['dataVencimento'], $id)) {
+                $this->data['custom_error'] = '<div class="form_error"><p>Já existe outro prazo agendado para esta data neste processo. Por favor, escolha outra data ou verifique os prazos existentes.</p></div>';
+            } elseif ($this->prazos_model->edit('prazos', $data, 'idPrazos', $id) == true) {
                 $this->session->set_flashdata('success', 'Prazo editado com sucesso!');
                 log_info('Alterou um prazo processual. ID: ' . $id);
                 redirect(site_url('prazos/gerenciar'));
@@ -340,6 +350,10 @@ class Prazos extends MY_Controller
         }
 
         $this->data['result'] = $this->prazos_model->getById($id);
+        if ($this->data['result']) {
+            $this->data['numeroProrrogacoes'] = $this->prazos_model->contarProrrogacoes($id);
+            $this->data['historicoProrrogacoes'] = $this->prazos_model->getHistoricoProrrogacoes($id);
+        }
         $this->data['view'] = 'prazos/visualizar';
 
         return $this->layout();
@@ -366,6 +380,173 @@ class Prazos extends MY_Controller
         }
 
         redirect(site_url('prazos/gerenciar'));
+    }
+
+    /**
+     * Calcula data de vencimento do prazo via AJAX
+     * 
+     * Conforme RN 4.1 - Calcula considerando dias úteis e feriados
+     */
+    public function calcularDataVencimento()
+    {
+        // Permitir requisições AJAX
+        header('Content-Type: application/json');
+        
+        $this->load->helper('prazo');
+        
+        $tipo = $this->input->post('tipo');
+        $dataInicio = $this->input->post('dataInicio');
+        $diasUteis = $this->input->post('diasUteis');
+        $legislacao = $this->input->post('legislacao') ?: 'CPC';
+        $municipio_id = $this->input->post('municipio_id'); // Opcional para feriados municipais
+        
+        if (empty($tipo) || empty($dataInicio)) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'message' => 'Tipo de prazo e data inicial são obrigatórios.'
+                ]));
+            return;
+        }
+        
+        // Log para debug
+        log_message('info', 'Calculando prazo - Tipo: ' . $tipo . ', Data: ' . $dataInicio . ', Legislação: ' . $legislacao);
+        
+        // Se não informou dias úteis, usar sugestão do sistema
+        if (empty($diasUteis) || $diasUteis <= 0) {
+            $dataVencimento = sugerirDataPrazo($tipo, $legislacao, $dataInicio, $municipio_id);
+            
+            // Obter dias úteis sugeridos
+            $prazosLegais = [
+                'CPC' => [
+                    'recurso' => 15, 'contestacao' => 15, 'resposta' => 15, 'impugnacao' => 15,
+                    'manifestacao' => 15, 'parecer' => 15, 'embargos' => 15, 'agravo' => 15,
+                    'apelação' => 15, 'defesa' => 15, 'resposta_acao' => 15,
+                ],
+                'CLT' => [
+                    'recurso' => 8, 'contestacao' => 8, 'defesa' => 8, 'impugnacao' => 5, 'parecer' => 10,
+                ],
+                'tributario' => [
+                    'recurso' => 30, 'defesa' => 30, 'impugnacao' => 30,
+                ],
+            ];
+            
+            $diasUteisSugeridos = null;
+            if (isset($prazosLegais[$legislacao]) && isset($prazosLegais[$legislacao][strtolower($tipo)])) {
+                $diasUteisSugeridos = $prazosLegais[$legislacao][strtolower($tipo)];
+            } elseif (isset($prazosLegais['CPC'][strtolower($tipo)])) {
+                $diasUteisSugeridos = $prazosLegais['CPC'][strtolower($tipo)];
+            } else {
+                $diasUteisSugeridos = 15; // Padrão
+            }
+            
+            $info = "Sugestão automática: {$diasUteisSugeridos} dias úteis conforme {$legislacao}";
+        } else {
+            // Calcular com dias úteis informados
+            $dataVencimento = calcularPrazo($dataInicio, intval($diasUteis), $legislacao, $municipio_id);
+            $info = "Calculado com {$diasUteis} dias úteis";
+        }
+        
+        // Contar dias úteis reais entre as datas
+        $diasUteisReais = contarDiasUteis($dataInicio, $dataVencimento, $municipio_id);
+        if ($diasUteisReais > 0) {
+            $info .= " (total: {$diasUteisReais} dias úteis)";
+        }
+        
+        // Log do resultado
+        log_message('info', 'Prazo calculado - Data vencimento: ' . $dataVencimento . ', Dias úteis: ' . (isset($diasUteisSugeridos) ? $diasUteisSugeridos : intval($diasUteis)));
+        
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => true,
+                'dataVencimento' => $dataVencimento,
+                'diasUteis' => isset($diasUteisSugeridos) ? $diasUteisSugeridos : intval($diasUteis),
+                'info' => $info
+            ]));
+    }
+
+    /**
+     * Atualiza status dos prazos automaticamente (para uso via cron)
+     * 
+     * Conforme RN 4.3 - Atualização automática de status
+     */
+    public function atualizarStatus()
+    {
+        // Verificar se é chamado via cron ou CLI (opcional: adicionar autenticação)
+        $this->load->model('prazos_model');
+        
+        $resultado = $this->prazos_model->atualizarStatusAutomatico();
+        
+        if ($this->input->is_cli_request()) {
+            echo "Status atualizados: {$resultado['atualizados']}\n";
+            echo "Erros: {$resultado['erros']}\n";
+            echo "Total processados: {$resultado['total_processados']}\n";
+        } else {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => true,
+                    'atualizados' => $resultado['atualizados'],
+                    'erros' => $resultado['erros'],
+                    'total_processados' => $resultado['total_processados']
+                ]));
+        }
+    }
+
+    /**
+     * Prorroga um prazo
+     * 
+     * Conforme RN 4.5 - Máximo de 3 prorrogações
+     */
+    public function prorrogar($id = null)
+    {
+        if (! $this->permission->checkPermission($this->session->userdata('permissao'), 'ePrazo')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para prorrogar prazos.');
+            redirect(base_url());
+        }
+
+        if ($id == null) {
+            $this->session->set_flashdata('error', 'Erro ao tentar prorrogar prazo.');
+            redirect(site_url('prazos/gerenciar'));
+        }
+
+        $this->load->library('form_validation');
+        $this->data['custom_error'] = '';
+
+        $this->form_validation->set_rules('novos_dias_uteis', 'Novos Dias Úteis', 'required|integer|greater_than[0]');
+        $this->form_validation->set_rules('motivo', 'Motivo', 'trim');
+
+        if ($this->form_validation->run() == false) {
+            $this->data['custom_error'] = (validation_errors() ? '<div class="form_error">' . validation_errors() . '</div>' : false);
+        } else {
+            $novosDiasUteis = intval($this->input->post('novos_dias_uteis'));
+            $motivo = $this->input->post('motivo');
+            $usuarios_id = $this->session->userdata('id_admin');
+
+            $novoId = $this->prazos_model->prorrogar($id, $novosDiasUteis, $motivo, $usuarios_id);
+
+            if ($novoId !== false) {
+                $this->session->set_flashdata('success', 'Prazo prorrogado com sucesso!');
+                log_info("Prorrogou prazo ID {$id}. Novo prazo ID: {$novoId}");
+                redirect(site_url('prazos/visualizar/' . $novoId));
+            } else {
+                $numeroProrrogacoes = $this->prazos_model->contarProrrogacoes($id);
+                if ($numeroProrrogacoes >= 3) {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Este prazo já possui o máximo de 3 prorrogações permitidas.</p></div>';
+                } else {
+                    $this->data['custom_error'] = '<div class="form_error"><p>Ocorreu um erro ao prorrogar o prazo. Verifique se o prazo pode ser prorrogado.</p></div>';
+                }
+            }
+        }
+
+        $this->data['result'] = $this->prazos_model->getById($id);
+        $this->data['numeroProrrogacoes'] = $this->prazos_model->contarProrrogacoes($id);
+        $this->data['historicoProrrogacoes'] = $this->prazos_model->getHistorioProrrogacoes($id);
+        $this->data['view'] = 'prazos/prorrogar';
+        
+        return $this->layout();
     }
 }
 

@@ -257,3 +257,212 @@ if (! function_exists('determinar_tipo_pessoa')) {
         ];
     }
 }
+
+// =====================================================
+// FASE 11: VALIDAÇÕES CRÍTICAS ADICIONAIS (RN 11)
+// =====================================================
+
+/**
+ * Valida formato de e-mail
+ * 
+ * @param string $email
+ * @return bool
+ */
+if (!function_exists('validar_email')) {
+    function validar_email($email)
+    {
+        if (empty($email)) {
+            return false;
+        }
+        
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+}
+
+/**
+ * Valida telefone brasileiro (formato: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX)
+ * 
+ * @param string $telefone
+ * @return bool
+ */
+if (!function_exists('validar_telefone_brasileiro')) {
+    function validar_telefone_brasileiro($telefone)
+    {
+        if (empty($telefone)) {
+            return false;
+        }
+        
+        // Remove caracteres não numéricos
+        $telefone_limpo = preg_replace('/[^0-9]/', '', $telefone);
+        
+        // Telefone fixo: 10 dígitos (DDD + 8 dígitos)
+        // Celular: 11 dígitos (DDD + 9 dígitos começando com 9)
+        if (strlen($telefone_limpo) == 10 || strlen($telefone_limpo) == 11) {
+            // Verifica se DDD é válido (11-99)
+            $ddd = substr($telefone_limpo, 0, 2);
+            if ($ddd >= 11 && $ddd <= 99) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+}
+
+/**
+ * Valida número CNJ (formato: NNNNNNN-DD.AAAA.J.TR.OOOO)
+ * 
+ * @param string $numero_cnj
+ * @return array ['valido' => bool, 'erro' => string|null, 'numero_formatado' => string|null]
+ */
+if (!function_exists('validar_numero_cnj')) {
+    function validar_numero_cnj($numero_cnj)
+    {
+        // Remove formatação
+        $numero_limpo = preg_replace('/[^0-9]/', '', $numero_cnj);
+        
+        // CNJ deve ter exatamente 20 dígitos
+        if (strlen($numero_limpo) != 20) {
+            return [
+                'valido' => false,
+                'erro' => 'Número CNJ deve ter 20 dígitos',
+                'numero_formatado' => null
+            ];
+        }
+        
+        // Extrai componentes
+        $sequencial = substr($numero_limpo, 0, 7);
+        $digito_verificador = substr($numero_limpo, 7, 2);
+        $ano = substr($numero_limpo, 9, 4);
+        $segmento = substr($numero_limpo, 13, 1);
+        $tribunal = substr($numero_limpo, 14, 2);
+        $origem = substr($numero_limpo, 16, 4);
+        
+        // Valida ano (deve ser entre 1900 e ano atual + 1)
+        $ano_atual = (int)date('Y');
+        if ((int)$ano < 1900 || (int)$ano > ($ano_atual + 1)) {
+            return [
+                'valido' => false,
+                'erro' => 'Ano inválido no número CNJ',
+                'numero_formatado' => null
+            ];
+        }
+        
+        // Valida segmento (1-5)
+        if ((int)$segmento < 1 || (int)$segmento > 5) {
+            return [
+                'valido' => false,
+                'erro' => 'Segmento inválido no número CNJ',
+                'numero_formatado' => null
+            ];
+        }
+        
+        // Calcula dígito verificador
+        $numero_sem_dv = $sequencial . $ano . $segmento . $tribunal . $origem;
+        $soma = 0;
+        $pesos = [2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3];
+        
+        for ($i = 0; $i < strlen($numero_sem_dv); $i++) {
+            $soma += (int)$numero_sem_dv[$i] * $pesos[$i];
+        }
+        
+        $resto = $soma % 97;
+        $dv_calculado = 98 - $resto;
+        $dv_calculado = str_pad($dv_calculado, 2, '0', STR_PAD_LEFT);
+        
+        // Valida dígito verificador
+        if ($dv_calculado != $digito_verificador) {
+            return [
+                'valido' => false,
+                'erro' => 'Dígito verificador inválido',
+                'numero_formatado' => null
+            ];
+        }
+        
+        // Formata número CNJ
+        $numero_formatado = $sequencial . '-' . $digito_verificador . '.' . $ano . '.' . $segmento . '.' . $tribunal . '.' . $origem;
+        
+        return [
+            'valido' => true,
+            'erro' => null,
+            'numero_formatado' => $numero_formatado
+        ];
+    }
+}
+
+/**
+ * Valida valor monetário (deve ser positivo)
+ * 
+ * @param mixed $valor
+ * @return bool
+ */
+if (!function_exists('validar_valor_monetario')) {
+    function validar_valor_monetario($valor)
+    {
+        if ($valor === null || $valor === '') {
+            return false;
+        }
+        
+        // Remove formatação monetária
+        $valor_limpo = preg_replace('/[^0-9,.-]/', '', str_replace('.', '', str_replace(',', '.', $valor)));
+        
+        $valor_float = (float)$valor_limpo;
+        
+        // Valor deve ser positivo
+        return $valor_float > 0;
+    }
+}
+
+/**
+ * Valida se data não é futura (para eventos passados)
+ * 
+ * @param string $data Data no formato Y-m-d ou Y-m-d H:i:s
+ * @param bool $permite_hoje Se true, permite data de hoje
+ * @return bool
+ */
+if (!function_exists('validar_data_nao_futura')) {
+    function validar_data_nao_futura($data, $permite_hoje = true)
+    {
+        if (empty($data)) {
+            return false;
+        }
+        
+        $timestamp_data = strtotime($data);
+        $timestamp_hoje = time();
+        
+        if ($timestamp_data === false) {
+            return false;
+        }
+        
+        if ($permite_hoje) {
+            return $timestamp_data <= $timestamp_hoje;
+        } else {
+            return $timestamp_data < $timestamp_hoje;
+        }
+    }
+}
+
+/**
+ * Valida campos obrigatórios
+ * 
+ * @param array $dados Array com os dados
+ * @param array $campos_obrigatorios Array com nomes dos campos obrigatórios
+ * @return array ['valido' => bool, 'campos_faltando' => array]
+ */
+if (!function_exists('validar_campos_obrigatorios')) {
+    function validar_campos_obrigatorios($dados, $campos_obrigatorios)
+    {
+        $campos_faltando = [];
+        
+        foreach ($campos_obrigatorios as $campo) {
+            if (!isset($dados[$campo]) || $dados[$campo] === '' || $dados[$campo] === null) {
+                $campos_faltando[] = $campo;
+            }
+        }
+        
+        return [
+            'valido' => empty($campos_faltando),
+            'campos_faltando' => $campos_faltando
+        ];
+    }
+}

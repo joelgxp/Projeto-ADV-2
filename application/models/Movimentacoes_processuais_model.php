@@ -15,7 +15,7 @@ class Movimentacoes_processuais_model extends CI_Model
 
         $this->db->select($fields . ', movimentacoes_processuais.*');
         $this->db->from($table);
-        $this->db->order_by('movimentacoes_processuais.dataMovimentacao', 'DESC');
+        $this->db->order_by('movimentacoes_processuais.data', 'DESC');
         $this->db->limit($perpage, $start);
 
         if ($where) {
@@ -59,7 +59,7 @@ class Movimentacoes_processuais_model extends CI_Model
         }
 
         $this->db->where('processos_id', $processoId);
-        $this->db->order_by('dataMovimentacao', 'DESC');
+        $this->db->order_by('data', 'DESC');
         $query = $this->db->get('movimentacoes_processuais');
         
         if ($query === false) {
@@ -132,8 +132,13 @@ class Movimentacoes_processuais_model extends CI_Model
 
     /**
      * Verifica se movimentação já existe
+     * 
+     * @param int $processoId ID do processo
+     * @param string|null $dataMovimentacao Data da movimentação (formato Y-m-d H:i:s)
+     * @param string|null $tipo Tipo/nome da movimentação (não usado na verificação, mantido para compatibilidade)
+     * @return bool
      */
-    public function verificarMovimentacaoExistente($processoId, $dataMovimentacao, $titulo)
+    public function verificarMovimentacaoExistente($processoId, $dataMovimentacao, $tipo = null)
     {
         if (!$this->db->table_exists('movimentacoes_processuais')) {
             return false;
@@ -141,13 +146,19 @@ class Movimentacoes_processuais_model extends CI_Model
 
         $this->db->where('processos_id', $processoId);
         if ($dataMovimentacao) {
-            $this->db->where('dataMovimentacao', $dataMovimentacao);
+            $this->db->where('data', $dataMovimentacao);
         }
-        if ($titulo) {
-            $this->db->where('titulo', $titulo);
-        }
+        // Nota: Verificação por 'tipo' removida pois pode haver múltiplas movimentações no mesmo dia
+        // Usa apenas processo_id + data para verificar duplicatas
         $this->db->limit(1);
         $query = $this->db->get('movimentacoes_processuais');
+        
+        // Valida se a query foi bem-sucedida antes de chamar num_rows()
+        if ($query === false) {
+            log_message('error', 'Erro na query Movimentacoes_processuais_model::verificarMovimentacaoExistente: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            log_message('debug', 'Parâmetros: processoId=' . $processoId . ', dataMovimentacao=' . $dataMovimentacao . ', tipo=' . $tipo);
+            return false;
+        }
         
         return $query->num_rows() > 0;
     }

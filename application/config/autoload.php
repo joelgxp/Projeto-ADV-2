@@ -66,7 +66,7 @@ $autoload['libraries'] = ['database', 'session', 'permission'];
 |	$autoload['helper'] = array('url', 'file');
 */
 
-$autoload['helper'] = ['url', 'audit', 'rbac', 'date', 'dd', 'validation', 'general', 'captcha', 'tribunais_endpoints', 'logs', 'password'];
+$autoload['helper'] = ['url', 'audit', 'rbac', 'date', 'dd', 'validation', 'general', 'captcha', 'tribunais_endpoints', 'logs', 'password', 'prazo'];
 
 /*
 | -------------------------------------------------------------------

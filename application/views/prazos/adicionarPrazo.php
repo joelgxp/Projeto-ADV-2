@@ -52,10 +52,16 @@
                             <div class="controls">
                                 <select id="processos_id" name="processos_id" required>
                                     <option value="">Selecione um processo...</option>
-                                    <?php if ($processos) {
+                                    <?php if (isset($processos) && !empty($processos)) {
                                         foreach ($processos as $p) {
-                                            echo '<option value="' . $p->idProcessos . '">' . ($p->numeroProcesso ?? 'N/A') . ' - ' . ($p->classe ?? 'N/A') . '</option>';
+                                            // Verificar se é objeto ou array
+                                            $id = is_object($p) ? $p->idProcessos : (isset($p['idProcessos']) ? $p['idProcessos'] : $p['id']);
+                                            $numero = is_object($p) ? ($p->numeroProcesso ?? 'N/A') : ($p['numeroProcesso'] ?? 'N/A');
+                                            $classe = is_object($p) ? ($p->classe ?? 'N/A') : ($p['classe'] ?? 'N/A');
+                                            echo '<option value="' . $id . '">' . htmlspecialchars($numero) . ' - ' . htmlspecialchars($classe) . '</option>';
                                         }
+                                    } else {
+                                        echo '<!-- Nenhum processo encontrado -->';
                                     } ?>
                                 </select>
                             </div>
@@ -86,25 +92,60 @@
                     </div>
                     <div class="span6">
                         <div class="control-group">
-                            <label for="dataPrazo" class="control-label">Data do Prazo</label>
+                            <label for="legislacao" class="control-label">Legislação</label>
                             <div class="controls">
-                                <input id="dataPrazo" type="date" name="dataPrazo" value="<?php echo set_value('dataPrazo', date('Y-m-d')); ?>" />
+                                <select id="legislacao" name="legislacao">
+                                    <option value="CPC" <?= set_value('legislacao', 'CPC') == 'CPC' ? 'selected' : '' ?>>CPC - Código de Processo Civil</option>
+                                    <option value="CLT" <?= set_value('legislacao') == 'CLT' ? 'selected' : '' ?>>CLT - Consolidação das Leis do Trabalho</option>
+                                    <option value="tributario" <?= set_value('legislacao') == 'tributario' ? 'selected' : '' ?>>Tributário</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="dataPrazo" class="control-label">Data do Prazo (Início)<span class="required">*</span></label>
+                            <div class="controls">
+                                <input id="dataPrazo" type="date" name="dataPrazo" value="<?php echo set_value('dataPrazo', date('Y-m-d')); ?>" required />
+                                <span class="help-block" style="margin-top: 5px; font-size: 11px; color: #666;">
+                                    Data da intimação/publicação (prazos contam a partir do dia seguinte)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="diasUteis" class="control-label">Dias Úteis</label>
+                            <div class="controls" style="display: flex; gap: 5px; align-items: center;">
+                                <input id="diasUteis" type="number" name="diasUteis" min="1" value="<?php echo set_value('diasUteis', '15'); ?>" style="width: 80px;" />
+                                <button type="button" id="btnCalcularPrazo" class="btn btn-mini btn-info" title="Calcular data de vencimento automaticamente">
+                                    <i class="bx bx-calculator"></i> Calcular
+                                </button>
+                                <span class="help-block" style="margin: 0; font-size: 11px; color: #666; margin-left: 5px;">
+                                    O sistema sugere automaticamente baseado no tipo de prazo
+                                </span>
                             </div>
                         </div>
                         <div class="control-group">
                             <label for="dataVencimento" class="control-label">Data de Vencimento<span class="required">*</span></label>
                             <div class="controls">
                                 <input id="dataVencimento" type="date" name="dataVencimento" value="<?php echo set_value('dataVencimento'); ?>" required />
+                                <span class="help-block" style="margin-top: 5px; font-size: 11px; color: #666;" id="infoVencimento">
+                                    Calculada automaticamente considerando feriados e dias úteis
+                                </span>
                             </div>
                         </div>
                         <div class="control-group">
                             <label for="status" class="control-label">Status</label>
                             <div class="controls">
                                 <select id="status" name="status">
-                                    <option value="Pendente" <?= set_value('status', 'Pendente') == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
-                                    <option value="Cumprido" <?= set_value('status') == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
-                                    <option value="Vencido" <?= set_value('status') == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
+                                    <option value="pendente" <?= set_value('status', 'pendente') == 'pendente' ? 'selected' : '' ?>>Pendente</option>
+                                    <option value="proximo_vencer" <?= set_value('status') == 'proximo_vencer' ? 'selected' : '' ?>>Próximo a Vencer</option>
+                                    <option value="vencendo_hoje" <?= set_value('status') == 'vencendo_hoje' ? 'selected' : '' ?>>Vencendo Hoje</option>
+                                    <option value="vencido" <?= set_value('status') == 'vencido' ? 'selected' : '' ?>>Vencido</option>
+                                    <option value="cumprido" <?= set_value('status') == 'cumprido' ? 'selected' : '' ?>>Cumprido</option>
+                                    <option value="prorrogado" <?= set_value('status') == 'prorrogado' ? 'selected' : '' ?>>Prorrogado</option>
+                                    <option value="cancelado" <?= set_value('status') == 'cancelado' ? 'selected' : '' ?>>Cancelado</option>
                                 </select>
+                                <span class="help-block" style="margin-top: 5px; font-size: 11px; color: #666;">
+                                    O status será atualizado automaticamente conforme a data de vencimento
+                                </span>
                             </div>
                         </div>
                         <div class="control-group">
@@ -142,6 +183,98 @@
 <script src="<?php echo base_url() ?>assets/js/jquery.validate.js"></script>
 <script type="text/javascript">
     $(document).ready(function() {
+        // Auto-calcular quando tipo de prazo ou data for alterada
+        function calcularDataVencimento() {
+            var tipoPrazo = $('#tipo').val();
+            var dataPrazo = $('#dataPrazo').val();
+            var legislacao = $('#legislacao').val();
+            var diasUteis = $('#diasUteis').val();
+            
+            if (!tipoPrazo || !dataPrazo) {
+                return;
+            }
+            
+            // Se não informou dias úteis, usar sugestão do sistema
+            if (!diasUteis || diasUteis <= 0) {
+                // Fazer requisição AJAX para calcular via backend
+                $.ajax({
+                    url: '<?php echo base_url(); ?>index.php/prazos/calcularDataVencimento',
+                    method: 'POST',
+                    data: {
+                        tipo: tipoPrazo,
+                        dataInicio: dataPrazo,
+                        legislacao: legislacao,
+                        <?= $this->security->get_csrf_token_name(); ?>: '<?= $this->security->get_csrf_hash(); ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            $('#dataVencimento').val(response.dataVencimento);
+                            $('#diasUteis').val(response.diasUteis);
+                            $('#infoVencimento').text(response.info || 'Data calculada automaticamente');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao calcular prazo:', error);
+                        console.error('Status:', status);
+                        console.error('Response:', xhr.responseText);
+                        $('#infoVencimento').text('Erro ao calcular prazo. Verifique o console.');
+                    }
+                });
+            } else {
+                // Calcular com dias úteis informados
+                $.ajax({
+                    url: '<?php echo base_url(); ?>index.php/prazos/calcularDataVencimento',
+                    method: 'POST',
+                    data: {
+                        tipo: tipoPrazo,
+                        dataInicio: dataPrazo,
+                        diasUteis: diasUteis,
+                        legislacao: legislacao,
+                        <?= $this->security->get_csrf_token_name(); ?>: '<?= $this->security->get_csrf_hash(); ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            $('#dataVencimento').val(response.dataVencimento);
+                            $('#infoVencimento').text(response.info || 'Data calculada com ' + diasUteis + ' dias úteis');
+                        } else {
+                            console.error('Erro na resposta:', response);
+                            $('#infoVencimento').text('Erro: ' + (response.message || 'Erro desconhecido'));
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao calcular prazo:', error);
+                        console.error('Status:', status);
+                        console.error('Response:', xhr.responseText);
+                        $('#infoVencimento').text('Erro ao calcular prazo. Verifique o console.');
+                    }
+                });
+            }
+        }
+        
+        // Event listeners
+        $('#tipo').on('change', function() {
+            calcularDataVencimento();
+        });
+        
+        $('#dataPrazo').on('change', function() {
+            calcularDataVencimento();
+        });
+        
+        $('#legislacao').on('change', function() {
+            calcularDataVencimento();
+        });
+        
+        $('#btnCalcularPrazo').on('click', function() {
+            calcularDataVencimento();
+        });
+        
+        // Calcular automaticamente ao carregar se tipo e data estiverem preenchidos
+        if ($('#tipo').val() && $('#dataPrazo').val()) {
+            calcularDataVencimento();
+        }
+        
         $('#formPrazo').validate({
             rules: {
                 processos_id: {

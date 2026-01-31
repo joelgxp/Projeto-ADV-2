@@ -28,9 +28,7 @@ class Processos_model extends CI_Model
             $this->db->join('usuarios', 'usuarios.idUsuarios = processos.usuarios_id', 'left');
         }
 
-        $this->db->order_by('processos.dataCadastro', 'desc');
-        $this->db->limit($perpage, $start);
-
+        // Aplicar WHERE antes de ORDER BY e LIMIT
         if ($where) {
             $this->db->group_start();
             $this->db->like('processos.numeroProcesso', $where);
@@ -42,6 +40,13 @@ class Processos_model extends CI_Model
                 $this->db->or_like('clientes.nomeCliente', $where);
             }
             $this->db->group_end();
+        }
+        
+        $this->db->order_by('processos.dataCadastro', 'desc');
+        
+        // Aplicar LIMIT apenas se perpage > 0 (quando 0, retornar todos os registros)
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
         }
 
         $query = $this->db->get();
@@ -952,6 +957,100 @@ class Processos_model extends CI_Model
             'sucesso' => true,
             'mensagem' => 'Status alterado com sucesso.'
         ];
+    }
+
+    /**
+     * Buscar estatísticas de processos para dashboard do cliente (Fase 6 - Sprint 2)
+     * 
+     * @param int $cliente_id ID do cliente
+     * @return object Estatísticas (total, ativos, aguardando_acao, etc)
+     */
+    public function getEstatisticasByCliente($cliente_id)
+    {
+        if (!$this->db->table_exists('processos')) {
+            return (object)[
+                'total' => 0,
+                'ativos' => 0,
+                'em_andamento' => 0,
+                'suspensos' => 0,
+                'arquivados' => 0,
+                'finalizados' => 0,
+                'aguardando_acao' => 0
+            ];
+        }
+
+        $this->db->where('clientes_id', $cliente_id);
+        $total = $this->db->count_all_results('processos');
+
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where_in('status', ['em_andamento', 'suspenso']);
+        $ativos = $this->db->count_all_results('processos');
+
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where('status', 'em_andamento');
+        $em_andamento = $this->db->count_all_results('processos');
+
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where('status', 'suspenso');
+        $suspensos = $this->db->count_all_results('processos');
+
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where('status', 'arquivado');
+        $arquivados = $this->db->count_all_results('processos');
+
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where('status', 'finalizado');
+        $finalizados = $this->db->count_all_results('processos');
+
+        // Processos aguardando ação (suspensos)
+        $this->db->where('clientes_id', $cliente_id);
+        $this->db->where('status', 'suspenso');
+        $aguardando_acao = $this->db->count_all_results('processos');
+
+        return (object)[
+            'total' => (int)$total,
+            'ativos' => (int)$ativos,
+            'em_andamento' => (int)$em_andamento,
+            'suspensos' => (int)$suspensos,
+            'arquivados' => (int)$arquivados,
+            'finalizados' => (int)$finalizados,
+            'aguardando_acao' => (int)$aguardando_acao
+        ];
+    }
+
+    /**
+     * Buscar processos por status para cliente (Fase 6 - Sprint 2)
+     * 
+     * @param int $cliente_id ID do cliente
+     * @param string $status Status do processo
+     * @param int $limit Limite de resultados
+     * @return array Lista de processos
+     */
+    public function getProcessosByClienteAndStatus($cliente_id, $status = null, $limit = 0)
+    {
+        if (!$this->db->table_exists('processos')) {
+            return [];
+        }
+
+        $this->db->where('clientes_id', $cliente_id);
+        
+        if ($status) {
+            $this->db->where('status', $status);
+        }
+        
+        $this->db->order_by('dataCadastro', 'desc');
+        
+        if ($limit > 0) {
+            $this->db->limit($limit);
+        }
+        
+        $query = $this->db->get('processos');
+        
+        if ($query === false) {
+            return [];
+        }
+        
+        return $query->result();
     }
 }
 

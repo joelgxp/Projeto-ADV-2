@@ -64,13 +64,17 @@
                                     <td>
                                         <?php
                                         $status_labels = [
-                                            'Pendente' => 'label-warning',
-                                            'Cumprido' => 'label-success',
-                                            'Vencido' => 'label-important',
+                                            'pendente' => ['label' => 'Pendente', 'class' => 'label-warning'],
+                                            'proximo_vencer' => ['label' => 'Próximo a Vencer', 'class' => 'label-info'],
+                                            'vencendo_hoje' => ['label' => 'Vencendo Hoje', 'class' => 'label-important'],
+                                            'vencido' => ['label' => 'Vencido', 'class' => 'label-important'],
+                                            'cumprido' => ['label' => 'Cumprido', 'class' => 'label-success'],
+                                            'prorrogado' => ['label' => 'Prorrogado', 'class' => 'label-info'],
+                                            'cancelado' => ['label' => 'Cancelado', 'class' => 'label-default'],
                                         ];
-                                        $status = $result->status ?? 'Pendente';
-                                        $class = $status_labels[$status] ?? 'label-default';
-                                        echo '<span class="label ' . $class . '">' . $status . '</span>';
+                                        $status = strtolower($result->status ?? 'pendente');
+                                        $status_info = $status_labels[$status] ?? ['label' => ucfirst($status), 'class' => 'label-default'];
+                                        echo '<span class="label ' . $status_info['class'] . '">' . $status_info['label'] . '</span>';
                                         ?>
                                     </td>
                                 </tr>
@@ -130,6 +134,14 @@
                                 <span class="button__icon"><i class='bx bx-edit'></i></span>
                                 <span class="button__text2">Editar Prazo</span>
                             </a>
+                            <?php
+                            if (isset($numeroProrrogacoes) && $numeroProrrogacoes < 3 && isset($result->dataVencimento) && strtotime($result->dataVencimento) >= strtotime('-30 days')) {
+                                ?>
+                                <a href="<?= base_url() ?>index.php/prazos/prorrogar/<?= $result->idPrazos ?>" class="button btn btn-mini btn-warning">
+                                    <span class="button__icon"><i class='bx bx-calendar-plus'></i></span>
+                                    <span class="button__text2">Prorrogar Prazo</span>
+                                </a>
+                            <?php } ?>
                         <?php } ?>
                         <a href="<?= base_url() ?>index.php/prazos" class="button btn btn-mini btn-warning">
                             <span class="button__icon"><i class='bx bx-arrow-back'></i></span>

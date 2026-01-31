@@ -874,4 +874,111 @@ class Relatorios extends MY_Controller
                 ->_display();
         }
     }
+
+    /**
+     * Relatório de Contas a Receber (Faturas)
+     * Fase 7 - Gestão Financeira
+     */
+    public function contasReceber()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $this->load->model('Faturas_model');
+        
+        $status = $this->input->get('status');
+        $vencimento_de = $this->input->get('vencimento_de');
+        $vencimento_ate = $this->input->get('vencimento_ate');
+
+        $where = [];
+        if ($status) {
+            $where['faturas.status'] = $status;
+        }
+        if ($vencimento_de) {
+            $date = DateTime::createFromFormat('d/m/Y', $vencimento_de);
+            if ($date) {
+                $where['faturas.data_vencimento >='] = $date->format('Y-m-d');
+            }
+        }
+        if ($vencimento_ate) {
+            $date = DateTime::createFromFormat('d/m/Y', $vencimento_ate);
+            if ($date) {
+                $where['faturas.data_vencimento <='] = $date->format('Y-m-d');
+            }
+        }
+
+        $this->data['faturas'] = $this->Faturas_model->get($where);
+        $this->data['estatisticas'] = $this->Faturas_model->getEstatisticas($where);
+        $this->data['view'] = 'relatorios/contas_receber';
+
+        return $this->layout();
+    }
+
+    /**
+     * Relatório de Inadimplência
+     * Fase 7 - Gestão Financeira
+     */
+    public function inadimplencia()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $this->load->model('Faturas_model');
+        
+        $this->db->where('status', 'atrasada');
+        $this->db->where('saldo_restante >', 0);
+        $this->data['faturas'] = $this->Faturas_model->get();
+        $this->data['estatisticas'] = $this->Faturas_model->getEstatisticas(['faturas.status' => 'atrasada']);
+        
+        $this->data['view'] = 'relatorios/inadimplencia';
+        return $this->layout();
+    }
+
+    /**
+     * Relatório de Fluxo de Caixa
+     * Fase 7 - Gestão Financeira
+     */
+    public function fluxoCaixa()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'rFinanceiro')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar relatórios financeiros.');
+            redirect(base_url());
+        }
+
+        $this->load->model('Faturas_model');
+        $this->load->model('Pagamentos_model');
+        
+        $mes = $this->input->get('mes') ?: date('m');
+        $ano = $this->input->get('ano') ?: date('Y');
+
+        // Receitas (pagamentos do mês)
+        $this->db->select('DATE(data_pagamento) as data, SUM(valor) as total');
+        $this->db->from('pagamentos');
+        $this->db->where('MONTH(data_pagamento)', $mes);
+        $this->db->where('YEAR(data_pagamento)', $ano);
+        $this->db->group_by('DATE(data_pagamento)');
+        $this->db->order_by('data_pagamento', 'ASC');
+        $receitas = $this->db->get()->result();
+
+        // Faturas emitidas no mês
+        $this->db->select('DATE(data_emissao) as data, SUM(valor_total) as total');
+        $this->db->from('faturas');
+        $this->db->where('MONTH(data_emissao)', $mes);
+        $this->db->where('YEAR(data_emissao)', $ano);
+        $this->db->group_by('DATE(data_emissao)');
+        $this->db->order_by('data_emissao', 'ASC');
+        $faturas_emitidas = $this->db->get()->result();
+
+        $this->data['receitas'] = $receitas;
+        $this->data['faturas_emitidas'] = $faturas_emitidas;
+        $this->data['mes'] = $mes;
+        $this->data['ano'] = $ano;
+        $this->data['view'] = 'relatorios/fluxo_caixa';
+
+        return $this->layout();
+    }
 }

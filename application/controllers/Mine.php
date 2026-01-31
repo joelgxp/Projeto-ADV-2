@@ -18,6 +18,77 @@ class Mine extends CI_Controller
         $this->load->view('conecte/login');
     }
 
+    /**
+     * Acesso ao portal via link único (token) - Fase 6 - RN 6.1
+     */
+    public function acesso($token = null)
+    {
+        if (!$token) {
+            $this->session->set_flashdata('error', 'Link de acesso inválido. Verifique o link enviado por e-mail.');
+            redirect('mine');
+            return;
+        }
+
+        $this->load->model('Acessos_cliente_model');
+        
+        // Buscar acesso pelo token
+        $acesso = $this->Acessos_cliente_model->getByToken($token);
+        
+        if (!$acesso) {
+            $this->session->set_flashdata('error', 'Link de acesso inválido ou desativado. Entre em contato com o escritório para obter um novo link.');
+            redirect('mine');
+            return;
+        }
+
+        // Verificar se token é válido (não expirado)
+        if (!$this->Acessos_cliente_model->isTokenValido($token)) {
+            $this->session->set_flashdata('error', 'Este link de acesso expirou. Entre em contato com o escritório para obter um novo link válido.');
+            redirect('mine');
+            return;
+        }
+
+        // Buscar cliente
+        $this->load->model('clientes_model');
+        $cliente = $this->clientes_model->getById($acesso->clientes_id);
+        
+        if (!$cliente) {
+            $this->session->set_flashdata('error', 'Cliente não encontrado. Entre em contato com o escritório.');
+            redirect('mine');
+            return;
+        }
+
+        // Atualizar último acesso
+        $this->Acessos_cliente_model->atualizarUltimoAcesso($token);
+
+        // Criar sessão do cliente
+        $session_mine_data = [
+            'nome' => $cliente->nomeCliente, 
+            'cliente_id' => $cliente->idClientes, 
+            'email' => $cliente->email, 
+            'conectado' => true, 
+            'isCliente' => true,
+            'acesso_via_token' => true,
+            'token_acesso' => $token
+        ];
+        $this->session->set_userdata($session_mine_data);
+        
+        // Registrar acesso na auditoria
+        $this->load->model('Audit_model');
+        $log_data = [
+            'usuario' => $cliente->nomeCliente,
+            'tarefa' => 'Cliente ' . $cliente->nomeCliente . ' acessou o portal via link único',
+            'data' => date('Y-m-d'),
+            'hora' => date('H:i:s'),
+            'ip' => $_SERVER['REMOTE_ADDR']
+        ];
+        $this->Audit_model->add($log_data);
+        
+        log_info('Cliente ' . $cliente->nomeCliente . ' acessou o portal via link único (Token: ' . substr($token, 0, 8) . '...)');
+
+        // Redirecionar para o painel
+        redirect('mine/painel');
+    }
+
     public function sair()
     {
         $this->session->sess_destroy();
@@ -327,22 +398,41 @@ class Mine extends CI_Controller
             redirect('mine');
         }
 
+        $cliente_id = $this->session->userdata('cliente_id');
         $data['menuPainel'] = 'painel';
         
         // Buscar processos do cliente
         $this->load->model('processos_model');
-        $data['processos'] = $this->processos_model->getProcessosByCliente($this->session->userdata('cliente_id'), 5);
+        $data['processos'] = $this->processos_model->getProcessosByCliente($cliente_id, 5);
+        $data['estatisticas_processos'] = $this->processos_model->getEstatisticasByCliente($cliente_id);
         
         // Buscar prazos próximos
         $this->load->model('prazos_model');
-        $data['prazos'] = $this->prazos_model->getPrazosProximosByCliente($this->session->userdata('cliente_id'), 5);
+        $data['prazos'] = $this->prazos_model->getPrazosProximosByCliente($cliente_id, 5);
+        $data['estatisticas_prazos'] = $this->prazos_model->getEstatisticasByCliente($cliente_id);
         
         // Buscar audiências próximas
         $this->load->model('audiencias_model');
-        $data['audiencias'] = $this->audiencias_model->getAudienciasProximasByCliente($this->session->userdata('cliente_id'), 5);
+        $data['audiencias'] = $this->audiencias_model->getAudienciasProximasByCliente($cliente_id, 5);
+        $data['estatisticas_audiencias'] = $this->audiencias_model->getEstatisticasByCliente($cliente_id);
         
         $data['output'] = 'conecte/painel';
         $this->load->view('conecte/template', $data);
+    }
+
+    /**
+     * Redirecionar para tickets (Fase 6 - Sprint 4)
+     * Mantido para compatibilidade, mas não necessário mais
+     */
+    public function tickets()
+    {
+        if (! session_id() || ! $this->session->userdata('conectado')) {
+            redirect('mine');
+        }
+
+        // Redirecionar diretamente para o controller Tickets
+        // O controller Tickets agora detecta automaticamente se é cliente
+        redirect('tickets');
     }
 
     public function conta()
@@ -578,6 +668,11 @@ class Mine extends CI_Controller
         }
         
         $data['pagination'] = $this->pagination->create_links();
+
+        // Carregar advogados para filtro (Fase 6 - Correção Bug)
+        $this->load->model('usuarios_model');
+        $advogados = $this->usuarios_model->get('usuarios', 'idUsuarios, nome', '', 0, 0, false, 'array');
+        $data['advogados'] = $advogados ?: [];
 
         $data['output'] = 'conecte/processos';
         $this->load->view('conecte/template', $data);

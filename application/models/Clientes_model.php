@@ -2,29 +2,76 @@
 
 class Clientes_model extends CI_Model
 {
+    // FASE 11: Soft delete trait será carregado quando necessário
+    // Temporariamente comentado para evitar erro se trait não estiver disponível
+    // use Soft_delete;
+    
     public function __construct()
     {
         parent::__construct();
     }
 
-    public function get($table, $fields, $where = '', $perpage = 0, $start = 0, $one = false, $array = 'array')
+    public function get($table, $fields, $where = '', $perpage = 0, $start = 0, $one = false, $array = 'object')
     {
+        // Resetar query builder para evitar conflitos
+        $this->db->reset_query();
+        
         $this->db->select($fields);
         $this->db->from($table);
         $this->db->order_by('idClientes', 'desc');
-        $this->db->limit($perpage, $start);
+        
+        // FASE 11: Filtra registros deletados (soft delete)
+        // Verifica se tabela existe e se coluna deleted_at existe de forma segura
+        try {
+            if ($this->db->table_exists($table)) {
+                $columns = $this->db->list_fields($table);
+                if (is_array($columns) && in_array('deleted_at', $columns)) {
+                    $this->db->where('deleted_at IS NULL');
+                }
+            }
+        } catch (Exception $e) {
+            // Se houver erro ao verificar colunas, continua sem filtro de soft delete
+            log_message('debug', 'Erro ao verificar coluna deleted_at: ' . $e->getMessage());
+        }
+        
+        // Aplicar LIMIT apenas se perpage > 0 (quando 0, retornar todos os registros)
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
+        }
+        
         if ($where) {
+            $this->db->group_start();
             $this->db->like('nomeCliente', $where);
             $this->db->or_like('documento', $where);
             $this->db->or_like('email', $where);
             $this->db->or_like('telefone', $where);
+            $this->db->group_end();
         }
 
         $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query Clientes_model::get: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return $one ? null : [];
+        }
 
-        $result = ! $one ? $query->result() : $query->row();
-
-        return $result;
+        if ($one) {
+            $result = $query->row();
+            if ($array === 'array' && $result) {
+                return (array) $result;
+            }
+            return $result;
+        } else {
+            $result = $query->result();
+            if ($array === 'array' && $result) {
+                $array_result = [];
+                foreach ($result as $row) {
+                    $array_result[] = (array) $row;
+                }
+                return $array_result;
+            }
+            return $result;
+        }
     }
 
     public function getById($id)
@@ -68,6 +115,46 @@ class Clientes_model extends CI_Model
 
     public function delete($table, $fieldID, $ID)
     {
+        // FASE 11: Soft delete - verifica se coluna deleted_at existe
+        if ($this->db->table_exists($table)) {
+            $columns = $this->db->list_fields($table);
+            if (is_array($columns) && in_array('deleted_at', $columns)) {
+                // Soft delete: marca como deletado em vez de remover
+                $this->db->where($fieldID, $ID);
+                $update_data = [
+                    'deleted_at' => date('Y-m-d H:i:s')
+                ];
+                
+                // Adiciona deleted_by se coluna existir
+                if (in_array('deleted_by', $columns)) {
+                    $update_data['deleted_by'] = $this->session->userdata('id_admin') ?? null;
+                }
+                
+                $this->db->update($table, $update_data);
+                
+                if ($this->db->affected_rows() >= 0) {
+                    return true;
+                }
+                return false;
+            }
+        }
+        
+        // Fallback: delete físico se soft delete não disponível
+        $this->db->where($fieldID, $ID);
+        $this->db->delete($table);
+        
+        if ($this->db->affected_rows() == '1') {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Exclusão física (apenas para admin, após validações)
+     */
+    public function delete_fisico($table, $fieldID, $ID)
+    {
         $this->db->where($fieldID, $ID);
         $this->db->delete($table);
         if ($this->db->affected_rows() == '1') {
@@ -77,9 +164,35 @@ class Clientes_model extends CI_Model
         return false;
     }
 
-    public function count($table)
+    public function count($table, $where = '')
     {
-        return $this->db->count_all($table);
+        // Resetar query builder para evitar conflitos
+        $this->db->reset_query();
+        
+        // FASE 11: Filtra registros deletados (soft delete)
+        try {
+            if ($this->db->table_exists($table)) {
+                $columns = $this->db->list_fields($table);
+                if (is_array($columns) && in_array('deleted_at', $columns)) {
+                    $this->db->where('deleted_at IS NULL');
+                }
+            }
+        } catch (Exception $e) {
+            // Se houver erro, continua sem filtro
+            log_message('debug', 'Erro ao verificar coluna deleted_at no count: ' . $e->getMessage());
+        }
+        
+        if ($where) {
+            $this->db->group_start();
+            $this->db->like('nomeCliente', $where);
+            $this->db->or_like('documento', $where);
+            $this->db->or_like('email', $where);
+            $this->db->or_like('telefone', $where);
+            $this->db->group_end();
+        }
+        
+        $this->db->from($table);
+        return $this->db->count_all_results();
     }
 
     public function getOsByCliente($id)
@@ -244,6 +357,11 @@ class Clientes_model extends CI_Model
         
         $query = $this->db->get('clientes');
         
+        if ($query === false) {
+            log_message('error', 'Erro na query Clientes_model::emailExists: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
+        
         return $query->num_rows() > 0;
     }
 
@@ -277,6 +395,11 @@ class Clientes_model extends CI_Model
         }
         
         $query = $this->db->get('clientes');
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query Clientes_model::documentoExists: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return false;
+        }
         
         return $query->num_rows() > 0;
     }

@@ -312,12 +312,14 @@
                         <th>Data</th>
                         <th>Título</th>
                         <th>Descrição</th>
+                        <th>Tribunal/Juiz</th>
                         <th>Origem</th>
+                        <th>Ações</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr>
-                        <td colspan="4">Nenhuma Movimentação Cadastrada</td>
+                        <td colspan="6">Nenhuma Movimentação Cadastrada</td>
                     </tr>
                     </tbody>
                 </table>
@@ -329,18 +331,49 @@
                         <th>Data</th>
                         <th>Título</th>
                         <th>Descrição</th>
+                        <th>Tribunal/Juiz</th>
                         <th>Origem</th>
+                        <th>Ações</th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php
                     foreach ($movimentacoes as $m) {
-                        $dataMov = date('d/m/Y H:i', strtotime($m->dataMovimentacao));
+                        $dataMov = date('d/m/Y H:i', strtotime($m->data ?? $m->dataMovimentacao ?? date('Y-m-d H:i:s')));
+                        $dataAtualizacao = isset($m->data_atualizacao) ? date('d/m/Y H:i', strtotime($m->data_atualizacao)) : '-';
                         echo '<tr>';
                         echo '<td>' . $dataMov . '</td>';
-                        echo '<td>' . $m->titulo . '</td>';
-                        echo '<td>' . ($m->descricao ? substr($m->descricao, 0, 100) . '...' : '-') . '</td>';
-                        echo '<td><span class="label ' . ($m->origem == 'api_cnj' ? 'label-info' : 'label-default') . '">' . ($m->origem == 'api_cnj' ? 'API CNJ' : 'Manual') . '</span></td>';
+                        echo '<td>' . htmlspecialchars($m->tipo ?? '-') . '</td>';
+                        echo '<td>' . ($m->descricao ? htmlspecialchars(substr($m->descricao, 0, 100)) . (strlen($m->descricao) > 100 ? '...' : '') : '-') . '</td>';
+                        echo '<td>';
+                        if (isset($m->tribunal) && !empty($m->tribunal)) {
+                            echo '<strong>Tribunal:</strong> ' . htmlspecialchars($m->tribunal) . '<br>';
+                        }
+                        if (isset($m->juiz) && !empty($m->juiz)) {
+                            echo '<strong>Juiz:</strong> ' . htmlspecialchars($m->juiz);
+                        }
+                        if (empty($m->tribunal) && empty($m->juiz)) {
+                            echo '-';
+                        }
+                        echo '</td>';
+                        echo '<td>';
+                        echo '<span class="label ' . ($m->origem == 'api_cnj' ? 'label-info' : 'label-default') . '">' . ($m->origem == 'api_cnj' ? 'API CNJ' : 'Manual') . '</span>';
+                        if (isset($m->data_atualizacao) && !empty($m->data_atualizacao)) {
+                            echo '<br><small>Atualizado: ' . $dataAtualizacao . '</small>';
+                        }
+                        echo '</td>';
+                        echo '<td>';
+                        if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eProcesso')) {
+                            $movId = $m->idMovimentacoes ?? $m->id;
+                            $temAnotacao = isset($m->anotacao) && !empty($m->anotacao);
+                            echo '<button class="btn btn-mini ' . ($temAnotacao ? 'btn-warning' : 'btn-info') . ' btn-anotacao-movimentacao" data-id="' . $movId . '" title="' . ($temAnotacao ? 'Editar Anotação' : 'Adicionar Anotação') . '">';
+                            echo '<i class="fas fa-sticky-note"></i>';
+                            echo '</button>';
+                            if ($temAnotacao) {
+                                echo ' <span class="label label-info" title="' . htmlspecialchars($m->anotacao) . '">Anotado</span>';
+                            }
+                        }
+                        echo '</td>';
                         echo '</tr>';
                     } ?>
                     </tbody>
@@ -486,14 +519,14 @@
                     <tbody>
                     <?php
                     foreach ($documentos as $d) {
-                        $dataUpload = date('d/m/Y H:i', strtotime($d->dataUpload));
+                        $dataUpload = date('d/m/Y H:i', strtotime($d->dataCadastro ?? $d->dataUpload ?? date('Y-m-d H:i:s')));
                         echo '<tr>';
-                        echo '<td>' . $d->titulo . '</td>';
-                        echo '<td>' . ($d->tipo_documento ?? '-') . '</td>';
+                        echo '<td>' . ($d->nome ?? $d->titulo ?? '-') . '</td>';
+                        echo '<td>' . ($d->tipo ?? $d->tipo_documento ?? '-') . '</td>';
                         echo '<td>' . $dataUpload . '</td>';
                         echo '<td>';
                         // Construir caminho do arquivo
-                        $data_upload = isset($d->dataUpload) ? date('Y-m', strtotime($d->dataUpload)) : date('Y-m');
+                        $data_upload = isset($d->dataCadastro) ? date('Y-m', strtotime($d->dataCadastro)) : (isset($d->dataUpload) ? date('Y-m', strtotime($d->dataUpload)) : date('Y-m'));
                         $file_path = FCPATH . 'assets/documentos_processuais/' . $data_upload . '/' . $d->arquivo;
                         if (file_exists($file_path)) {
                             $file_url = base_url() . 'assets/documentos_processuais/' . $data_upload . '/' . $d->arquivo;
@@ -509,6 +542,84 @@
             <?php } ?>
         </div>
     </div>
+    
+    <!-- Modal para Anotação de Movimentação -->
+    <div id="modal-anotacao-movimentacao" class="modal hide fade" tabindex="-1" role="dialog">
+        <form id="form-anotacao-movimentacao" method="post" action="<?= site_url('processos/salvar_anotacao_movimentacao') ?>">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h5>Anotação da Movimentação</h5>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="anotacao-movimentacao-id" name="movimentacao_id" value="" />
+                <div class="control-group">
+                    <label for="anotacao-texto" class="control-label">Anotação:</label>
+                    <div class="controls">
+                        <textarea id="anotacao-texto" name="anotacao" class="span12" rows="5" placeholder="Digite sua anotação sobre esta movimentação..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Anotação</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        // Abrir modal de anotação
+        $('.btn-anotacao-movimentacao').click(function() {
+            var movId = $(this).data('id');
+            $('#anotacao-movimentacao-id').val(movId);
+            
+            // Carregar anotação existente via AJAX
+            $.ajax({
+                url: '<?= site_url("processos/get_anotacao_movimentacao") ?>',
+                type: 'GET',
+                data: { id: movId },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.anotacao) {
+                        $('#anotacao-texto').val(response.anotacao);
+                    } else {
+                        $('#anotacao-texto').val('');
+                    }
+                    $('#modal-anotacao-movimentacao').modal('show');
+                },
+                error: function() {
+                    $('#anotacao-texto').val('');
+                    $('#modal-anotacao-movimentacao').modal('show');
+                }
+            });
+        });
+        
+        // Salvar anotação
+        $('#form-anotacao-movimentacao').submit(function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('Anotação salva com sucesso!');
+                        $('#modal-anotacao-movimentacao').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Erro ao salvar anotação: ' + (response.message || 'Erro desconhecido'));
+                    }
+                },
+                error: function() {
+                    alert('Erro ao salvar anotação.');
+                }
+            });
+        });
+    });
+    </script>
+    
     <div class="form-actions" style="padding: 20px;">
         <div class="span12">
             <div class="span6 offset3" style="display:flex;justify-content: center; gap: 10px;">

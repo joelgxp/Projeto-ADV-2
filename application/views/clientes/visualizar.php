@@ -12,6 +12,9 @@
             <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'cAuditoria')) { ?>
             <li><a data-toggle="tab" href="#tab5">Auditoria</a></li>
             <?php } ?>
+            <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) { ?>
+            <li><a data-toggle="tab" href="#tab7">Acesso ao Portal</a></li>
+            <?php } ?>
             <?php if (isset($interacoes) && !empty($interacoes)) { ?>
             <li><a data-toggle="tab" href="#tab6">Interações</a></li>
             <?php } ?>
@@ -576,6 +579,200 @@
         </div>
         <?php } ?>
         
+        <!--Tab 7 - Acesso ao Portal (Fase 6)-->
+        <?php if ($this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) { ?>
+        <div id="tab7" class="tab-pane" style="min-height: 300px">
+            <div class="widget-box">
+                <div class="widget-title">
+                    <h5><i class='bx bx-link-external'></i> Gerenciar Acesso ao Portal do Cliente</h5>
+                </div>
+                <div class="widget-content">
+                    <?php if (isset($acesso_ativo) && $acesso_ativo) : ?>
+                        <!-- Acesso Ativo Existe -->
+                        <?php
+                        $diasRestantes = isset($acesso_dias_restantes) ? $acesso_dias_restantes : 0;
+                        $estaExpirado = isset($acesso_expirado) ? $acesso_expirado : false;
+                        $linkCompleto = isset($link_acesso_completo) ? $link_acesso_completo : base_url('index.php/mine/acesso/' . $acesso_ativo->token_acesso);
+                        ?>
+                        
+                        <div class="alert <?php echo $estaExpirado ? 'alert-danger' : ($diasRestantes <= 30 ? 'alert-warning' : 'alert-success'); ?>">
+                            <?php if ($estaExpirado) : ?>
+                                <strong>⚠️ Link Expirado</strong>
+                                <p>Este link de acesso expirou em <?php echo date('d/m/Y', strtotime($acesso_ativo->data_expiracao)); ?>. Gere um novo link para o cliente.</p>
+                            <?php elseif ($diasRestantes <= 30) : ?>
+                                <strong>⏰ Atenção: Link Expirando em Breve</strong>
+                                <p>Este link expira em <strong><?php echo $diasRestantes; ?> dia(s)</strong> (<?php echo date('d/m/Y', strtotime($acesso_ativo->data_expiracao)); ?>). Considere renovar.</p>
+                            <?php else : ?>
+                                <strong>✅ Link Ativo</strong>
+                                <p>Link de acesso válido até <strong><?php echo date('d/m/Y', strtotime($acesso_ativo->data_expiracao)); ?></strong> (<?php echo $diasRestantes; ?> dias restantes).</p>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="widget-box" style="margin-top: 20px;">
+                            <div class="widget-title">
+                                <h5>Link de Acesso</h5>
+                            </div>
+                            <div class="widget-content">
+                                <div class="form-group">
+                                    <label><strong>Link Completo:</strong></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="link_acesso" value="<?php echo htmlspecialchars($linkCompleto); ?>" readonly>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-info" type="button" onclick="copiarLink()">
+                                                <i class='bx bx-copy'></i> Copiar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Copie este link e envie ao cliente ou use os botões abaixo para renovar/desativar.</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><strong>Informações do Acesso:</strong></label>
+                                    <table class="table table-bordered" style="margin-bottom: 0;">
+                                        <tr>
+                                            <td style="width: 30%;"><strong>Data de Criação:</strong></td>
+                                            <td><?php echo date('d/m/Y H:i:s', strtotime($acesso_ativo->data_criacao)); ?></td>
+                                        </tr>
+                                        <?php if ($acesso_ativo->data_renovacao) : ?>
+                                        <tr>
+                                            <td><strong>Última Renovação:</strong></td>
+                                            <td><?php echo date('d/m/Y H:i:s', strtotime($acesso_ativo->data_renovacao)); ?></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                        <tr>
+                                            <td><strong>Data de Expiração:</strong></td>
+                                            <td><?php echo date('d/m/Y H:i:s', strtotime($acesso_ativo->data_expiracao)); ?></td>
+                                        </tr>
+                                        <?php if ($acesso_ativo->ultimo_acesso) : ?>
+                                        <tr>
+                                            <td><strong>Último Acesso:</strong></td>
+                                            <td><?php echo date('d/m/Y H:i:s', strtotime($acesso_ativo->ultimo_acesso)); ?></td>
+                                        </tr>
+                                        <?php else : ?>
+                                        <tr>
+                                            <td><strong>Último Acesso:</strong></td>
+                                            <td><span class="text-muted">Nunca acessou</span></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                        <tr>
+                                            <td><strong>Status:</strong></td>
+                                            <td>
+                                                <?php if ($estaExpirado) : ?>
+                                                    <span class="badge badge-danger">Expirado</span>
+                                                <?php else : ?>
+                                                    <span class="badge badge-success">Ativo</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: center;">
+                            <form method="post" action="<?php echo site_url('clientes/renovarLinkAcesso'); ?>" style="display: inline-block; margin: 5px;">
+                                <?php echo form_hidden('cliente_id', $result->idClientes); ?>
+                                <?php echo form_hidden('acesso_id', $acesso_ativo->id); ?>
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Deseja renovar este link de acesso? O link será válido por mais 365 dias.');">
+                                    <i class='bx bx-refresh'></i> Renovar Link
+                                </button>
+                            </form>
+                            
+                            <form method="post" action="<?php echo site_url('clientes/desativarLinkAcesso'); ?>" style="display: inline-block; margin: 5px;">
+                                <?php echo form_hidden('cliente_id', $result->idClientes); ?>
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja desativar este link de acesso? O cliente não poderá mais acessar o portal com este link.');">
+                                    <i class='bx bx-x'></i> Desativar Link
+                                </button>
+                            </form>
+                            
+                            <form method="post" action="<?php echo site_url('clientes/gerarLinkAcesso'); ?>" style="display: inline-block; margin: 5px;">
+                                <?php echo form_hidden('cliente_id', $result->idClientes); ?>
+                                <button type="submit" class="btn btn-info" onclick="return confirm('Deseja gerar um novo link de acesso? O link atual será desativado automaticamente.');">
+                                    <i class='bx bx-plus'></i> Gerar Novo Link
+                                </button>
+                            </form>
+                        </div>
+                        
+                    <?php else : ?>
+                        <!-- Nenhum Acesso Ativo -->
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Nenhum Link de Acesso Ativo</strong>
+                            <p>Este cliente ainda não possui um link de acesso ao portal. Clique no botão abaixo para gerar um novo link válido por 365 dias.</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 30px;">
+                            <form method="post" action="<?php echo site_url('clientes/gerarLinkAcesso'); ?>">
+                                <?php echo form_hidden('cliente_id', $result->idClientes); ?>
+                                
+                                <?php if (empty($result->email)) : ?>
+                                    <div class="alert alert-warning">
+                                        <strong>⚠️ Atenção:</strong> Este cliente não possui e-mail cadastrado. O link será gerado, mas não será possível enviar por e-mail automaticamente.
+                                    </div>
+                                <?php else : ?>
+                                    <p><strong>E-mail do Cliente:</strong> <?php echo htmlspecialchars($result->email); ?></p>
+                                    <p>O link será enviado automaticamente para este e-mail após a geração.</p>
+                                <?php endif; ?>
+                                
+                                <button type="submit" class="btn btn-success btn-large" style="padding: 15px 40px; font-size: 16px;">
+                                    <i class='bx bx-link'></i> Gerar Link de Acesso (365 dias)
+                                </button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($acessos) && !empty($acessos)) : ?>
+                        <!-- Histórico de Acessos -->
+                        <div class="widget-box" style="margin-top: 30px;">
+                            <div class="widget-title">
+                                <h5>Histórico de Acessos</h5>
+                            </div>
+                            <div class="widget-content">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Data de Criação</th>
+                                            <th>Data de Expiração</th>
+                                            <th>Último Acesso</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($acessos as $acesso) : 
+                                            $dataExpiracao = strtotime($acesso->data_expiracao);
+                                            $dataAtual = time();
+                                            $estaExpirado = $dataExpiracao < $dataAtual;
+                                        ?>
+                                        <tr>
+                                            <td><?php echo date('d/m/Y H:i', strtotime($acesso->data_criacao)); ?></td>
+                                            <td><?php echo date('d/m/Y H:i', strtotime($acesso->data_expiracao)); ?></td>
+                                            <td>
+                                                <?php if ($acesso->ultimo_acesso) : ?>
+                                                    <?php echo date('d/m/Y H:i', strtotime($acesso->ultimo_acesso)); ?>
+                                                <?php else : ?>
+                                                    <span class="text-muted">Nunca acessou</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!$acesso->ativo) : ?>
+                                                    <span class="badge badge-secondary">Desativado</span>
+                                                <?php elseif ($estaExpirado) : ?>
+                                                    <span class="badge badge-danger">Expirado</span>
+                                                <?php else : ?>
+                                                    <span class="badge badge-success">Ativo</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php } ?>
+        
         <!--Tab 6 - Histórico de Interações-->
         <?php if (isset($interacoes) && !empty($interacoes)) { ?>
         <div id="tab6" class="tab-pane" style="min-height: 300px">
@@ -636,3 +833,34 @@
           <span class="button__icon"><i class="bx bx-undo"></i></span><span class="button__text2">Voltar</span></a>
     </div>
 </div>
+
+<script>
+function copiarLink() {
+    var linkInput = document.getElementById('link_acesso');
+    if (linkInput) {
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+        
+        try {
+            document.execCommand('copy');
+            
+            // Feedback visual
+            var btn = event.target.closest('button');
+            var originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bx bx-check"></i> Copiado!';
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-success');
+            
+            setTimeout(function() {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-info');
+            }, 2000);
+            
+            alert('Link copiado para a área de transferência!');
+        } catch (err) {
+            alert('Erro ao copiar link. Selecione o texto manualmente.');
+        }
+    }
+}
+</script>

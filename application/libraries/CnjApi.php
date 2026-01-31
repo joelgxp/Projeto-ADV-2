@@ -425,26 +425,76 @@ class CnjApi
         $this->CI->load->model('movimentacoes_processuais_model');
         
         foreach ($dadosProcesso['movimentos'] as $movimento) {
-            // Verifica se já existe
+            // Prepara data de movimentação no formato correto para verificação
+            $dataMovimentacaoFormatada = null;
+            if (isset($movimento['dataHora']) && !empty($movimento['dataHora'])) {
+                // Converte data da API para formato do banco (Y-m-d H:i:s)
+                $dataMovimentacaoFormatada = date('Y-m-d H:i:s', strtotime($movimento['dataHora']));
+            }
+            
+            // Verifica se já existe (RN 10.3)
+            // Nota: $movimento['nome'] é passado como $tipo mas não é usado na verificação
+            // A verificação usa apenas processo_id + data para evitar duplicatas
             $existe = $this->CI->movimentacoes_processuais_model->verificarMovimentacaoExistente(
                 $processoId,
-                $movimento['dataHora'] ?? null,
-                $movimento['nome'] ?? ''
+                $dataMovimentacaoFormatada,
+                $movimento['nome'] ?? null
             );
             
+            // Se verificação retornou false (pode ser erro ou não existe), continua normalmente
+            // O modelo já faz log de erros internamente
+            
             if (!$existe) {
-                // Importa movimentação
+                // Extrai tribunal e juiz se disponível (RN 10.3)
+                $tribunal = null;
+                $juiz = null;
+                
+                if (isset($movimento['orgaoJulgador'])) {
+                    $orgao = $movimento['orgaoJulgador'];
+                    $tribunal = $orgao['nome'] ?? null;
+                }
+                
+                if (isset($movimento['juiz'])) {
+                    $juiz = is_array($movimento['juiz']) ? ($movimento['juiz']['nome'] ?? null) : $movimento['juiz'];
+                }
+                
+                // Importa movimentação (RN 10.3)
                 $data = [
                     'processos_id' => $processoId,
-                    'dataMovimentacao' => isset($movimento['dataHora']) ? date('Y-m-d H:i:s', strtotime($movimento['dataHora'])) : date('Y-m-d H:i:s'),
-                    'titulo' => $movimento['nome'] ?? 'Movimentação',
+                    'data' => isset($movimento['dataHora']) ? date('Y-m-d H:i:s', strtotime($movimento['dataHora'])) : date('Y-m-d H:i:s'),
+                    'tipo' => $movimento['nome'] ?? 'Movimentação', // Nome da movimentação vai em 'tipo'
                     'descricao' => $movimento['descricao'] ?? '',
-                    'tipo' => $movimento['tipo'] ?? 'outros',
                     'origem' => 'api_cnj',
-                    'dados_api' => json_encode($movimento),
+                    'dados_api' => json_encode($movimento, JSON_UNESCAPED_UNICODE),
                     'importado_api' => 1,
+                    'data_atualizacao' => date('Y-m-d H:i:s'), // RN 10.3: marca data de atualização
                     'usuarios_id' => $this->CI->session->userdata('id_admin') ?? null
                 ];
+                
+                // Adiciona tribunal e juiz se disponível (RN 10.3)
+                if ($tribunal) {
+                    $data['tribunal'] = $tribunal;
+                }
+                if ($juiz) {
+                    $data['juiz'] = $juiz;
+                }
+                
+                // Identifica se é movimentação importante (RN 10.3)
+                $palavrasChave = ['sentença', 'decisão', 'acórdão', 'julgamento', 'despacho', 'intimação'];
+                $tipoLower = strtolower($data['tipo']);
+                $descricaoLower = strtolower($data['descricao']);
+                $importante = false;
+                
+                foreach ($palavrasChave as $palavra) {
+                    if (strpos($tipoLower, $palavra) !== false || strpos($descricaoLower, $palavra) !== false) {
+                        $importante = true;
+                        break;
+                    }
+                }
+                
+                if ($importante) {
+                    $data['importante'] = 1; // Marca como importante se a coluna existir
+                }
                 
                 if ($this->CI->movimentacoes_processuais_model->add('movimentacoes_processuais', $data)) {
                     $movimentacoesImportadas[] = $data;

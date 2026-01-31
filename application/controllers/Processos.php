@@ -248,7 +248,7 @@ class Processos extends MY_Controller
                                 'cpf_cnpj' => $parte['cpf_cnpj'] ?? '',
                                 'email' => $parte['email'] ?? '',
                                 'telefone' => $parte['telefone'] ?? '',
-                                'tipo_polo' => $parte['tipo_polo'] ?? 'ativo'
+                                'tipo' => $parte['tipo_polo'] ?? 'ativo'
                             ];
                         }
                     }
@@ -264,7 +264,7 @@ class Processos extends MY_Controller
                                 'cpf_cnpj' => $parte['cpf_cnpj'] ?? '',
                                 'email' => $parte['email'] ?? '',
                                 'telefone' => $parte['telefone'] ?? '',
-                                'tipo_polo' => $parte['tipo_polo'] ?? 'passivo'
+                                'tipo' => $parte['tipo_polo'] ?? 'passivo'
                             ];
                         }
                     }
@@ -439,15 +439,16 @@ class Processos extends MY_Controller
                 $this->data['partes_passivo'] = $this->partes_processo_model->getByPolo($idProcesso, 'passivo');
                 if ($this->db->table_exists('documentos_processuais')) {
                     $this->db->where('processos_id', $idProcesso);
-                    $this->db->order_by('dataUpload', 'desc');
+                    $this->db->order_by('dataCadastro', 'desc');
                     $query = $this->db->get('documentos_processuais');
                     $this->data['documentos'] = ($query !== false) ? $query->result() : [];
                 } else {
                     $this->data['documentos'] = [];
                 }
-                $this->data['pode_editar'] = true;
-                $this->data['pode_editar_partes'] = true;
-                $this->data['pode_anexar_documento'] = true;
+                // Verificar se processo pode ser editado (processos encerrados são imutáveis)
+                $this->data['pode_editar'] = $this->processos_model->podeEditar($idProcesso);
+                $this->data['pode_editar_partes'] = $this->processos_model->podeEditarPartes($idProcesso);
+                $this->data['pode_anexar_documento'] = $this->processos_model->podeAnexarDocumento($idProcesso);
                 if (isset($this->data['result']->status)) {
                     $this->data['transicoes_permitidas'] = $this->processos_model->obterTransicoesPermitidas($this->data['result']->status);
                 } else {
@@ -635,7 +636,7 @@ class Processos extends MY_Controller
         // Carregar documentos
         if ($this->db->table_exists('documentos_processuais')) {
             $this->db->where('processos_id', $id_processo);
-            $this->db->order_by('dataUpload', 'desc');
+            $this->db->order_by('dataCadastro', 'desc');
             $query = $this->db->get('documentos_processuais');
             $this->data['documentos'] = ($query !== false) ? $query->result() : [];
         } else {
@@ -687,7 +688,7 @@ class Processos extends MY_Controller
         // Carregar movimentações
         if ($this->db->table_exists('movimentacoes_processuais')) {
             $this->db->where('processos_id', $this->uri->segment(3));
-            $this->db->order_by('dataMovimentacao', 'desc');
+            $this->db->order_by('data', 'desc');
             $query = $this->db->get('movimentacoes_processuais');
             $this->data['movimentacoes'] = ($query !== false) ? $query->result() : [];
         } else {
@@ -717,7 +718,7 @@ class Processos extends MY_Controller
         // Carregar documentos
         if ($this->db->table_exists('documentos_processuais')) {
             $this->db->where('processos_id', $this->uri->segment(3));
-            $this->db->order_by('dataUpload', 'desc');
+            $this->db->order_by('dataCadastro', 'desc');
             $query = $this->db->get('documentos_processuais');
             $this->data['documentos'] = ($query !== false) ? $query->result() : [];
         } else {
@@ -930,7 +931,7 @@ class Processos extends MY_Controller
         $data = [
             'processos_id' => $processos_id ?: null,
             'clientes_id' => null, // Parte rápida não vincula a cliente
-            'tipo_polo' => $tipo_polo,
+            'tipo' => $tipo_polo,
             'nome' => $nome,
             'cpf_cnpj' => $cpf_cnpj,
             'tipo_pessoa' => $tipo_pessoa ?: 'fisica',
@@ -980,7 +981,7 @@ class Processos extends MY_Controller
                         'cpf_cnpj' => $parte['cpf_cnpj'] ?? '',
                         'email' => $parte['email'] ?? '',
                         'telefone' => $parte['telefone'] ?? '',
-                        'tipo_polo' => $parte['tipo_polo'] ?? $tipo_polo
+                        'tipo' => $parte['tipo_polo'] ?? $tipo_polo
                     ];
                 }
             }
@@ -1272,7 +1273,7 @@ class Processos extends MY_Controller
                 if (!empty($parte['nome']) || !empty($parte['clientes_id'])) {
                     $data_parte = [
                         'processos_id' => $processos_id,
-                        'tipo_polo' => 'ativo',
+                        'tipo' => 'ativo',
                         'clientes_id' => !empty($parte['clientes_id']) ? $parte['clientes_id'] : null,
                         'nome' => $parte['nome'] ?? null,
                         'cpf_cnpj' => $parte['cpf_cnpj'] ?? null,
@@ -1293,7 +1294,7 @@ class Processos extends MY_Controller
                 if (!empty($parte['nome']) || !empty($parte['clientes_id'])) {
                     $data_parte = [
                         'processos_id' => $processos_id,
-                        'tipo_polo' => 'passivo',
+                        'tipo' => 'passivo',
                         'clientes_id' => !empty($parte['clientes_id']) ? $parte['clientes_id'] : null,
                         'nome' => $parte['nome'] ?? null,
                         'cpf_cnpj' => $parte['cpf_cnpj'] ?? null,
@@ -1317,6 +1318,12 @@ class Processos extends MY_Controller
             return;
         }
 
+        // Verificar se processo pode anexar documentos (processos encerrados são imutáveis)
+        if (!$this->processos_model->podeAnexarDocumento($processos_id)) {
+            log_message('warning', "Tentativa de anexar documento em processo encerrado ID: $processos_id");
+            return;
+        }
+
         if (!isset($_FILES['documentos']) || empty($_FILES['documentos']['name'][0])) {
             return;
         }
@@ -1329,8 +1336,8 @@ class Processos extends MY_Controller
         }
 
         $config['upload_path'] = $upload_path;
-        $config['allowed_types'] = 'pdf|doc|docx|jpg|jpeg|png|txt|rtf';
-        $config['max_size'] = 10240; // 10MB
+        $config['allowed_types'] = 'pdf|doc|docx|xlsx|xls|jpg|jpeg|png'; // Conforme RN 3.5: PDF, DOCX, DOC, XLSX, XLS, JPG, PNG
+        $config['max_size'] = 51200; // 50MB conforme RN 3.5
         $config['encrypt_name'] = true;
 
         $this->load->library('upload', $config);
@@ -1355,20 +1362,101 @@ class Processos extends MY_Controller
                     
                     $documento_data = [
                         'processos_id' => $processos_id,
-                        'titulo' => $upload_data['orig_name'],
-                        'descricao' => null,
+                        'nome' => $upload_data['orig_name'], // Campo correto da tabela
+                        'descricao' => $this->input->post('descricao_documento') ?: null,
                         'arquivo' => $upload_data['file_name'],
-                        'tipo_documento' => $this->input->post('tipo_documento') ?: 'documento',
-                        'dataUpload' => date('Y-m-d H:i:s'),
+                        'tipo' => $this->input->post('tipo_documento') ?: 'documento', // Campo correto da tabela
+                        'dataCadastro' => date('Y-m-d H:i:s'), // Campo correto da tabela
                         'usuarios_id' => $usuario_id,
                         'tamanho' => $upload_data['file_size'],
-                        'mime_type' => $upload_data['file_type'],
                     ];
 
                     $this->db->insert('documentos_processuais', $documento_data);
                 }
             }
         }
+    }
+
+    /**
+     * Salva anotação em movimentação (RN 10.3)
+     */
+    public function salvar_anotacao_movimentacao()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'eProcesso')) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Sem permissão']));
+            return;
+        }
+
+        $movimentacao_id = $this->input->post('movimentacao_id');
+        $anotacao = $this->input->post('anotacao');
+
+        if (!$movimentacao_id) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'ID da movimentação não informado']));
+            return;
+        }
+
+        $this->load->model('movimentacoes_processuais_model');
+        
+        $data = [
+            'anotacao' => $anotacao
+        ];
+
+        if ($this->movimentacoes_processuais_model->edit('movimentacoes_processuais', $data, 'idMovimentacoes', $movimentacao_id)) {
+            // Auditoria
+            $this->load->helper('audit');
+            log_update('movimentacao', $movimentacao_id, ['anotacao' => $anotacao]);
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => true, 'message' => 'Anotação salva com sucesso']));
+        } else {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Erro ao salvar anotação']));
+        }
+    }
+
+    /**
+     * Obtém anotação de movimentação (RN 10.3)
+     */
+    public function get_anotacao_movimentacao()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'vProcesso')) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Sem permissão']));
+            return;
+        }
+
+        $movimentacao_id = $this->input->get('id');
+
+        if (!$movimentacao_id) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'ID não informado']));
+            return;
+        }
+
+        $this->load->model('movimentacoes_processuais_model');
+        $movimentacao = $this->movimentacoes_processuais_model->getById($movimentacao_id);
+
+        if (!$movimentacao) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(['success' => false, 'message' => 'Movimentação não encontrada']));
+            return;
+        }
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'success' => true,
+                'anotacao' => $movimentacao->anotacao ?? ''
+            ]));
     }
 }
 

@@ -13,6 +13,7 @@ class Clientes extends MY_Controller
         $this->load->model('clientes_model');
         $this->load->library('cliente_upload');
         $this->load->helper('cliente');
+        $this->load->helper('form'); // Helper necessário para form_hidden() na view
         $this->data['menuClientes'] = 'clientes';
     }
 
@@ -58,7 +59,8 @@ class Clientes extends MY_Controller
         $this->pagination->initialize($this->data['configuration']);
 
         // Carregar apenas primeira página para fallback (quando JS desabilitado)
-        $this->data['results'] = $this->clientes_model->get('clientes', '*', $pesquisa, $this->data['configuration']['per_page'], 0);
+        // Parâmetro $array = 'object' para retornar objetos (view espera objetos, não arrays)
+        $this->data['results'] = $this->clientes_model->get('clientes', '*', $pesquisa, $this->data['configuration']['per_page'], 0, false, 'object');
 
         $this->data['view'] = 'clientes/clientes';
 
@@ -197,18 +199,74 @@ class Clientes extends MY_Controller
                             $data
                         );
                         
-                        // Enviar email de boas-vindas se houver email cadastrado
-                        $clienteEmail = !empty($data['email']) ? $data['email'] : null;
+                        // Enviar email de boas-vindas se houver email cadastrado (RN 9.1)
+                        $clienteEmail = isset($data['email']) && !empty($data['email']) ? $data['email'] : null;
                         if ($clienteEmail) {
-                            $emailEnviado = $this->enviarEmailBoasVindas($result);
-                            if ($emailEnviado) {
-                                log_message('info', "Email de boas-vindas enviado para cliente ID: {$result}, Email: {$clienteEmail}");
-                            } else {
-                                log_message('warning', "Email de boas-vindas NÃO foi enviado para cliente ID: {$result}, Email: {$clienteEmail}");
+                            $this->load->helper('email_template');
+                            $cliente_data = $this->clientes_model->getById($result);
+                            
+                            if ($cliente_data) {
+                                $dados_template = [
+                                    'cliente' => $cliente_data,
+                                ];
+                                
+                                // Tentar obter link de acesso se existir
+                                $this->db->where('clientes_id', $result);
+                                $this->db->where('ativo', 1);
+                                $acesso = $this->db->get('acessos_cliente')->row();
+                                if ($acesso) {
+                                    $dados_template['link_acesso'] = site_url('mine/acesso/' . $acesso->token_acesso);
+                                }
+                                
+                                $email_id = enqueue_email_with_template(
+                                    $clienteEmail,
+                                    'Bem-vindo ao Sistema de Gestão Jurídica',
+                                    'boas_vindas',
+                                    $dados_template,
+                                    'normal'
+                                );
+                                
+                                if ($email_id) {
+                                    log_message('info', "Email de boas-vindas adicionado à fila para cliente ID: {$result}, Email: {$clienteEmail}");
+                                    
+                                    // Criar notificação (RN 9.2)
+                                    $this->load->helper('email_template');
+                                    enviar_notificacao_email(
+                                        null,
+                                        $result,
+                                        'sistema',
+                                        'Bem-vindo ao Sistema',
+                                        'Seu cadastro foi realizado com sucesso. Bem-vindo ao nosso sistema!',
+                                        site_url('mine/painel'),
+                                        'boas_vindas',
+                                        $dados_template
+                                    );
+                                } else {
+                                    log_message('warning', "Email de boas-vindas NÃO foi adicionado à fila para cliente ID: {$result}, Email: {$clienteEmail}");
+                                }
                             }
                         }
                         
                         $this->session->set_flashdata('success', 'Cliente adicionado com sucesso!');
+                        
+                        // Auditoria: Registrar criação (RN 8.1)
+                        $this->load->helper('audit');
+                        $cliente_data = $this->clientes_model->getById($result);
+                        if ($cliente_data) {
+                            $dados_novos = [
+                                'idClientes' => $cliente_data->idClientes ?? null,
+                                'nomeCliente' => $cliente_data->nomeCliente ?? '',
+                                'tipo_cliente' => $cliente_data->tipo_cliente ?? 'fisica',
+                                'documento' => $cliente_data->documento ?? '',
+                                'email' => $cliente_data->email ?? '',
+                            ];
+                            log_create('cliente', $result, $dados_novos);
+                            
+                            // Histórico de alterações (RN 8.5)
+                            $this->load->model('Historico_alteracoes_model');
+                            $this->Historico_alteracoes_model->registrar('clientes', $result, 'create', [], $dados_novos);
+                        }
+                        
                         log_info('Adicionou um cliente.');
                         redirect(site_url('clientes/'));
                     } else {
@@ -300,6 +358,33 @@ class Clientes extends MY_Controller
                                 'edicao',
                                 'Cliente editado (sem alterações detectadas)'
                             );
+                        }
+                        
+                        // Auditoria: Registrar atualização (RN 8.1)
+                        $this->load->helper('audit');
+                        $cliente_anterior = $this->clientes_model->getById($idCliente);
+                        if ($cliente_anterior) {
+                            // Obter dados anteriores
+                            $dados_anteriores = [
+                                'nomeCliente' => $cliente_anterior->nomeCliente,
+                                'tipo_cliente' => $cliente_anterior->tipo_cliente ?? 'fisica',
+                                'documento' => $cliente_anterior->documento ?? '',
+                                'email' => $cliente_anterior->email ?? '',
+                            ];
+                            
+                            // Obter dados novos (do POST)
+                            $dados_novos = [
+                                'nomeCliente' => $this->input->post('nomeCliente'),
+                                'tipo_cliente' => $this->input->post('tipo_cliente'),
+                                'documento' => $this->input->post('documento'),
+                                'email' => $this->input->post('email'),
+                            ];
+                            
+                            log_update('cliente', $idCliente, $dados_anteriores, $dados_novos);
+                            
+                            // Histórico de alterações (RN 8.5)
+                            $this->load->model('Historico_alteracoes_model');
+                            $this->Historico_alteracoes_model->registrar('clientes', $idCliente, 'update', $dados_anteriores, $dados_novos);
                         }
                         
                         $this->session->set_flashdata('success', 'Cliente editado com sucesso!');
@@ -436,9 +521,225 @@ class Clientes extends MY_Controller
         $this->load->model('Interacoes_cliente_model');
         $this->data['interacoes'] = $this->Interacoes_cliente_model->getByCliente($clienteId, null, 50);
         
+        // RN 6.1: Carregar informações de acesso do cliente (Fase 6)
+        $this->load->model('Acessos_cliente_model');
+        $acessoAtivo = $this->Acessos_cliente_model->getAcessoAtivoByCliente($clienteId);
+        
+        // Preparar dados do acesso para a view
+        if ($acessoAtivo) {
+            $dataExpiracao = strtotime($acessoAtivo->data_expiracao);
+            $dataAtual = time();
+            $diasRestantes = floor(($dataExpiracao - $dataAtual) / 86400);
+            $estaExpirado = $dataExpiracao < $dataAtual;
+            
+            $this->data['acesso_ativo'] = $acessoAtivo;
+            $this->data['acesso_dias_restantes'] = $diasRestantes;
+            $this->data['acesso_expirado'] = $estaExpirado;
+            $this->data['link_acesso_completo'] = base_url('index.php/mine/acesso/' . $acessoAtivo->token_acesso);
+        } else {
+            $this->data['acesso_ativo'] = null;
+            $this->data['acesso_dias_restantes'] = 0;
+            $this->data['acesso_expirado'] = false;
+            $this->data['link_acesso_completo'] = null;
+        }
+        
+        $this->data['acessos'] = $this->Acessos_cliente_model->getByCliente($clienteId);
+        
         $this->data['view'] = 'clientes/visualizar';
 
         return $this->layout();
+    }
+
+    /**
+     * Gerar link de acesso único para cliente (Fase 6 - RN 6.1)
+     */
+    public function gerarLinkAcesso()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para gerar link de acesso.');
+            redirect(base_url());
+        }
+
+        $clienteId = $this->input->post('cliente_id');
+        
+        if (!$clienteId || !is_numeric($clienteId)) {
+            $this->session->set_flashdata('error', 'ID do cliente inválido.');
+            redirect(site_url('clientes/gerenciar/'));
+        }
+
+        $cliente = $this->clientes_model->getById($clienteId);
+        if (!$cliente) {
+            $this->session->set_flashdata('error', 'Cliente não encontrado.');
+            redirect(site_url('clientes/gerenciar/'));
+        }
+
+        $this->load->model('Acessos_cliente_model');
+        
+        // Criar novo acesso (desativa anteriores automaticamente)
+        $acesso = $this->Acessos_cliente_model->criarAcesso($clienteId, $_SERVER['REMOTE_ADDR'] ?? null);
+        
+        if ($acesso) {
+            // Enviar e-mail com o link
+            $linkEnviado = $this->enviarEmailLinkAcesso($cliente, $acesso['token'], $acesso['data_expiracao']);
+            
+            if ($linkEnviado) {
+                $this->session->set_flashdata('success', 'Link de acesso gerado e enviado por e-mail com sucesso!');
+                log_info("Link de acesso gerado para cliente ID: {$clienteId}");
+            } else {
+                $this->session->set_flashdata('success', 'Link de acesso gerado com sucesso, porém houve erro ao enviar o e-mail. Você pode copiar o link manualmente.');
+            }
+        } else {
+            $this->session->set_flashdata('error', 'Erro ao gerar link de acesso.');
+        }
+
+        redirect(site_url('clientes/visualizar/' . $clienteId));
+    }
+
+    /**
+     * Renovar link de acesso (prorrogar por mais 365 dias) - Fase 6
+     */
+    public function renovarLinkAcesso()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para renovar link de acesso.');
+            redirect(base_url());
+        }
+
+        $clienteId = $this->input->post('cliente_id');
+        $acessoId = $this->input->post('acesso_id');
+        
+        if (!$clienteId || !is_numeric($clienteId)) {
+            $this->session->set_flashdata('error', 'ID do cliente inválido.');
+            redirect(site_url('clientes/gerenciar/'));
+        }
+
+        $cliente = $this->clientes_model->getById($clienteId);
+        if (!$cliente) {
+            $this->session->set_flashdata('error', 'Cliente não encontrado.');
+            redirect(site_url('clientes/gerenciar/'));
+        }
+
+        $this->load->model('Acessos_cliente_model');
+        
+        if ($acessoId && is_numeric($acessoId)) {
+            // Renovar acesso existente
+            $renovado = $this->Acessos_cliente_model->renovarAcesso($acessoId);
+            
+            if ($renovado) {
+                $acesso = $this->Acessos_cliente_model->getById($acessoId);
+                if ($acesso) {
+                    // Enviar e-mail com o novo link
+                    $linkEnviado = $this->enviarEmailLinkAcesso($cliente, $acesso->token_acesso, $acesso->data_expiracao);
+                    
+                    if ($linkEnviado) {
+                        $this->session->set_flashdata('success', 'Link de acesso renovado e enviado por e-mail com sucesso!');
+                    } else {
+                        $this->session->set_flashdata('success', 'Link de acesso renovado com sucesso, porém houve erro ao enviar o e-mail.');
+                    }
+                }
+            } else {
+                $this->session->set_flashdata('error', 'Erro ao renovar link de acesso.');
+            }
+        } else {
+            // Criar novo acesso se não houver ID
+            $acesso = $this->Acessos_cliente_model->criarAcesso($clienteId, $_SERVER['REMOTE_ADDR'] ?? null);
+            
+            if ($acesso) {
+                $linkEnviado = $this->enviarEmailLinkAcesso($cliente, $acesso['token'], $acesso['data_expiracao']);
+                
+                if ($linkEnviado) {
+                    $this->session->set_flashdata('success', 'Link de acesso gerado e enviado por e-mail com sucesso!');
+                } else {
+                    $this->session->set_flashdata('success', 'Link de acesso gerado, porém houve erro ao enviar o e-mail.');
+                }
+            } else {
+                $this->session->set_flashdata('error', 'Erro ao gerar link de acesso.');
+            }
+        }
+
+        redirect(site_url('clientes/visualizar/' . $clienteId));
+    }
+
+    /**
+     * Desativar link de acesso - Fase 6
+     */
+    public function desativarLinkAcesso()
+    {
+        if (!$this->permission->checkPermission($this->session->userdata('permissao'), 'eCliente')) {
+            $this->session->set_flashdata('error', 'Você não tem permissão para desativar link de acesso.');
+            redirect(base_url());
+        }
+
+        $clienteId = $this->input->post('cliente_id');
+        
+        if (!$clienteId || !is_numeric($clienteId)) {
+            $this->session->set_flashdata('error', 'ID do cliente inválido.');
+            redirect(site_url('clientes/gerenciar/'));
+        }
+
+        $this->load->model('Acessos_cliente_model');
+        
+        // Desativar todos os acessos do cliente
+        $desativado = $this->Acessos_cliente_model->desativarAcessosByCliente($clienteId);
+        
+        if ($desativado) {
+            $this->session->set_flashdata('success', 'Link de acesso desativado com sucesso!');
+            log_info("Link de acesso desativado para cliente ID: {$clienteId}");
+        } else {
+            $this->session->set_flashdata('error', 'Erro ao desativar link de acesso.');
+        }
+
+        redirect(site_url('clientes/visualizar/' . $clienteId));
+    }
+
+    /**
+     * Enviar e-mail com link de acesso - Fase 6
+     */
+    private function enviarEmailLinkAcesso($cliente, $token, $dataExpiracao)
+    {
+        if (empty($cliente->email)) {
+            log_message('warning', 'Cliente ID: ' . $cliente->idClientes . ' não possui e-mail cadastrado para envio de link de acesso.');
+            return false;
+        }
+
+        $this->load->model('sistema_model');
+        $this->load->model('email_model');
+        
+        $dados = [];
+        $dados['emitente'] = $this->sistema_model->getEmitente();
+        $dados['cliente'] = $cliente;
+        $dados['token'] = $token;
+        $dados['link_acesso'] = base_url('index.php/mine/acesso/' . $token);
+        $dados['data_expiracao'] = $dataExpiracao;
+        $dados['data_expiracao_formatada'] = date('d/m/Y', strtotime($dataExpiracao));
+        
+        $emitente = $dados['emitente'];
+        
+        if ($emitente == null) {
+            log_message('error', 'Emitente não configurado. Não foi possível enviar email de link de acesso.');
+            return false;
+        }
+        
+        // Carregar template de e-mail
+        $html = $this->load->view('emails/link_acesso_cliente', $dados, true);
+        
+        $assunto = 'Link de Acesso ao Portal - ' . $this->config->item('app_name');
+        
+        $email_data = [
+            'to' => $cliente->email,
+            'subject' => $assunto,
+            'message' => $html,
+            'status' => 'pending',
+            'created_at' => date('Y-m-d H:i:s'),
+        ];
+        
+        if ($this->email_model->add('email_queue', $email_data)) {
+            log_message('info', "Email de link de acesso adicionado à fila para: {$cliente->email} (Cliente ID: {$cliente->idClientes})");
+            return true;
+        } else {
+            log_message('error', "Falha ao adicionar email de link de acesso à fila para: {$cliente->email}");
+            return false;
+        }
     }
 
     public function excluir()
@@ -475,6 +776,23 @@ class Clientes extends MY_Controller
                 (array)$clienteExcluido,
                 null
             );
+        }
+
+        // Auditoria: Registrar exclusão (RN 8.1) - ANTES de deletar
+        $this->load->helper('audit');
+        if ($clienteExcluido) {
+            $dados_anteriores = [
+                'idClientes' => $clienteExcluido->idClientes,
+                'nomeCliente' => $clienteExcluido->nomeCliente,
+                'tipo_cliente' => $clienteExcluido->tipo_cliente ?? 'fisica',
+                'documento' => $clienteExcluido->documento ?? '',
+                'email' => $clienteExcluido->email ?? '',
+            ];
+            log_delete('cliente', $id, $dados_anteriores);
+            
+            // Histórico de alterações (RN 8.5)
+            $this->load->model('Historico_alteracoes_model');
+            $this->Historico_alteracoes_model->registrar('clientes', $id, 'delete', $dados_anteriores, []);
         }
 
         $this->clientes_model->delete('clientes', 'idClientes', $id);

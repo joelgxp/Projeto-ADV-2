@@ -606,23 +606,55 @@ class ConsultaProcessual extends MY_Controller
             return;
         }
 
-        // Prepara dados do processo
+        // Verifica se dados são parciais (RN 10.4)
+        $dadosParciais = $this->verificarDadosParciais($dadosProcesso);
+        
+        // Prepara dados do processo (RN 10.4 - não sobrescreve se dados parciais)
         $data = [
             'numeroProcesso' => $numeroLimpo,
-            'classe' => isset($dadosProcesso['classe']) ? (is_array($dadosProcesso['classe']) ? $dadosProcesso['classe']['nome'] : $dadosProcesso['classe']) : null,
-            'assunto' => isset($dadosProcesso['assunto']) ? (is_array($dadosProcesso['assunto']) ? (is_array($dadosProcesso['assunto'][0]) ? $dadosProcesso['assunto'][0]['nome'] : $dadosProcesso['assunto'][0]) : $dadosProcesso['assunto']) : null,
-            'vara' => $dadosProcesso['vara'] ?? null,
-            'comarca' => $dadosProcesso['comarca'] ?? null,
-            'tribunal' => $dadosProcesso['tribunal'] ?? null,
-            'segmento' => $dadosProcesso['segmento'] ?? null,
-            'status' => 'em_andamento',
-            'valorCausa' => isset($dadosProcesso['valor']) ? floatval($dadosProcesso['valor']) : null,
-            'dataDistribuicao' => isset($dadosProcesso['dataDistribuicao']) ? date('Y-m-d', strtotime($dadosProcesso['dataDistribuicao'])) : null,
             'clientes_id' => $clienteId ?: null,
             'usuarios_id' => $this->session->userdata('id_admin') ?? null,
             'ultimaConsultaAPI' => date('Y-m-d H:i:s'),
-            'proximaConsultaAPI' => date('Y-m-d H:i:s', strtotime('+1 day')),
+            'proximaConsultaAPI' => date('Y-m-d H:i:s', strtotime('+6 hours')), // RN 10.2: 6 horas
+            'sincronizado_parcialmente' => $dadosParciais ? 1 : 0,
         ];
+        
+        // Preenche apenas campos que não sobrescrevem dados locais (RN 10.4)
+        if (!$dadosParciais || empty($processoExistente->classe)) {
+            $data['classe'] = isset($dadosProcesso['classe']) ? (is_array($dadosProcesso['classe']) ? $dadosProcesso['classe']['nome'] : $dadosProcesso['classe']) : null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->assunto)) {
+            $data['assunto'] = isset($dadosProcesso['assunto']) ? (is_array($dadosProcesso['assunto']) ? (is_array($dadosProcesso['assunto'][0]) ? $dadosProcesso['assunto'][0]['nome'] : $dadosProcesso['assunto'][0]) : $dadosProcesso['assunto']) : null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->vara)) {
+            $data['vara'] = $dadosProcesso['vara'] ?? null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->comarca)) {
+            $data['comarca'] = $dadosProcesso['comarca'] ?? null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->tribunal)) {
+            $data['tribunal'] = $dadosProcesso['tribunal'] ?? null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->segmento)) {
+            $data['segmento'] = $dadosProcesso['segmento'] ?? null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->status)) {
+            $data['status'] = 'em_andamento';
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->valorCausa)) {
+            $data['valorCausa'] = isset($dadosProcesso['valor']) ? floatval($dadosProcesso['valor']) : null;
+        }
+        
+        if (!$dadosParciais || empty($processoExistente->dataDistribuicao)) {
+            $data['dataDistribuicao'] = isset($dadosProcesso['dataDistribuicao']) ? date('Y-m-d', strtotime($dadosProcesso['dataDistribuicao'])) : null;
+        }
 
         $id_processo = $this->processos_model->add('processos', $data);
 
@@ -642,8 +674,30 @@ class ConsultaProcessual extends MY_Controller
         } else {
             $this->output
                 ->set_content_type('application/json')
-                ->set_output(json_encode(['success' => false, 'message' => 'Erro ao salvar processo.']));
+                ->set_output(json_encode(['success' => false, 'message' => 'Erro ao salvar processo.'                ]));
         }
+    }
+
+    /**
+     * Verifica se dados são parciais (RN 10.4)
+     * 
+     * @param array $dadosProcesso Dados da API
+     * @return bool True se dados são parciais
+     */
+    private function verificarDadosParciais($dadosProcesso)
+    {
+        // Verifica se campos essenciais estão presentes
+        $camposEssenciais = ['numero', 'classe', 'assunto'];
+        $camposPresentes = 0;
+        
+        foreach ($camposEssenciais as $campo) {
+            if (isset($dadosProcesso[$campo]) && !empty($dadosProcesso[$campo])) {
+                $camposPresentes++;
+            }
+        }
+        
+        // Se menos de 75% dos campos essenciais estão presentes, considera parcial
+        return ($camposPresentes / count($camposEssenciais)) < 0.75;
     }
 }
 

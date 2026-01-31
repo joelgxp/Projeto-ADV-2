@@ -44,7 +44,51 @@ class MY_Controller extends CI_Controller
         if ((! session_id()) || (! $this->session->userdata('logado'))) {
             redirect('login');
         }
+        
+        // FASE 11: Aplica rate limiting (RN 12.3)
+        $this->aplicar_rate_limiting();
+        
         $this->load_configuration();
+    }
+    
+    /**
+     * Aplica rate limiting (100 req/min por usuário)
+     */
+    protected function aplicar_rate_limiting()
+    {
+        // Verifica se tabela rate_limits existe antes de aplicar rate limiting
+        // Se não existir, pula o rate limiting (tabela será criada quando script SQL for executado)
+        if (!$this->db->table_exists('rate_limits')) {
+            return; // Tabela não existe ainda, pula rate limiting
+        }
+        
+        try {
+            $this->load->helper('rate_limit');
+            
+            // Exclui algumas rotas do rate limiting
+            $rotas_excluidas = ['login', 'api', 'backups/download'];
+            $rota_atual = $this->uri->segment(1);
+            
+            if (in_array($rota_atual, $rotas_excluidas)) {
+                return;
+            }
+            
+            $rate_limit = verificar_rate_limit(100);
+            
+            if (!$rate_limit['permitido']) {
+                $this->output
+                    ->set_status_header(429, 'Too Many Requests')
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'erro' => true,
+                        'mensagem' => $rate_limit['mensagem']
+                    ]));
+                exit;
+            }
+        } catch (Exception $e) {
+            // Se houver erro no rate limiting, loga mas não bloqueia a requisição
+            log_message('error', 'Erro ao aplicar rate limiting: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -106,7 +150,7 @@ class MY_Controller extends CI_Controller
         // load views
         $this->load->view('tema/topo', $this->data);
         $this->load->view('tema/menu');
-        $this->load->view('tema/conteudo');
+        $this->load->view('tema/conteudo', $this->data);
         $this->load->view('tema/rodape');
     }
 }

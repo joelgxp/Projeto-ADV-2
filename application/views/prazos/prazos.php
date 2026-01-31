@@ -25,9 +25,13 @@
                 <div class="span2">
                     <select name="status" class="span12">
                         <option value="">Todos os Status</option>
-                        <option value="Pendente" <?= $status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
-                        <option value="Cumprido" <?= $status == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
-                        <option value="Vencido" <?= $status == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
+                        <option value="pendente" <?= strtolower($status) == 'pendente' ? 'selected' : '' ?>>Pendente</option>
+                        <option value="proximo_vencer" <?= strtolower($status) == 'proximo_vencer' ? 'selected' : '' ?>>Próximo a Vencer</option>
+                        <option value="vencendo_hoje" <?= strtolower($status) == 'vencendo_hoje' ? 'selected' : '' ?>>Vencendo Hoje</option>
+                        <option value="vencido" <?= strtolower($status) == 'vencido' ? 'selected' : '' ?>>Vencido</option>
+                        <option value="cumprido" <?= strtolower($status) == 'cumprido' ? 'selected' : '' ?>>Cumprido</option>
+                        <option value="prorrogado" <?= strtolower($status) == 'prorrogado' ? 'selected' : '' ?>>Prorrogado</option>
+                        <option value="cancelado" <?= strtolower($status) == 'cancelado' ? 'selected' : '' ?>>Cancelado</option>
                     </select>
                 </div>
                 <div class="span3">
@@ -46,9 +50,13 @@
                 <div class="span2">
                     <select name="status" class="span12">
                         <option value="">Todos os Status</option>
-                        <option value="Pendente" <?= $status == 'Pendente' ? 'selected' : '' ?>>Pendente</option>
-                        <option value="Cumprido" <?= $status == 'Cumprido' ? 'selected' : '' ?>>Cumprido</option>
-                        <option value="Vencido" <?= $status == 'Vencido' ? 'selected' : '' ?>>Vencido</option>
+                        <option value="pendente" <?= strtolower($status) == 'pendente' ? 'selected' : '' ?>>Pendente</option>
+                        <option value="proximo_vencer" <?= strtolower($status) == 'proximo_vencer' ? 'selected' : '' ?>>Próximo a Vencer</option>
+                        <option value="vencendo_hoje" <?= strtolower($status) == 'vencendo_hoje' ? 'selected' : '' ?>>Vencendo Hoje</option>
+                        <option value="vencido" <?= strtolower($status) == 'vencido' ? 'selected' : '' ?>>Vencido</option>
+                        <option value="cumprido" <?= strtolower($status) == 'cumprido' ? 'selected' : '' ?>>Cumprido</option>
+                        <option value="prorrogado" <?= strtolower($status) == 'prorrogado' ? 'selected' : '' ?>>Prorrogado</option>
+                        <option value="cancelado" <?= strtolower($status) == 'cancelado' ? 'selected' : '' ?>>Cancelado</option>
                     </select>
                 </div>
                 <div class="span3">
@@ -94,27 +102,22 @@
                             echo '<td>' . ($r->descricao ?? '-') . '</td>';
                             echo '<td>' . (isset($r->dataPrazo) ? date('d/m/Y', strtotime($r->dataPrazo)) : '-') . '</td>';
                             
-                            // Data de vencimento com destaque se vencido
+                            // Data de vencimento
                             $dataVencimento = isset($r->dataVencimento) ? date('d/m/Y', strtotime($r->dataVencimento)) : '-';
-                            $vencido = isset($r->dataVencimento) && strtotime($r->dataVencimento) < strtotime('today') && ($r->status ?? '') == 'Pendente';
-                            $vencendo = isset($r->dataVencimento) && strtotime($r->dataVencimento) <= strtotime('+3 days') && strtotime($r->dataVencimento) >= strtotime('today') && ($r->status ?? '') == 'Pendente';
+                            echo '<td>' . $dataVencimento . '</td>';
                             
-                            if ($vencido) {
-                                echo '<td><span class="label label-important">' . $dataVencimento . ' (Vencido)</span></td>';
-                            } elseif ($vencendo) {
-                                echo '<td><span class="label label-warning">' . $dataVencimento . ' (Vencendo)</span></td>';
-                            } else {
-                                echo '<td>' . $dataVencimento . '</td>';
-                            }
-                            
-                            // Status com cores
+                            // Status com cores e badges
+                            $status_atual = strtolower($r->status ?? 'pendente');
                             $status_labels = [
-                                'Pendente' => ['label' => 'Pendente', 'class' => 'label-warning'],
-                                'Cumprido' => ['label' => 'Cumprido', 'class' => 'label-success'],
-                                'Vencido' => ['label' => 'Vencido', 'class' => 'label-important'],
+                                'pendente' => ['label' => 'Pendente', 'class' => 'label-info'],
+                                'proximo_vencer' => ['label' => 'Próximo a Vencer', 'class' => 'label-warning'],
+                                'vencendo_hoje' => ['label' => 'Vencendo Hoje', 'class' => 'label-warning'],
+                                'vencido' => ['label' => 'Vencido', 'class' => 'label-important'],
+                                'cumprido' => ['label' => 'Cumprido', 'class' => 'label-success'],
+                                'prorrogado' => ['label' => 'Prorrogado', 'class' => 'label-inverse'],
+                                'cancelado' => ['label' => 'Cancelado', 'class' => 'label-default'],
                             ];
-                            $status = $r->status ?? 'Pendente';
-                            $status_info = $status_labels[$status] ?? ['label' => $status, 'class' => 'label-default'];
+                            $status_info = $status_labels[$status_atual] ?? ['label' => ucfirst($status_atual), 'class' => 'label-default'];
                             echo '<td><span class="label ' . $status_info['class'] . '">' . $status_info['label'] . '</span></td>';
                             
                             // Prioridade

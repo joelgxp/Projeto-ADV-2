@@ -242,8 +242,40 @@
                         <div class="control-group">
                             <label for="EMAIL_SMTP_PASS" class="control-label">Senha</label>
                             <div class="controls">
-                                <input type="password" name="EMAIL_SMTP_PASS" value="<?= isset($_ENV['EMAIL_SMTP_PASS']) ? $_ENV['EMAIL_SMTP_PASS'] : '' ?>" id="EMAIL_SMTP_PASS">
-                                <span class="help-inline">Informe a senha do e-mail.</span>
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <input 
+                                        type="text" 
+                                        name="EMAIL_SMTP_PASS" 
+                                        value="<?= isset($_ENV['EMAIL_SMTP_PASS']) ? htmlspecialchars($_ENV['EMAIL_SMTP_PASS'], ENT_QUOTES, 'UTF-8') : '' ?>" 
+                                        id="EMAIL_SMTP_PASS"
+                                        class="form-control"
+                                        autocomplete="new-password"
+                                        style="padding-right: 40px; flex: 1;"
+                                    >
+                                    <button 
+                                        type="button" 
+                                        id="btnToggleSenhaEmail" 
+                                        class="btn-toggle-password active"
+                                        onclick="toggleSenhaEmail()"
+                                        aria-label="Ocultar senha"
+                                        title="Ocultar senha"
+                                        style="
+                                            position: absolute;
+                                            right: 5px;
+                                            background: transparent;
+                                            border: none;
+                                            cursor: pointer;
+                                            padding: 5px 10px;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            z-index: 10;
+                                        "
+                                    >
+                                        <i id="iconToggleSenhaEmail" class="bx bx-show" style="font-size: 20px; color: #666;"></i>
+                                    </button>
+                                </div>
+                                <span class="help-inline">A senha está visível por padrão. Clique no ícone do olho para ocultar/mostrar.</span>
                             </div>
                         </div>
                         
@@ -518,4 +550,59 @@
     if (!$('style#alerta-animacao').length) {
         $('head').append('<style id="alerta-animacao">@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }</style>');
     }
+    
+    /**
+     * Alterna entre mostrar e ocultar a senha do e-mail
+     * Por padrão, a senha é exibida (type="text")
+     */
+    function toggleSenhaEmail() {
+        try {
+            const campoSenha = document.getElementById('EMAIL_SMTP_PASS');
+            const btnToggle = document.getElementById('btnToggleSenhaEmail');
+            const iconToggle = document.getElementById('iconToggleSenhaEmail');
+            
+            if (!campoSenha || !btnToggle || !iconToggle) {
+                throw new Error('Elementos não encontrados');
+            }
+            
+            const tipoAtual = campoSenha.getAttribute('type') || 'text';
+            
+            if (tipoAtual === 'text') {
+                // Ocultar senha
+                campoSenha.setAttribute('type', 'password');
+                iconToggle.className = 'bx bx-hide';
+                btnToggle.setAttribute('title', 'Mostrar senha');
+                btnToggle.setAttribute('aria-label', 'Mostrar senha');
+                btnToggle.classList.remove('active');
+            } else {
+                // Mostrar senha
+                campoSenha.setAttribute('type', 'text');
+                iconToggle.className = 'bx bx-show';
+                btnToggle.setAttribute('title', 'Ocultar senha');
+                btnToggle.setAttribute('aria-label', 'Ocultar senha');
+                btnToggle.classList.add('active');
+            }
+        } catch (error) {
+            console.error('Erro ao alternar senha:', error);
+            alert('Erro ao alternar visibilidade da senha.');
+        }
+    }
+    
+    // Inicializar toggle de senha quando documento estiver pronto
+    $(document).ready(function() {
+        const btnToggle = document.getElementById('btnToggleSenhaEmail');
+        if (btnToggle) {
+            btnToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleSenhaEmail();
+            });
+            
+            btnToggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSenhaEmail();
+                }
+            });
+        }
+    });
 </script>

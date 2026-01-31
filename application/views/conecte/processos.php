@@ -42,9 +42,8 @@
                 <select name="usuarios_id" class="span12">
                     <option value="">Todos</option>
                     <?php
-                    $this->load->model('usuarios_model');
-                    $advogados = $this->usuarios_model->get('usuarios', 'idUsuarios, nome', '', 0, 0, false, 'array');
-                    if ($advogados) {
+                    // Fase 6 - Correção Bug: Advogados carregados no controller
+                    if (isset($advogados) && $advogados) {
                         foreach ($advogados as $adv) {
                             $selected = ($this->input->get('usuarios_id') == $adv['idUsuarios']) ? 'selected' : '';
                             echo '<option value="' . $adv['idUsuarios'] . '" ' . $selected . '>' . htmlspecialchars($adv['nome']) . '</option>';

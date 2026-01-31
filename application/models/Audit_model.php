@@ -16,16 +16,151 @@ class Audit_model extends CI_Model
         $this->db->select($fields);
         $this->db->from($table);
         $this->db->order_by('idLogs', 'desc');
-        $this->db->limit($perpage, $start);
+        
+        // Aplicar LIMIT apenas se perpage > 0
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
+        }
+        
         if ($where) {
-            $this->db->where($where);
+            if (is_array($where)) {
+                foreach ($where as $key => $value) {
+                    if (strpos($key, ' LIKE') !== false) {
+                        $field = str_replace(' LIKE', '', $key);
+                        $this->db->like($field, $value);
+                    } elseif (strpos($key, ' >=') !== false) {
+                        $field = str_replace(' >=', '', $key);
+                        $this->db->where($field . ' >=', $value);
+                    } elseif (strpos($key, ' <=') !== false) {
+                        $field = str_replace(' <=', '', $key);
+                        $this->db->where($field . ' <=', $value);
+                    } else {
+                        $this->db->where($key, $value);
+                    }
+                }
+            } else {
+                $this->db->where($where);
+            }
         }
 
         $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query Audit_model::get: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return $one ? null : [];
+        }
 
         $result = ! $one ? $query->result() : $query->row();
 
         return $result;
+    }
+    
+    /**
+     * Busca logs com filtros avançados
+     * 
+     * @param array $filtros Filtros: usuario, acao, modulo, data_inicio, data_fim, dados_sensiveis
+     * @param int $perpage Registros por página
+     * @param int $start Offset
+     * @return array
+     */
+    public function getWithFilters($filtros = [], $perpage = 0, $start = 0)
+    {
+        $this->db->select('*');
+        $this->db->from('logs');
+        
+        // Filtro por usuário
+        if (!empty($filtros['usuario'])) {
+            $this->db->like('usuario', $filtros['usuario']);
+        }
+        
+        // Filtro por ação
+        if (!empty($filtros['acao'])) {
+            $this->db->where('acao', $filtros['acao']);
+        }
+        
+        // Filtro por módulo (entidade_tipo)
+        if (!empty($filtros['modulo'])) {
+            $this->db->where('entidade_tipo', $filtros['modulo']);
+        }
+        
+        // Filtro por data início
+        if (!empty($filtros['data_inicio'])) {
+            $this->db->where('data >=', $filtros['data_inicio']);
+        }
+        
+        // Filtro por data fim
+        if (!empty($filtros['data_fim'])) {
+            $this->db->where('data <=', $filtros['data_fim']);
+        }
+        
+        // Filtro por dados sensíveis
+        if (isset($filtros['dados_sensiveis']) && $filtros['dados_sensiveis'] !== '') {
+            $this->db->where('dados_sensiveis', $filtros['dados_sensiveis']);
+        }
+        
+        // Busca textual
+        if (!empty($filtros['pesquisa'])) {
+            $this->db->group_start();
+            $this->db->like('tarefa', $filtros['pesquisa']);
+            $this->db->or_like('usuario', $filtros['pesquisa']);
+            $this->db->or_like('ip', $filtros['pesquisa']);
+            $this->db->group_end();
+        }
+        
+        $this->db->order_by('idLogs', 'desc');
+        
+        if ($perpage > 0) {
+            $this->db->limit($perpage, $start);
+        }
+        
+        $query = $this->db->get();
+        
+        if ($query === false) {
+            log_message('error', 'Erro na query Audit_model::getWithFilters: ' . ($this->db->error()['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
+        
+        return $query->result();
+    }
+    
+    /**
+     * Conta logs com filtros
+     * 
+     * @param array $filtros Mesmos filtros de getWithFilters
+     * @return int
+     */
+    public function countWithFilters($filtros = [])
+    {
+        $this->db->from('logs');
+        
+        // Aplicar mesmos filtros de getWithFilters
+        if (!empty($filtros['usuario'])) {
+            $this->db->like('usuario', $filtros['usuario']);
+        }
+        if (!empty($filtros['acao'])) {
+            $this->db->where('acao', $filtros['acao']);
+        }
+        if (!empty($filtros['modulo'])) {
+            $this->db->where('entidade_tipo', $filtros['modulo']);
+        }
+        if (!empty($filtros['data_inicio'])) {
+            $this->db->where('data >=', $filtros['data_inicio']);
+        }
+        if (!empty($filtros['data_fim'])) {
+            $this->db->where('data <=', $filtros['data_fim']);
+        }
+        if (isset($filtros['dados_sensiveis']) && $filtros['dados_sensiveis'] !== '') {
+            $this->db->where('dados_sensiveis', $filtros['dados_sensiveis']);
+        }
+        if (!empty($filtros['pesquisa'])) {
+            $this->db->group_start();
+            $this->db->like('tarefa', $filtros['pesquisa']);
+            $this->db->or_like('usuario', $filtros['pesquisa']);
+            $this->db->or_like('ip', $filtros['pesquisa']);
+            $this->db->group_end();
+        }
+        
+        return $this->db->count_all_results();
     }
 
     public function add($data)
@@ -36,7 +171,29 @@ class Audit_model extends CI_Model
             $data['user_agent'] = $ci->input->user_agent();
         }
         
+        // Adicionar IP se não foi fornecido
+        if (!isset($data['ip'])) {
+            $ci = &get_instance();
+            $data['ip'] = $ci->input->ip_address();
+        }
+        
+        // Adicionar data/hora se não foram fornecidos
+        if (!isset($data['data'])) {
+            $data['data'] = date('Y-m-d');
+        }
+        if (!isset($data['hora'])) {
+            $data['hora'] = date('H:i:s');
+        }
+        
         $this->db->insert('logs', $data);
+        
+        // Verificar erros SQL
+        $error = $this->db->error();
+        if ($error['code'] != 0) {
+            log_message('error', 'Erro ao inserir log de auditoria: ' . $error['message'] . ' (Código: ' . $error['code'] . ')');
+            return false;
+        }
+        
         if ($this->db->affected_rows() == '1') {
             return true;
         }
