@@ -85,7 +85,8 @@ class Openrouter
 
             return $content;
         } catch (Throwable $e) {
-            log_message('error', 'Openrouter chat error: ' . $e->getMessage());
+            log_message('error', 'Openrouter chat error: ' . $e->getMessage() . ' | Class: ' . get_class($e) . ' | File: ' . $e->getFile() . ':' . $e->getLine());
+            log_message('error', 'Openrouter stack: ' . $e->getTraceAsString());
 
             return null;
         }

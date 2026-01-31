@@ -173,7 +173,13 @@ class PecasGeradas extends MY_Controller
             }
         }
 
-        $this->load->library('PeticaoGenerator');
+        try {
+            $this->load->library('PeticaoGenerator');
+        } catch (Throwable $e) {
+            log_message('error', 'PecasGeradas executar_geracao: Erro ao carregar PeticaoGenerator - ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
+            $this->session->set_flashdata('error', 'Erro técnico: ' . $e->getMessage() . '. Verifique application/logs/ e composer install.');
+            redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
+        }
 
         $params = [
             'tipo_peca' => $this->input->post('tipo_peca') ?: 'peticao_simples',
@@ -190,7 +196,13 @@ class PecasGeradas extends MY_Controller
             'anexos_ids' => $this->input->post('anexos_ids') ?: [],
         ];
 
-        $resultado = $this->peticaogenerator->gerar($params);
+        try {
+            $resultado = $this->peticaogenerator->gerar($params);
+        } catch (Throwable $e) {
+            log_message('error', 'PecasGeradas executar_geracao: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString());
+            $this->session->set_flashdata('error', 'Erro na geração: ' . $e->getMessage() . '. Consulte application/logs/log-' . date('Y-m-d') . '.php');
+            redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
+        }
 
         if (!$resultado['sucesso']) {
             $this->session->set_flashdata('error', $resultado['erro']);

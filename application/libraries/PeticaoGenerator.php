@@ -243,13 +243,13 @@ class PeticaoGenerator
                 $dadosPlaceholders = [
                     'nome_autor' => $autor,
                     'nome_reu' => $reu,
-                    'numero_processo' => $processo->numeroProcesso ?? '',
-                    'vara' => $processo->vara ?? '',
-                    'comarca' => $processo->comarca ?? '',
-                    'tribunal' => $processo->tribunal ?? '',
-                    'classe' => $processo->classe ?? '',
-                    'assunto' => $processo->assunto ?? '',
-                    'valor_causa' => isset($processo->valorCausa) ? 'R$ ' . number_format($processo->valorCausa, 2, ',', '.') : '',
+                    'numero_processo' => $processo ? ($processo->numeroProcesso ?? '') : '',
+                    'vara' => $processo ? ($processo->vara ?? '') : '',
+                    'comarca' => $processo ? ($processo->comarca ?? '') : '',
+                    'tribunal' => $processo ? ($processo->tribunal ?? '') : '',
+                    'classe' => $processo ? ($processo->classe ?? '') : '',
+                    'assunto' => $processo ? ($processo->assunto ?? '') : '',
+                    'valor_causa' => ($processo && isset($processo->valorCausa)) ? 'R$ ' . number_format($processo->valorCausa, 2, ',', '.') : '',
                 ];
 
                 $modeloBase = $this->substituirPlaceholders($modelo->corpo, $dadosPlaceholders);
@@ -258,8 +258,8 @@ class PeticaoGenerator
 
         $processo = $contextoData['processo'] ?? null;
         $jurisprudencia = $this->buscarJurisprudencia(
-            $params['area'] ?? ($processo->tipo_processo ?? null),
-            $params['assunto'] ?? ($processo->assunto ?? null)
+            $params['area'] ?? ($processo ? ($processo->tipo_processo ?? null) : null),
+            $params['assunto'] ?? ($processo ? ($processo->assunto ?? null) : null)
         );
 
         $instrucaoJuris = '';
@@ -323,13 +323,18 @@ class PeticaoGenerator
             ['role' => 'user', 'content' => $userContent],
         ];
 
-        $resposta = $this->ci->openrouter->chat($this->modelo, $messages, [
-            'temperature' => 0.4,
-            'max_tokens' => 4096,
-        ]);
+        try {
+            $resposta = $this->ci->openrouter->chat($this->modelo, $messages, [
+                'temperature' => 0.4,
+                'max_tokens' => 4096,
+            ]);
+        } catch (Throwable $e) {
+            log_message('error', 'PeticaoGenerator gerar: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
+            return ['sucesso' => false, 'conteudo' => null, 'erro' => 'Erro na API de IA: ' . $e->getMessage()];
+        }
 
         if ($resposta === null) {
-            return ['sucesso' => false, 'conteudo' => null, 'erro' => 'Erro ao comunicar com o serviço de IA. Verifique os logs.'];
+            return ['sucesso' => false, 'conteudo' => null, 'erro' => 'Erro ao comunicar com o serviço de IA. Verifique OPENROUTER_API_KEY no .env e application/logs/'];
         }
 
         return [
