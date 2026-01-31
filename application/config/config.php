@@ -520,7 +520,7 @@ $config['proxy_ips'] = $_ENV['APP_PROXY_IPS'] ?? '';
 |          for backwards compatibility purposes!
 |
 */
-$config['global_xss_filtering'] = $_ENV['GLOBAL_XSS_FILTERING'] ? filter_var($_ENV['GLOBAL_XSS_FILTERING'], FILTER_VALIDATE_BOOLEAN) : true;
+$config['global_xss_filtering'] = isset($_ENV['GLOBAL_XSS_FILTERING']) ? filter_var($_ENV['GLOBAL_XSS_FILTERING'], FILTER_VALIDATE_BOOLEAN) : true;
 
 /*
 |--------------------------------------------------------------------------
