@@ -3,58 +3,40 @@
         <span class="icon"><i class="fas fa-file-alt"></i></span>
         <h5>Petições Geradas com IA</h5>
     </div>
-    <div class="span12" style="margin-left: 0">
-        <div class="span3">
-            <a href="<?= site_url('pecas-geradas/gerar') ?>" class="button btn btn-mini btn-success" style="max-width: 200px">
-                <span class="button__icon"><i class='bx bx-plus-circle'></i></span>
-                <span class="button__text2">Gerar Petição com IA</span>
-            </a>
-        </div>
-        <div class="span3">
-            <a href="<?= site_url('pecas-geradas/modelos') ?>" class="button btn btn-mini btn-info" style="max-width: 180px">
-                <span class="button__icon"><i class='bx bx-file'></i></span>
-                <span class="button__text2">Modelos de Peças</span>
-            </a>
-        </div>
-        <div class="span3">
-            <a href="<?= site_url('pecas-geradas/jurisprudencia') ?>" class="button btn btn-mini" style="max-width: 180px">
-                <span class="button__icon"><i class='bx bx-balance-scale'></i></span>
-                <span class="button__text2">Jurisprudencia</span>
-            </a>
-        </div>
-        <div class="span3">
-            <a href="<?= site_url('pecas-geradas/dashboard') ?>" class="button btn btn-mini btn-warning" style="max-width: 180px">
-                <span class="button__icon"><i class='bx bx-bar-chart'></i></span>
-                <span class="button__text2">Metricas</span>
-            </a>
-        </div>
-        <div class="span3">
-            <a href="<?= site_url('pecas-geradas/diagnostico') ?>" class="button btn btn-mini" style="max-width: 180px" title="Diagnóstico do ambiente (produção vs local)">
-                <span class="button__icon"><i class='bx bx-cog'></i></span>
-                <span class="button__text2">Diagnóstico</span>
-            </a>
-        </div>
-        <form class="span6" method="get" action="<?= site_url('pecas-geradas/listar') ?>" style="display: flex; justify-content: flex-end;">
-            <div class="span2">
-                <select name="tipo" class="span12">
-                    <option value="">Todos os Tipos</option>
-                    <?php foreach ($tipos_peca ?? [] as $k => $v): ?>
-                        <option value="<?= $k ?>" <?= ($filtros['tipo'] ?? '') == $k ? 'selected' : '' ?>><?= $v ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="span2">
-                <select name="status" class="span12">
-                    <option value="">Todos os Status</option>
-                    <option value="rascunho_ia" <?= ($filtros['status'] ?? '') == 'rascunho_ia' ? 'selected' : '' ?>>Rascunho IA</option>
-                    <option value="em_revisao" <?= ($filtros['status'] ?? '') == 'em_revisao' ? 'selected' : '' ?>>Em Revisão</option>
-                    <option value="aprovado" <?= ($filtros['status'] ?? '') == 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
-                    <option value="reprovado" <?= ($filtros['status'] ?? '') == 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
-                </select>
-            </div>
-            <div class="span1">
-                <button class="button btn btn-mini btn-warning" type="submit"><i class='bx bx-search-alt'></i></button>
-            </div>
+    <div class="span12" style="margin-left: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px;">
+        <a href="<?= site_url('pecas-geradas/gerar') ?>" class="button btn btn-mini btn-success" style="max-width: 200px">
+            <span class="button__icon"><i class='bx bx-plus-circle'></i></span>
+            <span class="button__text2">Gerar Petição com IA</span>
+        </a>
+        <a href="<?= site_url('pecas-geradas/modelos') ?>" class="button btn btn-mini btn-inverse" style="max-width: 180px">
+            <span class="button__icon"><i class='bx bx-file'></i></span>
+            <span class="button__text2">Modelos de Peças</span>
+        </a>
+        <a href="<?= site_url('pecas-geradas/jurisprudencia') ?>" class="button btn btn-mini btn-primary" style="max-width: 180px" title="Base de jurisprudência verificada (RAG)">
+            <span class="button__icon"><i class='bx bx-book-open'></i></span>
+            <span class="button__text2">Jurisprudência</span>
+        </a>
+        <a href="<?= site_url('pecas-geradas/dashboard') ?>" class="button btn btn-mini btn-warning" style="max-width: 180px">
+            <span class="button__icon"><i class='bx bx-bar-chart'></i></span>
+            <span class="button__text2">Metricas</span>
+        </a>
+        <form method="get" action="<?= site_url('pecas-geradas/listar') ?>" style="display: flex; align-items: center; gap: 6px; margin: 0 0 15px 0; margin-left: auto;">
+            <select name="tipo" class="span12" style="width: 120px;">
+                <option value="">Todos os Tipos</option>
+                <?php foreach ($tipos_peca ?? [] as $k => $v): ?>
+                    <option value="<?= $k ?>" <?= ($filtros['tipo'] ?? '') == $k ? 'selected' : '' ?>><?= $v ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="status" class="span12" style="width: 120px;">
+                <option value="">Todos os Status</option>
+                <option value="rascunho_ia" <?= ($filtros['status'] ?? '') == 'rascunho_ia' ? 'selected' : '' ?>>Rascunho IA</option>
+                <option value="em_revisao" <?= ($filtros['status'] ?? '') == 'em_revisao' ? 'selected' : '' ?>>Em Revisão</option>
+                <option value="aprovado" <?= ($filtros['status'] ?? '') == 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
+                <option value="reprovado" <?= ($filtros['status'] ?? '') == 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
+            </select>
+            <button class="button btn btn-mini btn-warning" type="submit" style="min-width: 30px">
+                <span class="button__icon"><i class='bx bx-search-alt'></i></span>
+            </button>
         </form>
     </div>
 
