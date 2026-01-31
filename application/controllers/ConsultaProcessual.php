@@ -14,7 +14,7 @@ class ConsultaProcessual extends MY_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->library('cnjapi');
+        $this->load->library('CnjApi');
         $this->load->model('processos_model');
         $this->load->model('movimentacoes_processuais_model');
         $this->load->model('clientes_model');
