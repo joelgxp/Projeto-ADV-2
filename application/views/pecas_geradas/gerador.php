@@ -18,7 +18,8 @@
                         <select name="processos_id" id="processos_id" class="span6">
                             <option value="">-- Selecione (opcional) --</option>
                             <?php foreach ($processos ?? [] as $p): ?>
-                                <option value="<?= $p->idProcessos ?>" <?= ($processos_id ?? '') == $p->idProcessos ? 'selected' : '' ?>>
+                                <?php $sel = ($form_data['processos_id'] ?? $processos_id ?? '') == $p->idProcessos; ?>
+                                <option value="<?= $p->idProcessos ?>" <?= $sel ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($p->numeroProcesso ?? '') ?> - <?= htmlspecialchars($p->nomeCliente ?? '') ?>
                                 </option>
                             <?php endforeach; ?>
@@ -28,13 +29,13 @@
                 <div class="control-group">
                     <label class="control-label">Prazo vinculado</label>
                     <div class="controls">
-                        <input type="number" name="prazos_id" value="<?= $prazos_id ?? '' ?>" placeholder="ID do prazo (opcional)" class="span4">
+                        <input type="number" name="prazos_id" value="<?= htmlspecialchars($form_data['prazos_id'] ?? $prazos_id ?? '') ?>" placeholder="ID do prazo (opcional)" class="span4">
                     </div>
                 </div>
                 <div class="control-group">
                     <label class="control-label">Contrato vinculado</label>
                     <div class="controls">
-                        <input type="number" name="contratos_id" value="<?= $contratos_id ?? '' ?>" placeholder="ID do contrato (opcional)" class="span4">
+                        <input type="number" name="contratos_id" value="<?= htmlspecialchars($form_data['contratos_id'] ?? $contratos_id ?? '') ?>" placeholder="ID do contrato (opcional)" class="span4">
                     </div>
                 </div>
                 <div class="control-group">
@@ -43,7 +44,8 @@
                         <select name="clientes_id" class="span6">
                             <option value="">-- Selecione (opcional) --</option>
                             <?php foreach ($clientes ?? [] as $c): ?>
-                                <option value="<?= $c->idClientes ?>"><?= htmlspecialchars($c->nomeCliente ?? '') ?></option>
+                                <?php $sel = ($form_data['clientes_id'] ?? '') == $c->idClientes; ?>
+                                <option value="<?= $c->idClientes ?>" <?= $sel ? 'selected' : '' ?>><?= htmlspecialchars($c->nomeCliente ?? '') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -51,7 +53,7 @@
                 <div class="control-group">
                     <label class="control-label">Contexto textual adicional</label>
                     <div class="controls">
-                        <textarea name="contexto_manual" rows="4" class="span12" placeholder="Descreva o caso, fatos relevantes..."><?= htmlspecialchars($this->input->post('contexto_manual') ?? '') ?></textarea>
+                        <textarea name="contexto_manual" rows="4" class="span12" placeholder="Descreva o caso, fatos relevantes..."><?= htmlspecialchars($form_data['contexto_manual'] ?? $this->input->post('contexto_manual') ?? '') ?></textarea>
                     </div>
                 </div>
                 <?php if (!empty($documentos)): ?>
@@ -59,7 +61,8 @@
                     <label class="control-label">Documentos para contexto</label>
                     <div class="controls">
                         <?php foreach ($documentos as $d): ?>
-                            <label class="checkbox"><input type="checkbox" name="anexos_ids[]" value="<?= $d->idDocumentos ?>"> <?= htmlspecialchars($d->nome ?? '') ?></label>
+                            <?php $checked = in_array($d->idDocumentos, $form_data['anexos_ids'] ?? $this->input->post('anexos_ids') ?: []); ?>
+                            <label class="checkbox"><input type="checkbox" name="anexos_ids[]" value="<?= $d->idDocumentos ?>" <?= $checked ? 'checked' : '' ?>> <?= htmlspecialchars($d->nome ?? '') ?></label>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -67,7 +70,8 @@
                 <div class="control-group">
                     <label class="control-label">Incluir movimentações</label>
                     <div class="controls">
-                        <input type="checkbox" name="incluir_movimentacoes" value="1" checked>
+                        <?php $incluir = ($form_data['incluir_movimentacoes'] ?? $this->input->post('incluir_movimentacoes') ?? '1') == '1' || ($form_data['incluir_movimentacoes'] ?? '') === ''; ?>
+                        <input type="checkbox" name="incluir_movimentacoes" value="1" <?= $incluir ? 'checked' : '' ?>>
                     </div>
                 </div>
             </div>
@@ -81,7 +85,8 @@
                     <div class="controls">
                         <select name="tipo_peca" required class="span6">
                             <?php foreach ($tipos_peca ?? [] as $k => $v): ?>
-                                <option value="<?= $k ?>" <?= ($this->input->post('tipo_peca') ?? 'peticao_simples') == $k ? 'selected' : '' ?>><?= $v ?></option>
+                                <?php $sel = ($form_data['tipo_peca'] ?? $this->input->post('tipo_peca') ?? 'peticao_simples') == $k; ?>
+                                <option value="<?= $k ?>" <?= $sel ? 'selected' : '' ?>><?= $v ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -92,7 +97,8 @@
                         <select name="modelos_pecas_id" class="span6">
                             <option value="">-- Nenhum (gerar do zero) --</option>
                             <?php foreach ($modelos ?? [] as $m): ?>
-                                <option value="<?= $m->id ?>"><?= htmlspecialchars($m->nome ?? '') ?> (<?= $m->tipo_peca ?? '' ?>)</option>
+                                <?php $sel = ($form_data['modelos_pecas_id'] ?? $this->input->post('modelos_pecas_id') ?? '') == $m->id; ?>
+                                <option value="<?= $m->id ?>" <?= $sel ? 'selected' : '' ?>><?= htmlspecialchars($m->nome ?? '') ?> (<?= $m->tipo_peca ?? '' ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -100,22 +106,23 @@
                 <div class="control-group">
                     <label class="control-label">Tese principal <span style="color:red">*</span></label>
                     <div class="controls">
-                        <textarea name="tese_principal" required rows="4" class="span12" placeholder="Descreva a tese jurídica principal..."><?= htmlspecialchars($this->input->post('tese_principal') ?? '') ?></textarea>
+                        <textarea name="tese_principal" required rows="4" class="span12" placeholder="Descreva a tese jurídica principal..."><?= htmlspecialchars($form_data['tese_principal'] ?? $this->input->post('tese_principal') ?? '') ?></textarea>
                     </div>
                 </div>
                 <div class="control-group">
                     <label class="control-label">Pontos a enfatizar</label>
                     <div class="controls">
-                        <textarea name="pontos_enfatizar" rows="2" class="span12" placeholder="Pontos que devem ser destacados..."><?= htmlspecialchars($this->input->post('pontos_enfatizar') ?? '') ?></textarea>
+                        <textarea name="pontos_enfatizar" rows="2" class="span12" placeholder="Pontos que devem ser destacados..."><?= htmlspecialchars($form_data['pontos_enfatizar'] ?? $this->input->post('pontos_enfatizar') ?? '') ?></textarea>
                     </div>
                 </div>
                 <div class="control-group">
                     <label class="control-label">Tom</label>
                     <div class="controls">
                         <select name="tom" class="span4">
-                            <option value="tecnico" <?= ($this->input->post('tom') ?? 'tecnico') == 'tecnico' ? 'selected' : '' ?>>Técnico</option>
-                            <option value="didatico" <?= ($this->input->post('tom') ?? '') == 'didatico' ? 'selected' : '' ?>>Didático</option>
-                            <option value="conciso" <?= ($this->input->post('tom') ?? '') == 'conciso' ? 'selected' : '' ?>>Conciso</option>
+                            <?php $tom = $form_data['tom'] ?? $this->input->post('tom') ?? 'tecnico'; ?>
+                            <option value="tecnico" <?= $tom == 'tecnico' ? 'selected' : '' ?>>Técnico</option>
+                            <option value="didatico" <?= $tom == 'didatico' ? 'selected' : '' ?>>Didático</option>
+                            <option value="conciso" <?= $tom == 'conciso' ? 'selected' : '' ?>>Conciso</option>
                         </select>
                     </div>
                 </div>

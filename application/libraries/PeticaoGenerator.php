@@ -296,6 +296,15 @@ class PeticaoGenerator
             'peticao_simples' => 'Petição Simples (manifestação, juntada de documentos, pedido de prazo)',
         ];
         $tipoLabel = $tiposPeca[$params['tipo_peca'] ?? ''] ?? $params['tipo_peca'];
+        $tipoPeca = $params['tipo_peca'] ?? '';
+
+        $instrucoesEspecificas = '';
+        if ($tipoPeca === 'peticao_inicial') {
+            $instrucoesEspecificas = "\n\nINSTRUÇÕES ESPECÍFICAS PARA PETIÇÃO INICIAL:\n"
+                . "- QUALIFICAÇÃO DAS PARTES: Qualifique os clientes (autor/autores e réu/réus) E os advogados de cada parte (nome completo, OAB, endereço profissional). Use apenas os dados fornecidos no contexto.\n"
+                . "- NÚMERO DE PROCESSO: NÃO existe número de processo ainda. Não mencione, não invente e não use número de processo. A petição será distribuída após o protocolo.\n"
+                . "- ENDEREÇAMENTO: Dirija a petição AO JUÍZO (Vara, Comarca, Tribunal), NUNCA a um juiz específico por nome. Use fórmulas como 'Ao Juízo da Xª Vara...' - nunca 'Ao Dr. Fulano, Juiz...'.\n";
+        }
 
         $systemPrompt = "Você é um assistente jurídico especializado em redação de peças processuais. "
             . "Sua tarefa é gerar peças com estrutura mínima obrigatória:\n"
@@ -306,7 +315,8 @@ class PeticaoGenerator
             . "5. Pedidos claros e numerados\n"
             . "6. Local, data, nome do advogado, OAB\n\n"
             . "Use APENAS os dados fornecidos no contexto. NUNCA invente nomes, números de processo ou dados das partes.\n"
-            . $instrucaoJuris . "\n\n"
+            . $instrucaoJuris . "\n"
+            . $instrucoesEspecificas . "\n"
             . $tomTexto;
 
         $userContent = "Gere uma peça do tipo: " . $tipoLabel . "\n\n";

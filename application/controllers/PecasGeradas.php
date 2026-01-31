@@ -86,9 +86,11 @@ class PecasGeradas extends MY_Controller
     {
         $this->verificarPermissaoGerar();
 
-        $processos_id = $this->input->get('processos_id') ?: $this->uri->segment(3);
-        $prazos_id = $this->input->get('prazos_id');
-        $contratos_id = $this->input->get('contratos_id');
+        $form_data = $this->session->flashdata('form_data') ?: [];
+
+        $processos_id = $form_data['processos_id'] ?? ($this->input->get('processos_id') ?: $this->uri->segment(3));
+        $prazos_id = $form_data['prazos_id'] ?? $this->input->get('prazos_id');
+        $contratos_id = $form_data['contratos_id'] ?? $this->input->get('contratos_id');
 
         $this->load->model('processos_model');
         $this->load->model('clientes_model');
@@ -104,6 +106,7 @@ class PecasGeradas extends MY_Controller
         $this->data['processos_id'] = $processos_id;
         $this->data['prazos_id'] = $prazos_id;
         $this->data['contratos_id'] = $contratos_id;
+        $this->data['form_data'] = $form_data;
 
         $processo = null;
         $documentos = [];
@@ -128,10 +131,31 @@ class PecasGeradas extends MY_Controller
         $this->data['documentos'] = $documentos;
         $this->data['prazo'] = $prazo;
         $this->data['contrato'] = $contrato;
-        $this->data['custom_error'] = '';
+        $this->data['custom_error'] = $this->session->flashdata('error') ?: '';
         $this->data['view'] = 'pecas_geradas/gerador';
 
         return $this->layout();
+    }
+
+    /**
+     * Armazena dados do formulário em flashdata para manter após redirect em caso de erro
+     */
+    private function _flashFormData(): void
+    {
+        $this->session->set_flashdata('form_data', [
+            'processos_id' => $this->input->post('processos_id'),
+            'prazos_id' => $this->input->post('prazos_id'),
+            'contratos_id' => $this->input->post('contratos_id'),
+            'clientes_id' => $this->input->post('clientes_id'),
+            'contexto_manual' => $this->input->post('contexto_manual'),
+            'tipo_peca' => $this->input->post('tipo_peca'),
+            'modelos_pecas_id' => $this->input->post('modelos_pecas_id'),
+            'tese_principal' => $this->input->post('tese_principal'),
+            'pontos_enfatizar' => $this->input->post('pontos_enfatizar'),
+            'tom' => $this->input->post('tom'),
+            'anexos_ids' => $this->input->post('anexos_ids') ?: [],
+            'incluir_movimentacoes' => $this->input->post('incluir_movimentacoes'),
+        ]);
     }
 
     /**
@@ -176,6 +200,7 @@ class PecasGeradas extends MY_Controller
         $tese_principal = $this->input->post('tese_principal');
         if (empty(trim($tese_principal))) {
             $this->session->set_flashdata('error', 'O campo Tese principal é obrigatório.');
+            $this->_flashFormData();
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
@@ -187,6 +212,7 @@ class PecasGeradas extends MY_Controller
 
         if (!$processos_id && !$prazos_id && !$contratos_id && !$clientes_id && empty(trim($contexto_manual ?? ''))) {
             $this->session->set_flashdata('error', 'Informe pelo menos: processo, prazo, contrato, cliente ou contexto textual.');
+            $this->_flashFormData();
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
@@ -208,6 +234,7 @@ class PecasGeradas extends MY_Controller
             $this->_pecasDebugLog('ERRO carregar PeticaoGenerator: ' . $e->getMessage());
             log_message('error', 'PecasGeradas executar_geracao: Erro ao carregar PeticaoGenerator - ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
             $this->session->set_flashdata('error', 'Erro técnico: ' . $e->getMessage() . '. Verifique application/logs/pecas_debug.log e composer install.');
+            $this->_flashFormData();
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
@@ -234,12 +261,14 @@ class PecasGeradas extends MY_Controller
             $this->_pecasDebugLog('ERRO gerar: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
             log_message('error', 'PecasGeradas executar_geracao: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString());
             $this->session->set_flashdata('error', 'Erro na geração: ' . $e->getMessage() . '. Consulte application/logs/pecas_debug.log');
+            $this->_flashFormData();
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
         if (!$resultado['sucesso']) {
             $this->_pecasDebugLog('Falha: ' . ($resultado['erro'] ?? ''));
             $this->session->set_flashdata('error', $resultado['erro']);
+            $this->_flashFormData();
             redirect($this->input->post('redirect_url') ?: 'pecasGeradas/gerar');
         }
 
