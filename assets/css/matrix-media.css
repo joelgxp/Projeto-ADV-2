@@ -42,15 +42,31 @@ body {
     border-radius: 6px;
     box-shadow: 5px 5px 15px rgb(0 0 0 / 25%);
 }
+/* Collapsible submenus - override flyout for .submenu */
+#sidebar li.submenu ul {
+    position: static;
+    left: auto;
+    width: auto;
+    bottom: auto;
+    box-shadow: none;
+}
 #sidebar > ul li ul li a {
 	color: #25233c;
     font-weight: 400;
     padding-left: 20px;
     font-size: 1.05em;
 }
+#sidebar li.submenu ul li a {
+	color: inherit;
+    font-weight: 400;
+    padding-left: 10px;
+    font-size: 1.05em;
+}
 #sidebar > ul li ul li a:hover, 
-#sidebar > ul li ul li.active a {
-	color: #f5a907;
+#sidebar > ul li ul li.active a,
+#sidebar li.submenu ul li a:hover,
+#sidebar li.submenu ul li.active a {
+	color: inherit;
 }
 #search input[type=text] {
 	background-color: #47515b; color: #f89b37; 

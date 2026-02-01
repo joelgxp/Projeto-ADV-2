@@ -5,7 +5,7 @@ $(document).ready(function(){
 	
 	// === Sidebar navigation === //
 	
-	$('.submenu > a').click(function(e)
+	$('#sidebar .submenu > a').click(function(e)
 	{
 		e.preventDefault();
 		var submenu = $(this).siblings('ul');
@@ -33,10 +33,13 @@ $(document).ready(function(){
 			li.addClass('open');	
 		}
 	});
+
+	// Expand submenus with active item on page load
+	$('#sidebar li.submenu.open ul').show();
+
+	var ul = $('#sidebar > ul, #sidebar .menu-links');
 	
-	var ul = $('#sidebar > ul');
-	
-	$('#sidebar > a').click(function(e)
+	$('#sidebar > a, .visible-phone').click(function(e)
 	{
 		e.preventDefault();
 		var sidebar = $('#sidebar');

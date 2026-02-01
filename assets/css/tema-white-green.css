@@ -172,12 +172,14 @@ body {
     border: none !important;
 }
 
-#sidebar > ul > li > ul {
-    background-color: #fbfcff;
+#sidebar > ul > li > ul,
+#sidebar li.submenu ul {
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
-#sidebar > ul li ul li a {
-    color: black;
+#sidebar > ul li ul li a,
+#sidebar li.submenu ul li a {
+    color: inherit;
 }
 
 #sidebar > ul {
