@@ -22,6 +22,35 @@ class Login extends CI_Controller
     }
 
     /**
+     * Redireciona links antigos (confirmar-email?t=TOKEN) para definir-senha
+     */
+    public function confirmar_email()
+    {
+        $token = $this->input->get('t');
+        if ($token) {
+            redirect('definir-senha?t=' . $token);
+        } else {
+            $this->session->set_flashdata('error', 'Link inválido. Solicite um novo e-mail ao administrador.');
+            redirect('login');
+        }
+    }
+
+    /**
+     * Redireciona links antigos no formato usuarios/confirmar_email/TOKEN.
+     * Aceita token corrompido por clientes de e-mail (espaços, =, etc.) e tenta extrair hex.
+     */
+    public function confirmar_email_path($token_raw = null)
+    {
+        $token = trim(preg_replace('/[^a-f0-9]/i', '', (string) $token_raw));
+        if (strlen($token) === 64) {
+            redirect('definir-senha?t=' . $token);
+            return;
+        }
+        $this->session->set_flashdata('error', 'Link inválido ou corrompido pelo cliente de e-mail. Solicite um novo e-mail ao administrador (Usuários → Resetar senha).');
+        redirect('login');
+    }
+
+    /**
      * Exibe formulário para o usuário criar sua senha (via link do e-mail)
      */
     public function definir_senha()

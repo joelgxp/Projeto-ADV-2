@@ -96,8 +96,10 @@ $route['pecas-geradas/adicionar-modelo'] = 'pecasGeradas/adicionar_modelo';
 $route['pecas-geradas/editar-modelo/(:num)'] = 'pecasGeradas/editar_modelo/$1';
 $route['pecas-geradas/diagnostico'] = 'pecasGeradas/diagnostico';
 
-// Link antigo redireciona para definir senha (retrocompatibilidade)
-$route['confirmar-email'] = 'usuarios/confirmar_email';
+// Link antigo redireciona para definir senha (Login não exige autenticação)
+$route['confirmar-email'] = 'login/confirmar_email';
+// Links antigos com token no path (usuarios/confirmar_email/TOKEN) - redireciona para Login
+$route['usuarios/confirmar_email/(:any)'] = 'login/confirmar_email_path/$1';
 // Página para usuário criar sua senha (via link do e-mail)
 $route['definir-senha'] = 'login/definir_senha';
 

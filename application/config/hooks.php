@@ -30,6 +30,15 @@ $hook['pre_system'][] = [
     'params' => [],
 ];
 
+// Corrige URLs corrompidas por clientes de e-mail (ex: usuarios/conf=%20irmar_email/TOKEN) - pre_system para rodar ANTES do parse da URI
+$hook['pre_system'][] = [
+    'class' => '',
+    'function' => 'fix_corrupted_confirmar_uri',
+    'filename' => 'fix_corrupted_confirmar_uri.php',
+    'filepath' => 'hooks',
+    'params' => [],
+];
+
 // FASE 11: Rate Limiting (RN 12.3)
 // DESABILITADO: Rate limiting implementado no MY_Controller::__construct()
 // Hook causava erro "Attempt to read property 'load' on null" porque get_instance() retorna null no hook

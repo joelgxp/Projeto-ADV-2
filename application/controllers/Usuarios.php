@@ -574,20 +574,6 @@ class Usuarios extends MY_Controller
     }
 
     /**
-     * Redireciona links antigos (confirmar-email) para definir-senha
-     */
-    public function confirmar_email()
-    {
-        $token = $this->input->get('t');
-        if ($token) {
-            redirect('definir-senha?t=' . $token);
-        } else {
-            $this->session->set_flashdata('error', 'Link inválido. Solicite um novo e-mail ao administrador.');
-            redirect('login');
-        }
-    }
-
-    /**
      * Reenvia o e-mail de confirmação para um usuário que ainda não confirmou (email_confirmado = 0).
      * Gera um novo token e envia o e-mail.
      *
