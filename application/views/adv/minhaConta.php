@@ -154,15 +154,24 @@
 
                         <div class="span12" style="margin-left: 0">
                             <label for="">Senha Atual</label>
-                            <input type="password" id="oldSenha" name="oldSenha" class="span12" />
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;width:100%;max-width:300px">
+                                <input type="password" id="oldSenha" name="oldSenha" class="span12" style="padding-right:35px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                         <div class="span12" style="margin-left: 0">
                             <label for="">Nova Senha</label>
-                            <input type="password" id="novaSenha" name="novaSenha" class="span12" />
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;width:100%;max-width:300px">
+                                <input type="password" id="novaSenha" name="novaSenha" class="span12" style="padding-right:35px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                         <div class="span12" style="margin-left: 0">
                             <label for="">Confirmar Senha</label>
-                            <input type="password" name="confirmarSenha" class="span12" />
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;width:100%;max-width:300px">
+                                <input type="password" name="confirmarSenha" class="span12" style="padding-right:35px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                             <button class="button btn btn-primary" style="max-width: 140px;text-align: center">
                               <span class="button__icon"><i class='bx bx-lock-alt'></i></span><span class="button__text2">Alterar Senha</span></button>

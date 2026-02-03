@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * View parcial compartilhada para formulÃ¡rio de clientes.
  */
@@ -291,9 +291,11 @@ $estado_value = $valueOr('estado', 'estado');
                             <div class="control-group">
                                 <label for="senha" class="control-label">Senha de Acesso</label>
                                 <div class="controls senha-wrapper">
-                                    <input class="form-control" id="senha" type="password" name="senha" autocomplete="new-password" value="<?php echo htmlspecialchars($senha_value); ?>" <?php echo $is_edit ? 'placeholder="Não preencha para manter."' : ''; ?>>
-                                    <img id="imgSenha" src="<?php echo base_url('assets/img/eye.svg'); ?>" alt="Mostrar/ocultar senha" role="button" tabindex="0" aria-label="Alternar visibilidade da senha">
-                            </div>
+                                    <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;max-width:300px">
+                                        <input class="form-control" id="senha" type="password" name="senha" autocomplete="new-password" value="<?php echo htmlspecialchars($senha_value); ?>" <?php echo $is_edit ? 'placeholder="Não preencha para manter."' : ''; ?> style="padding-right:35px">
+                                        <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                                    </span>
+                                </div>
                         </div>
                     </div>
                 </div>

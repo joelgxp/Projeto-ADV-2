@@ -64,8 +64,10 @@
                     <div class="control-group">
                         <label for="senha" class="control-label">Senha</label>
                         <div class="controls">
-                            <input id="senha" type="password" name="senha" value="" placeholder="Não preencha se não quiser alterar." />
-                            <img id="imgSenha" src="<?php echo base_url() ?>assets/img/eye.svg" alt="" style="width: 18px; cursor: pointer;">
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;max-width:300px">
+                                <input id="senha" type="password" name="senha" value="" placeholder="Não preencha se não quiser alterar." style="padding-right:35px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                     </div>
 
@@ -138,20 +140,6 @@
 <script src="<?php echo base_url() ?>assets/js/jquery.validate.js"></script>
 <script type="text/javascript">
     $(document).ready(function() {
-        let container = document.querySelector('div');
-        let input = document.querySelector('#senha');
-        let icon = document.querySelector('#imgSenha');
-
-        icon.addEventListener('click', function() {
-            container.classList.toggle('visible');
-            if (container.classList.contains('visible')) {
-                icon.src = '<?php echo base_url() ?>assets/img/eye-off.svg';
-                input.type = 'text';
-            } else {
-                icon.src = '<?php echo base_url() ?>assets/img/eye.svg'
-                input.type = 'password';
-            }
-        });
         $('#formCliente').validate({
             rules: {
                 nomeCliente: {

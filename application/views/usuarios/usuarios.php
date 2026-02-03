@@ -34,9 +34,10 @@
                         <th>#</th>
                         <th>Nome</th>
                         <th>CPF</th>
+                        <th>E-mail</th>
                         <th>Nível</th>
-                        <th>Situação</th>
                         <th>Validade</th>
+                        <th>E-mail validado</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -46,24 +47,33 @@
                     // Mantém dados iniciais apenas para fallback se JS estiver desabilitado
                     if (isset($results) && $results && !$this->input->is_ajax_request()) {
                         foreach ($results as $r) {
-                            $situacao = (isset($r->situacao) && $r->situacao == 1) ? 'Ativo' : 'Inativo';
-                            $situacaoClasse = (isset($r->situacao) && $r->situacao == 1) ? 'situacao-ativo' : 'situacao-inativo';
+                            $emailConfirmado = isset($r->email_confirmado) && $r->email_confirmado == 1;
                             ?>
                             <tr>
                                 <td><?= $r->idUsuarios ?></td>
                                 <td><?= $r->nome ?></td>
                                 <td><?= $r->cpf ?></td>
+                                <td><?= htmlspecialchars($r->email ?? '') ?></td>
                                 <td><?= $r->permissao ?></td>
-                                <td><span class="badge <?= $situacaoClasse ?>"><?= ucfirst($situacao) ?></span></td>
                                 <td><?= $r->dataExpiracao ?></td>
                                 <td>
+                                    <?php if ($emailConfirmado): ?>
+                                        <span class="badge badge-success" title="E-mail confirmado"><i class="bx bx-check-circle"></i> Sim</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning" title="E-mail não confirmado"><i class="bx bx-x-circle"></i> Não</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
                                     <a href="<?= base_url('index.php/usuarios/editar/' . $r->idUsuarios) ?>" class="btn-nwe3" title="Editar Usuário"><i class="bx bx-edit"></i></a>
+                                    <?php if ($r->idUsuarios != 1): ?>
+                                        <a href="<?= site_url('usuarios/reenviar_email_confirmacao/' . $r->idUsuarios . '?ret=lista') ?>" class="btn-nwe" title="Resetar senha (envia e-mail para o usuário criar nova senha)"><i class="bx bx-lock-open-alt"></i></a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php
                         }
                     } else {
-                        echo '<tr><td colspan="7" class="dataTables_empty">Carregando dados...</td></tr>';
+                        echo '<tr><td colspan="8" class="dataTables_empty">Carregando dados...</td></tr>';
                     }
                     ?>
                 </tbody>

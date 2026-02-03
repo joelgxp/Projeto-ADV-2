@@ -1,11 +1,24 @@
 <!--sidebar-menu-->
 <nav id="sidebar">
     <div id="newlog">
+        <?php
+        $logo_url = (isset($emitente) && $emitente && !empty($emitente->url_logo)) ? $emitente->url_logo : null;
+        $logo_fallback = ($configuration['app_theme'] == 'white' || $configuration['app_theme'] == 'whitegreen') ? base_url() . 'assets/img/logo-adv.svg' : base_url() . 'assets/img/logo-adv-branco.svg';
+        $logo_fallback_png = ($configuration['app_theme'] == 'white' || $configuration['app_theme'] == 'whitegreen') ? base_url() . 'assets/img/logo-adv.png' : base_url() . 'assets/img/logo-adv-branco.png';
+        ?>
         <div class="icon2">
-            <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
+            <?php if ($logo_url): ?>
+                <img src="<?= htmlspecialchars($logo_url) ?>" alt="<?= isset($emitente->nome) ? htmlspecialchars($emitente->nome) : 'Logo' ?>" style="max-width:100%;max-height:50px;object-fit:contain" onerror="this.src='<?= base_url() ?>assets/img/logo-two.svg'">
+            <?php else: ?>
+                <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
+            <?php endif; ?>
         </div>
         <div class="title1">
-            <?= $configuration['app_theme'] == 'white' ||  $configuration['app_theme'] == 'whitegreen' ? '<img src="' . base_url() . 'assets/img/logo-adv.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv.png\'">' : '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
+            <?php if ($logo_url): ?>
+                <img src="<?= htmlspecialchars($logo_url) ?>" alt="<?= isset($emitente->nome) ? htmlspecialchars($emitente->nome) : 'Logo' ?>" style="max-width:100%;max-height:45px;object-fit:contain" onerror="this.src='<?= $logo_fallback ?>'; this.onerror=function(){this.src='<?= $logo_fallback_png ?>'}">
+            <?php else: ?>
+                <img src="<?= $logo_fallback ?>" onerror="this.src='<?= $logo_fallback_png ?>'">
+            <?php endif; ?>
         </div>
     </div>
     <a href="#" class="visible-phone">
@@ -16,16 +29,6 @@
             </div>
         </div>
     </a>
-    <!-- Start Pesquisar-->
-    <li class="search-box">
-        <form style="display: flex" action="<?= site_url('adv/pesquisar') ?>">
-        <button style="background:transparent;border:transparent" type="submit" class="tip-bottom" title="">
-                <i class='bx bx-search iconX'></i></button>
-                <input style="background:transparent;<?= $configuration['app_theme'] == 'white' ? 'color:#313030;' : 'color:#fff;' ?>border:transparent" type="search" name="termo" placeholder="Pesquise aqui...">
-            <span class="title-tooltip">Pesquisar</span>
-        </form>
-    </li>
-    <!-- End Pesquisar-->
 
     <div class="menu-bar">
         <div class="menu">

@@ -10,7 +10,8 @@ class Login extends CI_Controller
 
     public function index()
     {
-        $this->load->view('adv/login');
+        $data['emitente'] = $this->sistema_model->getEmitente();
+        $this->load->view('adv/login', $data);
     }
 
     public function sair()
@@ -18,6 +19,90 @@ class Login extends CI_Controller
         $this->session->sess_destroy();
 
         return redirect($_SERVER['HTTP_REFERER']);
+    }
+
+    /**
+     * Exibe formulário para o usuário criar sua senha (via link do e-mail)
+     */
+    public function definir_senha()
+    {
+        $token = $this->input->get('t');
+        if (!$token) {
+            $this->session->set_flashdata('error', 'Link inválido. Solicite um novo e-mail ao administrador.');
+            redirect('login');
+            return;
+        }
+        $token = trim(preg_replace('/[^a-f0-9]/i', '', $token));
+        if (strlen($token) !== 64) {
+            $this->session->set_flashdata('error', 'Link inválido ou expirado. Solicite um novo e-mail ao administrador.');
+            redirect('login');
+            return;
+        }
+        $this->load->model('Confirmacoes_email_model');
+        $confirmacao = $this->Confirmacoes_email_model->getTokenValidoSemMarcar($token);
+        if (!$confirmacao) {
+            $this->session->set_flashdata('error', 'Link inválido ou expirado. Solicite um novo e-mail ao administrador.');
+            redirect('login');
+            return;
+        }
+        $data = [
+            'token' => $token,
+            'error' => $this->session->flashdata('error'),
+            'emitente' => $this->sistema_model->getEmitente()
+        ];
+        $this->load->view('adv/definir_senha', $data);
+    }
+
+    /**
+     * Processa o formulário de criação de senha
+     */
+    public function definir_senha_salvar()
+    {
+        $token = $this->input->post('t');
+        if (!$token) {
+            $this->session->set_flashdata('error', 'Link inválido.');
+            redirect('login');
+            return;
+        }
+        $token = trim(preg_replace('/[^a-f0-9]/i', '', $token));
+        $senha = $this->input->post('senha');
+        $confirmar = $this->input->post('confirmar_senha');
+
+        if (strlen($senha) < 8) {
+            $this->session->set_flashdata('error', 'A senha deve ter no mínimo 8 caracteres.');
+            redirect('definir-senha?t=' . $token);
+            return;
+        }
+        if ($senha !== $confirmar) {
+            $this->session->set_flashdata('error', 'As senhas não coincidem.');
+            redirect('definir-senha?t=' . $token);
+            return;
+        }
+
+        $this->load->helper('password');
+        $validacao = validar_senha_forte($senha);
+        if (!$validacao['valido']) {
+            $this->session->set_flashdata('error', implode(' ', $validacao['erros']));
+            redirect('definir-senha?t=' . $token);
+            return;
+        }
+
+        $this->load->model('Confirmacoes_email_model');
+        $usuario = $this->Confirmacoes_email_model->validarToken($token);
+        if (!$usuario) {
+            $this->session->set_flashdata('error', 'Link inválido ou expirado. Solicite um novo e-mail ao administrador.');
+            redirect('login');
+            return;
+        }
+
+        $this->load->model('usuarios_model');
+        $this->usuarios_model->edit('usuarios', [
+            'senha' => password_hash($senha, PASSWORD_DEFAULT),
+            'email_confirmado' => 1
+        ], 'idUsuarios', $usuario->idUsuarios);
+
+        $this->session->set_flashdata('success', 'Senha criada com sucesso! Faça login para acessar o sistema.');
+        redirect('login');
     }
 
     public function verificarLogin()
@@ -176,7 +261,7 @@ class Login extends CI_Controller
                     $this->Tentativas_login_model->registrar($email, $ip_address, $user_agent, false);
                     $json = [
                         'result' => false, 
-                        'message' => 'Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.',
+                        'message' => 'Sua senha ainda não foi criada. Verifique sua caixa de entrada e clique no link recebido por e-mail para criar sua senha de acesso.',
                         'ADV_TOKEN' => $this->security->get_csrf_hash()
                     ];
                     $this->output

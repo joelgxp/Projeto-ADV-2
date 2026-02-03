@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="<?= base_url() ?>assets/css/bootstrap-responsive.min.css" />
   <link rel="stylesheet" href="<?= base_url() ?>assets/css/matrix-login.css" />
   <link href="<?= base_url(); ?>assets/font-awesome/css/font-awesome.css" rel="stylesheet" />
+  <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet" />
   <link rel="shortcut icon" type="image/png" href="<?= base_url(); ?>assets/img/favicon.png" />
 </head>
 
@@ -39,6 +40,14 @@
     </div>
     <form class="form-vertical" id="formLogin" method="post" action="#" onsubmit="return false;">
       <input type="hidden" name="<?= $this->security->get_csrf_token_name(); ?>" value="<?= $this->security->get_csrf_hash(); ?>">
+      <?php if ($this->session->flashdata('success') != null) { ?>
+        <div id="loginbox">
+          <div class="alert alert-success">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <?= $this->session->flashdata('success'); ?>
+          </div>
+        </div>
+      <?php } ?>
       <?php if ($this->session->flashdata('error') != null) { ?>
         <div id="loginbox">
           <div class="alert alert-danger">
@@ -53,11 +62,12 @@
             <div class="card">
               <div class="content">
                 <div id="newlog">
+                  <?php $logo_login = (isset($emitente) && $emitente && !empty($emitente->url_logo)) ? $emitente->url_logo : base_url() . 'assets/img/logo-adv-branco.svg'; ?>
                   <div class="icon2">
-                    <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
+                    <img src="<?= isset($emitente) && $emitente && !empty($emitente->url_logo) ? htmlspecialchars($emitente->url_logo) : base_url() . 'assets/img/logo-two.svg' ?>" onerror="this.src='<?= base_url() ?>assets/img/logo-two.png'" style="max-width:100%;max-height:50px;object-fit:contain">
                   </div>
                   <div class="title01">
-                    <?= '<img src="' . base_url() . 'assets/img/logo-adv-branco.svg" onerror="this.src=\'' . base_url() . 'assets/img/logo-adv-branco.png\'">'; ?>
+                    <img src="<?= htmlspecialchars($logo_login) ?>" alt="Logo" style="max-width:100%;max-height:50px;object-fit:contain" onerror="this.src='<?= base_url() ?>assets/img/logo-adv-branco.svg'; this.onerror=function(){this.src='<?= base_url() ?>assets/img/logo-adv-branco.png'}">
                   </div>
                 </div>
                 <div id="mcell">Versão: <?= $this->config->item('app_version'); ?></div>
@@ -67,7 +77,10 @@
                 </div>
                 <div class="input-field">
                   <label class="fas fa-lock" for="senha"></label>
-                  <input name="senha" type="password" placeholder="Senha">
+                  <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;flex:1">
+                    <input name="senha" type="password" placeholder="Senha" style="padding-right:36px">
+                    <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-size:20px" title="Mostrar senha"></i>
+                  </span>
                 </div>
                 <div class="center">
                   <button id="btn-acessar">Acessar</button>
@@ -99,6 +112,7 @@
 
   <script src="<?= base_url() ?>assets/js/jquery-1.12.4.min.js"></script>
   <script src="<?= base_url() ?>assets/js/bootstrap.min.js"></script>
+  <script src="<?= base_url() ?>assets/js/password-toggle.js"></script>
   <script src="<?= base_url() ?>assets/js/jquery.validate.js"></script>
   <script type="text/javascript">
     $(document).ready(function() {

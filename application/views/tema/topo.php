@@ -41,6 +41,7 @@
   <script type="text/javascript" src="<?= base_url(); ?>assets/js/datatables.min.js"></script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sweetalert2@10.16.7/dist/sweetalert2.all.min.js" crossorigin="anonymous"></script>
   <script type="text/javascript" src="<?= base_url(); ?>assets/js/csrf.js"></script>
+  <script type="text/javascript" src="<?= base_url(); ?>assets/js/password-toggle.js"></script>
   <script type="text/javascript">
     shortcut.add("escape", function() {
       location.href = '<?= base_url(); ?>';

@@ -54,8 +54,14 @@
                     <div class="control-group">
                         <label for="senha" class="control-label">Senha</label>
                         <div class="controls">
-                            <input id="senha" type="password" name="senha" value="" placeholder="Não preencha se não quiser alterar." />
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block;width:100%;max-width:300px">
+                                <input id="senha" type="password" name="senha" value="" placeholder="Não preencha se não quiser alterar." style="padding-right:35px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                             <i class="icon-exclamation-sign tip-top" title="Se não quiser alterar a senha, não preencha esse campo."></i>
+                            <?php if ($result->idUsuarios != 1): ?>
+                            <p class="help-block"><a href="<?= site_url('usuarios/reenviar_email_confirmacao/' . $result->idUsuarios) ?>" class="btn btn-mini btn-info"><i class="bx bx-lock-open-alt"></i> Resetar senha (envia e-mail para o usuário criar nova senha)</a></p>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -110,23 +116,7 @@
                     </div>
 
 
-                    <div class="control-group">
-                        <label class="control-label">Situação*</label>
-                        <div class="controls">
-                            <select name="situacao" id="situacao">
-                                <?php if ($result->situacao == 1) {
-                                    $ativo = 'selected';
-                                    $inativo = '';
-                                } else {
-                                    $ativo = '';
-                                    $inativo = 'selected';
-                                } ?>
-                                <option value="1" <?php echo $ativo; ?>>Ativo</option>
-                                <option value="0" <?php echo $inativo; ?>>Inativo</option>
-                            </select>
-                        </div>
-                    </div>
-
+                    <?php echo form_hidden('situacao', isset($result->situacao) ? $result->situacao : 1) ?>
 
                     <div class="control-group">
                         <label class="control-label">Permissões<span class="required">*</span></label>

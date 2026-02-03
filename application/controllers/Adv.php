@@ -140,7 +140,7 @@ class Adv extends MY_Controller {
         $this->upload_config = [
             'upload_path' => $image_upload_folder,
             'allowed_types' => 'png|jpg|jpeg|bmp|svg',
-            'max_size' => 2048,
+            'max_size' => 512,
             'remove_space' => true,
             'encrypt_name' => true,
         ];
@@ -152,11 +152,28 @@ class Adv extends MY_Controller {
             log_message('error', 'Erro no upload: ' . $upload_error);
             $this->session->set_flashdata('error', 'Erro ao fazer upload: ' . $upload_error);
             return false;
-        } else {
-            $file_info = [$this->upload->data()];
-
-            return $file_info[0]['file_name'];
         }
+
+        $file_info = $this->upload->data();
+        $file_path = $file_info['full_path'];
+
+        // Validar dimensões (SVG não tem width/height no upload)
+        if (isset($file_info['image_width']) && isset($file_info['image_height'])) {
+            $w = (int) $file_info['image_width'];
+            $h = (int) $file_info['image_height'];
+            if ($w > 400 || $h > 400) {
+                @unlink($file_path);
+                $this->session->set_flashdata('error', 'A imagem excede 400×400 px. Use até 200×80 px (horizontal) ou 130×130 px (quadrada).');
+                return false;
+            }
+            if ($w < 50 || $h < 30) {
+                @unlink($file_path);
+                $this->session->set_flashdata('error', 'Imagem muito pequena. Mínimo 50×30 px. Recomendado: 200×80 ou 130×130 px.');
+                return false;
+            }
+        }
+
+        return $file_info['file_name'];
     }
 
     public function do_upload_user()
@@ -235,6 +252,10 @@ class Adv extends MY_Controller {
             $email = $this->input->post('email');
             $site = $this->input->post('site');
             $image = $this->do_upload();
+            if ($image === false) {
+                redirect(site_url('adv/emitente'));
+                return;
+            }
             $logo = base_url() . 'assets/uploads/' . $image;
 
             $retorno = $this->sistema_model->addEmitente($nome, $cnpj, $cep, $logradouro, $numero, $bairro, $cidade, $uf, $telefone, $celular, $email, $site, $logo);
@@ -314,6 +335,10 @@ class Adv extends MY_Controller {
         delete_files(FCPATH . 'assets/uploads/');
 
         $image = $this->do_upload();
+        if ($image === false) {
+            redirect(site_url('adv/emitente'));
+            return;
+        }
         $logo = base_url() . 'assets/uploads/' . $image;
 
         $retorno = $this->sistema_model->editLogo($id, $logo);

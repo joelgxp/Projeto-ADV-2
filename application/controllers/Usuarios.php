@@ -129,13 +129,18 @@ class Usuarios extends MY_Controller
         $data = [];
         if ($results) {
             foreach ($results as $r) {
-                // Situação com cores
-                $situacao = (isset($r->situacao) && $r->situacao == 1) ? 'Ativo' : 'Inativo';
-                $situacaoClasse = (isset($r->situacao) && $r->situacao == 1) ? 'situacao-ativo' : 'situacao-inativo';
-                
+                // Coluna E-mail validado
+                $emailConfirmado = isset($r->email_confirmado) && $r->email_confirmado == 1;
+                $badgeEmail = $emailConfirmado
+                    ? '<span class="badge badge-success" title="E-mail confirmado"><i class="bx bx-check-circle"></i> Sim</span>'
+                    : '<span class="badge badge-warning" title="E-mail não confirmado"><i class="bx bx-x-circle"></i> Não</span>';
+
                 // Ações
                 $acoes = '<a href="' . base_url('index.php/usuarios/editar/' . $r->idUsuarios) . '" class="btn-nwe3" title="Editar Usuário"><i class="bx bx-edit"></i></a>';
-                
+                // Botão resetar senha / reenviar e-mail (dispara novo e-mail para usuário criar senha)
+                if ($r->idUsuarios != 1) {
+                    $acoes .= ' <a href="' . site_url('usuarios/reenviar_email_confirmacao/' . $r->idUsuarios . '?ret=lista') . '" class="btn-nwe" title="Resetar senha (envia e-mail para o usuário criar nova senha)"><i class="bx bx-lock-open-alt"></i></a>';
+                }
                 // Não mostrar botão de excluir para usuário do sistema (ID 1)
                 if ($r->idUsuarios != 1) {
                     $acoes .= ' <a href="#modal-excluir" role="button" data-toggle="modal" usuario="' . $r->idUsuarios . '" class="btn-nwe4" title="Excluir Usuário"><i class="bx bx-trash-alt"></i></a>';
@@ -145,9 +150,10 @@ class Usuarios extends MY_Controller
                     $r->idUsuarios ?? '-',
                     $r->nome ?? '-',
                     $r->cpf ?? '-',
+                    $r->email ?? '-',
                     $r->permissao ?? '-',
-                    '<span class="badge ' . $situacaoClasse . '">' . ucfirst($situacao) . '</span>',
                     $r->dataExpiracao ?? '-',
+                    $badgeEmail,
                     $acoes
                 ];
             }
@@ -181,10 +187,14 @@ class Usuarios extends MY_Controller
             'is_unique' => 'Este email já está cadastrado no sistema.',
             'valid_email' => 'O campo %s deve conter um email válido.'
         ]);
+        // Senha não é definida pelo admin - usuário cria via e-mail (sobrescreve regra do config)
+        $this->form_validation->set_rules('senha', 'Senha', 'trim');
 
         if ($this->form_validation->run('usuarios') == false) {
             $this->data['custom_error'] = (validation_errors() ? '<div class="alert alert-danger">' . validation_errors() . '</div>' : false);
         } else {
+            // Senha provisória impossível de adivinhar - usuário define a própria via e-mail
+            $senha_provisoria = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
             $data = [
                 'nome' => set_value('nome'),
                 'oab' => set_value('oab'),
@@ -196,7 +206,7 @@ class Usuarios extends MY_Controller
                 'cidade' => set_value('cidade'),
                 'estado' => set_value('estado'),
                 'email' => set_value('email'),
-                'senha' => password_hash($this->input->post('senha'), PASSWORD_DEFAULT),
+                'senha' => $senha_provisoria,
                 'celular' => set_value('celular'),
                 'dataExpiracao' => set_value('dataExpiracao'),
                 'situacao' => set_value('situacao'),
@@ -218,10 +228,10 @@ class Usuarios extends MY_Controller
                     $email_enviado = $this->enviarEmailConfirmacao(set_value('email'), set_value('nome'), $token_data['token']);
                     
                     if ($email_enviado) {
-                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada (e spam).');
+                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Um e-mail foi enviado para o usuário criar sua senha de acesso.');
                         log_message('info', "✅ Processo de envio de email concluído com sucesso para: " . set_value('email'));
                     } else {
-                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Porém, houve um problema ao enviar o e-mail. Verifique os logs e a fila de emails.');
+                        $this->session->set_flashdata('success', 'Usuário cadastrado com sucesso! Porém, houve um problema ao enviar o e-mail. Use a opção "Reenviar e-mail" na lista de usuários.');
                         log_message('error', "❌ Falha no processo de envio de email para: " . set_value('email'));
                     }
                 } else {
@@ -429,34 +439,45 @@ class Usuarios extends MY_Controller
     }
 
     /**
-     * Envia e-mail de confirmação para novo usuário (RN 1.1)
-     * Envia imediatamente e também adiciona à fila como backup
-     * 
+     * Envia e-mail para usuário criar/redefinir senha
+     *
      * @param string $email Email do destinatário
      * @param string $nome Nome do usuário
      * @param string $token Token de confirmação
+     * @param string $tipo 'cadastro' ou 'reset'
      * @return bool True se enviado com sucesso, False caso contrário
      */
-    private function enviarEmailConfirmacao($email, $nome, $token)
+    private function enviarEmailConfirmacao($email, $nome, $token, $tipo = 'cadastro')
     {
         try {
-            // IMPORTANTE: Carregar config ANTES da biblioteca para garantir que as configurações sejam aplicadas
             $this->load->config('email');
             $this->load->library('email');
             $this->load->model('email_model');
-            
-            $link_confirmacao = site_url('usuarios/confirmar_email/' . $token);
+
+            $link_definir_senha = site_url('definir-senha?t=' . $token);
             $data_expiracao = date('d/m/Y H:i', strtotime('+24 hours'));
-            
+
+            if ($tipo === 'reset') {
+                $titulo = 'Redefinir Senha - Sistema Adv';
+                $assunto = 'Redefinir Senha - Sistema Adv';
+                $texto_intro = 'Foi solicitada a redefinição da sua senha. Clique no link abaixo para criar uma nova senha de acesso:';
+                $texto_botao = 'Criar Nova Senha';
+            } else {
+                $titulo = 'Criar sua Senha - Sistema Adv';
+                $assunto = 'Criar sua Senha de Acesso - Sistema Adv';
+                $texto_intro = 'Bem-vindo ao sistema! Para ativar sua conta, clique no link abaixo para criar sua senha de acesso:';
+                $texto_botao = 'Criar Minha Senha';
+            }
+
             $mensagem = "
             <html>
             <body>
-                <h2>Confirmação de E-mail - Sistema Adv</h2>
+                <h2>{$titulo}</h2>
                 <p>Olá, <strong>{$nome}</strong>!</p>
-                <p>Bem-vindo ao sistema. Para ativar sua conta, por favor clique no link abaixo para confirmar seu e-mail:</p>
-                <p><a href=\"{$link_confirmacao}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>Confirmar E-mail</a></p>
+                <p>{$texto_intro}</p>
+                <p><a href=\"{$link_definir_senha}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>{$texto_botao}</a></p>
                 <p>Ou copie e cole este link no seu navegador:</p>
-                <p>{$link_confirmacao}</p>
+                <p>{$link_definir_senha}</p>
                 <p><strong>Este link expira em 24 horas.</strong> (válido até {$data_expiracao})</p>
                 <p>Se você não solicitou este cadastro, ignore este e-mail.</p>
                 <hr>
@@ -475,7 +496,7 @@ class Usuarios extends MY_Controller
                 // Adicionar à fila mesmo sem remetente configurado (pode ser configurado depois)
                 $email_data = [
                     'to' => $email,
-                    'subject' => 'Confirmação de E-mail - Sistema Adv',
+                    'subject' => $assunto,
                     'message' => $mensagem,
                     'status' => 'pending',
                     'created_at' => date('Y-m-d H:i:s')
@@ -487,7 +508,7 @@ class Usuarios extends MY_Controller
             // Adicionar à fila e processar imediatamente usando método centralizado
             $email_data = [
                 'to' => $email,
-                'subject' => 'Confirmação de E-mail - Sistema Adv',
+                'subject' => $assunto,
                 'message' => $mensagem,
                 'status' => 'pending',
                 'created_at' => date('Y-m-d H:i:s')
@@ -517,17 +538,17 @@ class Usuarios extends MY_Controller
             
             // Em caso de exceção, tentar adicionar à fila
             try {
-                $link_confirmacao = site_url('usuarios/confirmar_email/' . $token);
+                $link_definir_senha = site_url('definir-senha?t=' . $token);
                 $data_expiracao = date('d/m/Y H:i', strtotime('+24 hours'));
                 $mensagem = "
                 <html>
                 <body>
-                    <h2>Confirmação de E-mail - Sistema Adv</h2>
+                    <h2>{$titulo}</h2>
                     <p>Olá, <strong>{$nome}</strong>!</p>
-                    <p>Bem-vindo ao sistema. Para ativar sua conta, por favor clique no link abaixo para confirmar seu e-mail:</p>
-                    <p><a href=\"{$link_confirmacao}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>Confirmar E-mail</a></p>
+                    <p>{$texto_intro}</p>
+                    <p><a href=\"{$link_definir_senha}\" style='padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;'>{$texto_botao}</a></p>
                     <p>Ou copie e cole este link no seu navegador:</p>
-                    <p>{$link_confirmacao}</p>
+                    <p>{$link_definir_senha}</p>
                     <p><strong>Este link expira em 24 horas.</strong> (válido até {$data_expiracao})</p>
                     <p>Se você não solicitou este cadastro, ignore este e-mail.</p>
                     <hr>
@@ -535,10 +556,9 @@ class Usuarios extends MY_Controller
                 </body>
                 </html>
                 ";
-                
                 $email_data = [
                     'to' => $email,
-                    'subject' => 'Confirmação de E-mail - Sistema Adv',
+                    'subject' => $assunto,
                     'message' => $mensagem,
                     'status' => 'pending',
                     'created_at' => date('Y-m-d H:i:s')
@@ -554,29 +574,65 @@ class Usuarios extends MY_Controller
     }
 
     /**
-     * Confirma e-mail do usuário via token (RN 1.1)
+     * Redireciona links antigos (confirmar-email) para definir-senha
      */
-    public function confirmar_email($token = null)
+    public function confirmar_email()
     {
-        if (!$token) {
-            $this->session->set_flashdata('error', 'Token de confirmação inválido.');
+        $token = $this->input->get('t');
+        if ($token) {
+            redirect('definir-senha?t=' . $token);
+        } else {
+            $this->session->set_flashdata('error', 'Link inválido. Solicite um novo e-mail ao administrador.');
             redirect('login');
+        }
+    }
+
+    /**
+     * Reenvia o e-mail de confirmação para um usuário que ainda não confirmou (email_confirmado = 0).
+     * Gera um novo token e envia o e-mail.
+     *
+     * @param int|null $id ID do usuário (segment 3 ou POST)
+     */
+    public function reenviar_email_confirmacao($id = null)
+    {
+        $id = $id ?: $this->uri->segment(3);
+        if (!$id || !is_numeric($id)) {
+            $this->session->set_flashdata('error', 'ID do usuário não informado.');
+            redirect(site_url('usuarios/gerenciar/'));
             return;
         }
-        
-        $this->load->model('Confirmacoes_email_model');
-        $usuario = $this->Confirmacoes_email_model->validarToken($token);
-        
-        if ($usuario) {
-            // Atualizar usuário como confirmado
-            $this->db->where('idUsuarios', $usuario->idUsuarios);
-            $this->db->update('usuarios', ['email_confirmado' => 1]);
-            
-            $this->session->set_flashdata('success', 'E-mail confirmado com sucesso! Você já pode fazer login no sistema.');
-            redirect('login');
-        } else {
-            $this->session->set_flashdata('error', 'Token de confirmação inválido ou expirado. Entre em contato com o administrador.');
-            redirect('login');
+
+        $usuario = $this->usuarios_model->getById($id);
+        if (!$usuario) {
+            $this->session->set_flashdata('error', 'Usuário não encontrado.');
+            redirect(site_url('usuarios/gerenciar/'));
+            return;
         }
+
+        $redirectLista = $this->input->get('ret') === 'lista';
+        $redirectUrl = $redirectLista ? site_url('usuarios/gerenciar/') : site_url('usuarios/editar/' . $id);
+
+        // Permite resetar senha mesmo se já confirmou - admin pode forçar novo link
+        $this->load->model('Confirmacoes_email_model');
+        // Invalidar tokens antigos para que apenas o novo link funcione
+        $this->Confirmacoes_email_model->invalidarTokensUsuario($id);
+        $token_data = $this->Confirmacoes_email_model->criarToken($id);
+
+        if (!$token_data) {
+            $this->session->set_flashdata('error', 'Não foi possível gerar o token de confirmação. Tente novamente.');
+            redirect($redirectUrl);
+            return;
+        }
+
+        $email = isset($usuario->email) ? $usuario->email : '';
+        $nome = isset($usuario->nome) ? $usuario->nome : 'Usuário';
+        $enviado = $this->enviarEmailConfirmacao($email, $nome, $token_data['token'], 'reset');
+
+        if ($enviado) {
+            $this->session->set_flashdata('success', 'E-mail para redefinir senha enviado com sucesso. O usuário receberá o link para criar uma nova senha.');
+        } else {
+            $this->session->set_flashdata('warning', 'Usuário encontrado, mas o envio do e-mail pode ter falhado. Verifique a fila de e-mails e as configurações SMTP.');
+        }
+        redirect($redirectUrl);
     }
 }

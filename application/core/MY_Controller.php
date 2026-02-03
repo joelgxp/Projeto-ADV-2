@@ -143,6 +143,10 @@ class MY_Controller extends CI_Controller
                 }
             }
         }
+
+        // Carregar emitente para logo no menu
+        $this->CI->load->model('sistema_model');
+        $this->data['emitente'] = $this->CI->sistema_model->getEmitente();
     }
 
     public function layout()

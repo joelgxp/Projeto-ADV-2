@@ -23,10 +23,6 @@
 
 <body>
     <style>
-        #imgSenha {
-            width: 18px;
-            cursor: pointer;
-        }
 
         .control-group.error .help-inline {
             display: flex;
@@ -178,8 +174,10 @@
                     <div class="control-group">
                         <label for="senha" class="control-label"><span class="required"></span></label>
                         <div class="controls">
-                            <input id="senha" type="password" placeholder="Senha*" name="senha" value="<?= set_value('senha') ?>" />
-                            <img id="imgSenha" src="<?= base_url() ?>assets/img/eye.svg" alt="">
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block">
+                                <input id="senha" type="password" placeholder="Senha*" name="senha" value="<?= set_value('senha') ?>" style="padding-right:36px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                     </div>
 
@@ -263,6 +261,7 @@
 
 
     <script type="text/javascript" src="<?= base_url() ?>assets/js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="<?= base_url() ?>assets/js/password-toggle.js"></script>
     <script type="text/javascript" src="<?= base_url() ?>assets/js/jquery.mask.min.js"></script>
     <script type="text/javascript" src="<?= base_url() ?>assets/js/sweetalert2.all.min.js"></script>
     <script type="text/javascript" src="<?= base_url() ?>assets/js/funcoes.js"></script>
@@ -291,20 +290,6 @@
                 }
             });
 
-            let container = document.querySelector('div');
-            let input = document.querySelector('#senha');
-            let icon = document.querySelector('#imgSenha');
-
-            icon.addEventListener('click', function() {
-                container.classList.toggle('visible');
-                if (container.classList.contains('visible')) {
-                    icon.src = '<?= base_url() ?>assets/img/eye-off.svg';
-                    input.type = 'text';
-                } else {
-                    icon.src = '<?= base_url() ?>assets/img/eye.svg'
-                    input.type = 'password';
-                }
-            });
             $('#formCliente').validate({
                 rules: {
                     nomeCliente: {

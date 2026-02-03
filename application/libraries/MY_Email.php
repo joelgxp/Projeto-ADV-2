@@ -55,6 +55,31 @@ class MY_Email extends CI_Email
     }
 
     /**
+     * Monta o array de configuração de e-mail a partir das chaves planas do config/email.php.
+     * O arquivo de config usa $config['protocol'], $config['smtp_host'], etc., então
+     * config->item('email') retorna null. Este método lê cada chave e retorna o array
+     * esperado por CI_Email::initialize().
+     *
+     * @return array|null Array de config ou null se não houver config carregada
+     */
+    private function get_email_config_array()
+    {
+        $keys = [
+            'protocol', 'smtp_host', 'smtp_crypto', 'smtp_port', 'smtp_user', 'smtp_pass',
+            'validate', 'mailtype', 'charset', 'newline', 'bcc_batch_mode', 'wordwrap',
+            'priority', 'smtp_timeout', 'smtp_keepalive'
+        ];
+        $config = [];
+        foreach ($keys as $key) {
+            $val = $this->CI->config->item($key);
+            if ($val !== null && $val !== false) {
+                $config[$key] = $val;
+            }
+        }
+        return !empty($config) ? $config : null;
+    }
+
+    /**
      * Get
      *
      * Get queue emails.
@@ -68,6 +93,12 @@ class MY_Email extends CI_Email
         }
 
         $query = $this->CI->db->get("{$this->table_email_queue}", $limit, $offset);
+
+        if ($query === false) {
+            $err = $this->CI->db->error();
+            log_message('error', 'Erro ao buscar emails da fila: ' . ($err['message'] ?? 'Erro desconhecido'));
+            return [];
+        }
 
         return $query->result();
     }
@@ -155,8 +186,8 @@ class MY_Email extends CI_Email
             // Limpar e reconfigurar antes de processar
             $this->clear();
             
-            // Reconfigurar email com configurações do config
-            $config = $this->CI->config->item('email');
+            // Reconfigurar email com configurações do config (chaves planas em config/email.php)
+            $config = $this->get_email_config_array();
             if ($config) {
                 $this->initialize($config);
             }
@@ -282,9 +313,9 @@ class MY_Email extends CI_Email
         $this->CI->db->set('last_attempt', date('Y-m-d H:i:s'));
         $this->CI->db->update($this->table_email_queue);
 
-        // Obter configurações de e-mail
+        // Obter configurações de e-mail (config/email.php usa chaves planas, não um array 'email')
         $this->CI->load->config('email');
-        $config = $this->CI->config->item('email');
+        $config = $this->get_email_config_array();
         $smtp_user = $this->CI->config->item('smtp_user');
         $app_name = 'Adv'; // Nome padrão
         

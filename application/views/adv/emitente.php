@@ -152,7 +152,8 @@
                 <div class="control-group">
                     <label for="logo" class="control-label"><span class="required">Logotipo*</span></label>
                     <div class="controls">
-                        <input type="file" name="userfile" value="" />
+                        <input type="file" name="userfile" accept="image/png,image/jpeg,image/jpg,image/svg+xml" />
+                        <p class="help-block">PNG, JPG ou SVG. Recomendado: 200×80 ou 130×130 px. Máx. 400×400 px.</p>
                     </div>
                 </div>
             </div>
@@ -299,12 +300,16 @@
                 <h3 id="">Adv - Atualizar Logotipo</h3>
             </div>
             <div class="modal-body">
-                <div class="span12 alert alert-info">Selecione uma nova imagem da logotipo. Tamanho indicado (130 X 130).</div>
+                <div class="span12 alert alert-info">
+                    <strong>Logo para login e menu:</strong> Formato PNG, JPG ou SVG. Máximo 500 KB.<br>
+                    <strong>Dimensões recomendadas:</strong> 200×80 px (horizontal) ou 130×130 px (quadrada). Máximo: 400×400 px.
+                </div>
                 <div class="control-group">
                     <label for="logo" class="control-label"><span class="required">Logotipo*</span></label>
                     <div class="controls">
-                        <input type="file" name="userfile" value="" />
+                        <input type="file" name="userfile" accept="image/png,image/jpeg,image/jpg,image/svg+xml" />
                         <input id="nome" type="hidden" name="id" value="<?= $dados->id; ?>" />
+                        <p class="help-block">PNG, JPG ou SVG. Recomendado: 200×80 ou 130×130 px. Máx. 400×400 px, 500 KB.</p>
                     </div>
                 </div>
             </div>

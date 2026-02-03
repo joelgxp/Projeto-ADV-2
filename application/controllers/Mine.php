@@ -15,7 +15,9 @@ class Mine extends CI_Controller
 
     public function index()
     {
-        $this->load->view('conecte/login');
+        $this->load->model('sistema_model');
+        $data['emitente'] = $this->sistema_model->getEmitente();
+        $this->load->view('conecte/login', $data);
     }
 
     /**

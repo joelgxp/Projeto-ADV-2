@@ -83,6 +83,36 @@ class Confirmacoes_email_model extends CI_Model
     }
 
     /**
+     * Valida token sem marcar como utilizado (para exibir formulário)
+     *
+     * @param string $token
+     * @return object|null Confirmacao se válido, null caso contrário
+     */
+    public function getTokenValidoSemMarcar($token)
+    {
+        $this->db->where('token', $token);
+        $this->db->where('token_utilizado', 0);
+        $this->db->where('data_expiracao >=', date('Y-m-d H:i:s'));
+        $this->db->limit(1);
+        $query = $this->db->get('confirmacoes_email');
+        return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    /**
+     * Invalida todos os tokens pendentes de um usuário (ao resetar senha)
+     *
+     * @param int $usuarios_id
+     * @return int Quantidade invalidada
+     */
+    public function invalidarTokensUsuario($usuarios_id)
+    {
+        $this->db->where('usuarios_id', $usuarios_id);
+        $this->db->where('token_utilizado', 0);
+        $this->db->update('confirmacoes_email', ['token_utilizado' => 1]);
+        return $this->db->affected_rows();
+    }
+
+    /**
      * Verifica se o usuário já confirmou o e-mail
      * 
      * @param int $usuarios_id

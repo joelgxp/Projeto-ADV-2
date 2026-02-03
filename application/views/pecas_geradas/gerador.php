@@ -8,7 +8,7 @@
         <div class="alert alert-danger"><?= $custom_error ?></div>
     <?php endif; ?>
 
-    <form method="post" action="<?= site_url('pecas-geradas/executar-geracao') ?>" class="form-horizontal">
+    <form method="post" action="<?= site_url('pecas-geradas/executar-geracao') ?>" class="form-horizontal" id="form-gerar-peticao">
         <div class="widget-box">
             <div class="widget-title"><h5>Contexto</h5></div>
             <div class="widget-content">
@@ -130,8 +130,27 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-success">Gerar Petição</button>
-            <a href="<?= site_url('pecas-geradas/listar') ?>" class="btn">Cancelar</a>
+            <button type="submit" class="btn btn-success" id="btn-gerar-peticao">
+                <span class="btn-text">Gerar Petição</span>
+                <span class="btn-loading" style="display:none;"><i class="bx bx-loader-alt bx-spin"></i> Gerando...</span>
+            </button>
+            <a href="<?= site_url('pecas-geradas/listar') ?>" class="btn" id="link-cancelar-peticao">Cancelar</a>
         </div>
     </form>
 </div>
+<script>
+(function() {
+    var form = document.getElementById('form-gerar-peticao');
+    var btn = document.getElementById('btn-gerar-peticao');
+    var linkCancelar = document.getElementById('link-cancelar-peticao');
+    if (!form || !btn) return;
+    form.addEventListener('submit', function() {
+        var text = btn.querySelector('.btn-text');
+        var loading = btn.querySelector('.btn-loading');
+        if (text) text.style.display = 'none';
+        if (loading) loading.style.display = 'inline';
+        btn.disabled = true;
+        if (linkCancelar) linkCancelar.style.pointerEvents = 'none';
+    });
+})();
+</script>

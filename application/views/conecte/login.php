@@ -78,10 +78,11 @@ $parse_cpfcnpj = $this->input->get('c');
                                 <div class="content">
                                     <div id="newlog">
                                         <div class="icon2">
-                                            <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
+                                            <?php $logo_cli = (isset($emitente) && $emitente && !empty($emitente->url_logo)) ? $emitente->url_logo : base_url() . 'assets/img/logo-two.svg'; ?>
+                                            <img src="<?= htmlspecialchars($logo_cli) ?>" alt="Logo" style="max-width:100%;max-height:50px;object-fit:contain" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.svg'">
                                         </div>
                                         <div class="title01">
-                                            <img src="<?php echo base_url() ?>assets/img/logo-adv-branco.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-adv-branco.png'">
+                                            <img src="<?= (isset($emitente) && $emitente && !empty($emitente->url_logo)) ? htmlspecialchars($emitente->url_logo) : base_url() . 'assets/img/logo-adv-branco.svg' ?>" alt="Logo" style="max-width:100%;max-height:50px;object-fit:contain" onerror="this.src='<?php echo base_url() ?>assets/img/logo-adv-branco.svg'">
                                         </div>
                                     </div>
                                     <div id="mcell">Versão: <?= $this->config->item('app_version'); ?></div>
@@ -98,7 +99,10 @@ $parse_cpfcnpj = $this->input->get('c');
                                         <div class="controls">
                                             <div class="main_input_box">
                                                 <span class="add-on bg_ly"><i class='bx bx-id-card iconU'></i></span>
-                                                <input class="" maxlength="18" size="18" name="senha" type="password" placeholder="Senha" value="" />
+                                                <span class="pwd-toggle-wrap" style="position:relative;display:inline-block">
+                                                    <input class="" maxlength="18" size="18" name="senha" type="password" placeholder="Senha" value="" style="padding-right:36px" />
+                                                    <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -121,6 +125,7 @@ $parse_cpfcnpj = $this->input->get('c');
     </div>
 
     <script src="<?php echo base_url() ?>assets/js/bootstrap.min.js"></script>
+    <script src="<?php echo base_url() ?>assets/js/password-toggle.js"></script>
     <script src="<?php echo base_url() ?>assets/js/jquery.validate.js"></script>
     <script src="<?php echo base_url() ?>assets/js/sweetalert2.all.min.js"></script>
     <?php if ($this->session->flashdata('success') != null) { ?>

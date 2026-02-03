@@ -23,6 +23,7 @@
     <script src="<?php echo base_url() ?>assets/js/funcoes.js"></script>
     <script type="text/javascript" src="<?= base_url(); ?>assets/js/funcoesGlobal.js"></script>
     <script type="text/javascript" src="<?= base_url(); ?>assets/js/csrf.js"></script>
+    <script type="text/javascript" src="<?= base_url(); ?>assets/js/password-toggle.js"></script>
 </head>
 
 <body>
@@ -41,7 +42,10 @@
                     <div class="control-group" style="display: flex;margin-bottom: 7pxpx;grid-column-gap: 5px;justify-content: space-evenly">
                         <label style="width: auto" for="senha" class="control-label">Senha<span class="required">*</span></label>
                         <div class="controls" style="margin: 0">
-                            <input id="senha" type="password" name="senha" value="" />
+                            <span class="pwd-toggle-wrap" style="position:relative;display:inline-block">
+                                <input id="senha" type="password" name="senha" value="" style="padding-right:36px" />
+                                <i class="bx bx-show-alt pwd-toggle-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#666;font-size:18px" title="Mostrar senha"></i>
+                            </span>
                         </div>
                     </div>
 

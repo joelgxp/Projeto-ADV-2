@@ -1,3 +1,9 @@
+<?php
+if (!isset($emitente)) {
+    $this->load->model('sistema_model');
+    $emitente = $this->sistema_model->getEmitente();
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -16,6 +22,7 @@
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/css/fullcalendar.css" />
     <link href="<?php echo base_url(); ?>assets/css/bootstrap-responsive.min.css" rel="stylesheet">
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="<?= base_url(); ?>assets/js/password-toggle.js"></script>
     <script type="text/javascript" src="<?= base_url(); ?>assets/js/sweetalert.min.js"></script>
     <link rel="shortcut icon" href="<?php echo base_url(); ?>assets/img/favicon.png">
     <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
@@ -48,11 +55,12 @@
 
     <nav id="sidebar">
         <div id="newlog">
+            <?php $logo_conecte = ($emitente && !empty($emitente->url_logo)) ? $emitente->url_logo : base_url() . 'assets/img/logo-adv-branco.svg'; ?>
             <div class="icon2">
-                <img src="<?php echo base_url() ?>assets/img/logo-two.svg" onerror="this.src='<?php echo base_url() ?>assets/img/logo-two.png'">
+                <img src="<?= $logo_conecte ?>" alt="Logo" style="max-width:100%;max-height:50px;object-fit:contain" onerror="this.src='<?= base_url() ?>assets/img/logo-two.svg'">
             </div>
             <div class="title1">
-                <img src="<?= base_url() ?>assets/img/logo-adv-branco.svg" onerror="this.src='<?= base_url() ?>assets/img/logo-adv-branco.png'">
+                <img src="<?= htmlspecialchars($logo_conecte) ?>" alt="Logo" style="max-width:100%;max-height:45px;object-fit:contain" onerror="this.src='<?= base_url() ?>assets/img/logo-adv-branco.svg'; this.onerror=function(){this.src='<?= base_url() ?>assets/img/logo-adv-branco.png'}">
             </div>
         </div>
         <a href="#" class="visible-phone">

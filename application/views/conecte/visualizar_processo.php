@@ -273,8 +273,7 @@
                         $status = $a->status ?? 'agendada';
                         $status_info = $status_labels[$status] ?? ['label' => ucfirst($status), 'cor' => '#E0E4CC'];
                         echo '<td><span class="badge" style="background-color: ' . $status_info['cor'] . '; border-color: ' . $status_info['cor'] . '">' . $status_info['label'] . '</span></td>';
-                        <?php /* Fase 6 - Sprint 3: Ocultar observações de audiências (podem conter comentários internos) */ ?>
-                        <td>-</td>
+                        echo '<td>-</td>';
                         echo '</tr>';
                     } ?>
                     </tbody>

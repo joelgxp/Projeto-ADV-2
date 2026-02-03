@@ -52,9 +52,8 @@
                     </div>
 
                     <div class="control-group">
-                        <label for="senha" class="control-label">Senha<span class="required">*</span></label>
                         <div class="controls">
-                            <input id="senha" type="password" name="senha" value="<?php echo set_value('senha'); ?>" />
+                            <p class="help-block" style="margin-bottom: 15px;"><i class="bx bx-info-circle"></i> Um e-mail será enviado para o usuário criar sua própria senha de acesso.</p>
                         </div>
                     </div>
 
@@ -165,9 +164,6 @@
                     required: true
                 },
                 email: {
-                    required: true
-                },
-                senha: {
                     required: true
                 }
             },
