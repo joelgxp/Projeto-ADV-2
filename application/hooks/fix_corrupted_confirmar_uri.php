@@ -1,7 +1,7 @@
 <?php
 /**
  * Hook: Corrige URLs corrompidas por clientes de e-mail
- * Ex: usuarios/conf=%20irmar_email/TOKEN → redireciona para definir-senha?t=TOKEN
+ * Ex: definir-senha=%20?t=TOKEN, usuarios/conf=%20irmar_email/TOKEN → redireciona para definir-senha?t=TOKEN
  * Executado em pre_system ANTES do URI parse para evitar 400 Bad Request (chars não permitidos)
  */
 defined('BASEPATH') || exit('No direct script access allowed');
@@ -13,13 +13,27 @@ function fix_corrupted_confirmar_uri()
         return;
     }
 
-    // Extrair path (sem query string)
     $path = parse_url($uri, PHP_URL_PATH);
+    $query = parse_url($uri, PHP_URL_QUERY);
     if (!$path) {
         return;
     }
 
-    // Padrão: .../usuarios/conf...irmar_email/TOKEN (token pode ter = ou %20 por corrupção)
+    // 1) Corrupção em definir-senha: path = ".../definir-senha=%20" ou "definir-senha=" com ?t=TOKEN na query
+    if (preg_match('#/definir-senha[=%\s]#', $path) && $query) {
+        parse_str($query, $params);
+        $token = isset($params['t']) ? trim(preg_replace('/[^a-f0-9]/i', '', (string) $params['t'])) : '';
+        if (strlen($token) === 64) {
+            $proto = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? '';
+            $idx = strpos($path, '/definir-senha');
+            $basePath = ($idx !== false) ? substr($path, 0, $idx) : rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
+            header('Location: ' . $proto . '://' . $host . $basePath . '/definir-senha?t=' . $token, true, 302);
+            exit;
+        }
+    }
+
+    // 2) Padrão: .../usuarios/conf...irmar_email/TOKEN (token pode ter = ou %20 por corrupção)
     if (!preg_match('#/usuarios/([^/]+)/([a-fA-F0-9=_\-\s%]+)#', $path, $m)) {
         return;
     }
