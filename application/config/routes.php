@@ -103,5 +103,8 @@ $route['usuarios/confirmar_email/(:any)'] = 'login/confirmar_email_path/$1';
 // Página para usuário criar sua senha (via link do e-mail)
 $route['definir-senha'] = 'login/definir_senha';
 
+// Acesso demo sem senha (magic link para automação/captura de telas)
+$route['demo-acesso/(:any)'] = 'login/demo_acesso/$1';
+
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */

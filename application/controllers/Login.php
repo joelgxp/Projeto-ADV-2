@@ -51,6 +51,65 @@ class Login extends CI_Controller
     }
 
     /**
+     * Acesso demo sem senha - magic link para automação/captura de telas.
+     * Requer DEMO_ACCESS_TOKEN e DEMO_USER_ID no .env
+     * URL: https://seu-site.com/index.php/demo-acesso/SEU_TOKEN
+     */
+    public function demo_acesso($token = null)
+    {
+        $expected = trim($_ENV['DEMO_ACCESS_TOKEN'] ?? '');
+        if (empty($expected) || $token !== $expected) {
+            show_404();
+            return;
+        }
+
+        $demo_user_id = (int) ($_ENV['DEMO_USER_ID'] ?? 1);
+        if ($demo_user_id < 1) {
+            $demo_user_id = 1;
+        }
+
+        $this->load->model('Sistema_model');
+        $user = $this->Sistema_model->getById($demo_user_id);
+
+        if (!$user) {
+            $this->session->set_flashdata('error', 'Usuário demo não encontrado. Verifique DEMO_USER_ID no .env');
+            redirect('login');
+            return;
+        }
+
+        $user_id = isset($user->idUsuarios) ? $user->idUsuarios : $user->id;
+        $user_email = $user->email ?? $user->usuario ?? '';
+        $nivel_usuario = isset($user->nivel) ? strtolower($user->nivel) : null;
+        $user_permissao = $user->permissoes_id ?? $user->nivel ?? 1;
+
+        if (isset($user->permissoes_id) && $user->permissoes_id && $this->db->table_exists('permissoes')) {
+            $this->db->select('nome');
+            $this->db->where('idPermissao', $user->permissoes_id);
+            $this->db->limit(1);
+            $perm = $this->db->get('permissoes')->row();
+            if ($perm && in_array(strtolower($perm->nome ?? ''), ['admin', 'administrador'])) {
+                $user_permissao = 'admin';
+                $nivel_usuario = 'admin';
+            }
+        } elseif ($nivel_usuario === 'admin') {
+            $user_permissao = 'admin';
+        }
+
+        $session_admin_data = [
+            'nome_admin' => $user->nome,
+            'email_admin' => $user_email,
+            'url_image_user_admin' => $user->url_image_user ?? '',
+            'id_admin' => $user_id,
+            'permissao' => $user_permissao,
+            'logado' => true,
+            'nivel_admin' => $nivel_usuario
+        ];
+        $this->session->set_userdata($session_admin_data);
+
+        redirect('');
+    }
+
+    /**
      * Exibe formulário para o usuário criar sua senha (via link do e-mail)
      */
     public function definir_senha()

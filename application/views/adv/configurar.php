@@ -12,6 +12,7 @@
                 <li><a data-toggle="tab" href="#menu3">Notificações</a></li>
                 <li><a data-toggle="tab" href="#menu4">Atualizações</a></li>
                 <li><a data-toggle="tab" href="#menu7">E-mail</a></li>
+                <li><a data-toggle="tab" href="#menuDemo">Demo</a></li>
             </ul>
             <form action="<?php echo current_url(); ?>" id="formConfigurar" method="post" class="form-horizontal">
                 <input type="hidden" name="<?= $this->security->get_csrf_token_name(); ?>" value="<?= $this->security->get_csrf_hash(); ?>">
@@ -307,6 +308,33 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <!-- Menu Demo (acesso sem senha para automação) -->
+                    <div id="menuDemo" class="tab-pane fade">
+                        <div class="alert alert-info" style="margin: 15px;">
+                            <strong>Acesso demo (magic link)</strong> — Permite login sem senha via URL para automação, captura de telas ou testes.
+                            Configure <code>DEMO_ACCESS_TOKEN</code> e <code>DEMO_USER_ID</code> no arquivo <code>.env</code>.
+                        </div>
+                        <?php if (!empty($demo_url)): ?>
+                        <div class="control-group">
+                            <label class="control-label">URL pública de acesso demo</label>
+                            <div class="controls">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="text" id="demo_url_input" value="<?= htmlspecialchars($demo_url, ENT_QUOTES, 'UTF-8') ?>" readonly style="flex: 1; background: #f5f5f5;">
+                                    <button type="button" class="button btn btn-inverse" onclick="navigator.clipboard.writeText(document.getElementById('demo_url_input').value); this.textContent='Copiado!'; setTimeout(()=>this.innerHTML='<span class=\'button__icon\'><i class=\'bx bx-copy\'></i></span><span class=\'button__text2\'>Copiar</span>', 2000)">
+                                        <span class="button__icon"><i class='bx bx-copy'></i></span><span class="button__text2">Copiar</span>
+                                    </button>
+                                </div>
+                                <span class="help-inline">Use esta URL em ferramentas de captura de telas ou automação. O acesso redireciona ao painel sem solicitar senha.</span>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning" style="margin: 15px;">
+                            Defina <code>DEMO_ACCESS_TOKEN</code> no arquivo <code>.env</code> da aplicação para ativar o acesso demo. Exemplo:<br>
+                            <code>DEMO_ACCESS_TOKEN=seu-token-secreto-aqui</code><br>
+                            <code>DEMO_USER_ID=1</code> (ID do usuário admin a usar como demo)
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </form>

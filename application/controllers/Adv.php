@@ -630,6 +630,9 @@ class Adv extends MY_Controller {
             }
         }
 
+        $demo_token = trim($_ENV['DEMO_ACCESS_TOKEN'] ?? '');
+        $this->data['demo_url'] = $demo_token ? site_url('demo-acesso/' . $demo_token) : '';
+
         $this->data['view'] = 'adv/configurar';
 
         return $this->layout();
