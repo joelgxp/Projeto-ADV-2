@@ -456,54 +456,38 @@ class Sistema_model extends CI_Model
      */
     public function getEmitente()
     {
-        log_message('info', '=== INÍCIO getEmitente ===');
-        
-        // Verificar se a tabela existe
         if (!$this->db->table_exists('emitente')) {
             log_message('error', 'Tabela emitente não existe no banco de dados');
             return null;
         }
-        
-        log_message('info', 'Tabela emitente existe');
-        
-        // Contar registros
+
         $this->db->from('emitente');
         $total = $this->db->count_all_results();
-        log_message('info', 'Total de emitentes na tabela: ' . $total);
-        
+
         if ($total == 0) {
-            log_message('info', 'Nenhum emitente cadastrado na tabela');
             return null;
         }
-        
-        // Buscar primeiro emitente (geralmente só existe um)
+
         $this->db->limit(1);
         $query = $this->db->get('emitente');
-        
+
         if ($query === false) {
-            $error = $this->db->error();
-            log_message('error', 'Erro na query getEmitente: ' . json_encode($error));
+            log_message('error', 'Erro na query getEmitente: ' . json_encode($this->db->error()));
             return null;
         }
-        
+
         $emitente = $query->row();
-        
+
         if (!$emitente) {
-            log_message('error', 'Query executada mas nenhum emitente retornado (row() retornou null/empty)');
-            log_message('error', 'Num rows: ' . $query->num_rows());
             return null;
         }
-        
-        // Garantir que url_logo existe (a view espera este campo mas a tabela tem 'logo')
+
         if (isset($emitente->logo)) {
             $emitente->url_logo = $emitente->logo;
         } else {
             $emitente->url_logo = '';
         }
-        
-        log_message('info', '✅ Emitente encontrado: ID ' . ($emitente->id ?? 'N/A') . ', Nome: ' . ($emitente->nome ?? 'N/A') . ', Email: ' . ($emitente->email ?? 'N/A'));
-        log_message('info', '=== FIM getEmitente ===');
-        
+
         return $emitente;
     }
 
