@@ -126,6 +126,14 @@ input[type="password"] {
   width        : 270px;
 }
 
+/* Oculta o ícone nativo de "mostrar senha" do navegador (ex.: Edge) para evitar dois ícones de olho */
+input[type="password"]::-ms-reveal {
+  display: none;
+}
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 .input-field {
   margin-bottom: 1px;
   padding      : none;
