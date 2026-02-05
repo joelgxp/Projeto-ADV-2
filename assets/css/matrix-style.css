@@ -689,14 +689,15 @@ End hora certa */
 
 /* Colapsado: títulos fora do fluxo para não ocupar espaço */
 #sidebar.open .title {
-  width      : 0;
-  min-width  : 0;
-  overflow   : hidden;
-  opacity    : 0;
-  flex       : 0 0 0;
-  padding    : 0;
-  margin     : 0;
-  transition : var(--tran-03);
+  width         : 0;
+  min-width     : 0;
+  overflow      : hidden;
+  opacity       : 0;
+  flex          : 0 0 0;
+  padding       : 0;
+  margin        : 0;
+  pointer-events: none;
+  transition    : var(--tran-03);
 }
 
 #sidebar.open #newlog .title1 {
@@ -884,14 +885,28 @@ End hora certa */
   transition     : var(--tran-04);
 }
 
-#sidebar li.active {
+/* Apenas o item realmente selecionado (link da página atual) */
+#sidebar li.submenu ul li.active,
+#sidebar ul.menu-links > li:not(.submenu).active {
   background   : var(--black);
   border-radius: 6px;
 }
 
-#sidebar li.active .iconX,
-#sidebar li.active .title {
+#sidebar li.submenu ul li.active .iconX,
+#sidebar li.submenu ul li.active .title,
+#sidebar ul.menu-links > li:not(.submenu).active .iconX,
+#sidebar ul.menu-links > li:not(.submenu).active .title {
   color: #b3c8d5;
+}
+
+/* Pai do submenu (ex.: Financeiro) não fica com cor de destaque quando só um filho está ativo */
+#sidebar li.submenu.active {
+  background: transparent !important;
+}
+
+#sidebar li.submenu.active > a .iconX,
+#sidebar li.submenu.active > a .title {
+  color: inherit !important;
 }
 
 /* Submenu styles */

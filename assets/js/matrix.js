@@ -46,7 +46,7 @@ $(document).ready(function(){
 		if(sidebar.hasClass('open'))
 		{
 			sidebar.removeClass('open');
-			ul.slideUp(250);
+			ul.slideDown(250);
 		} else 
 		{
 			sidebar.addClass('open');
