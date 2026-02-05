@@ -684,16 +684,56 @@ End hora certa */
 
 #sidebar.open {
   width: 80px;
+  min-width: 80px;
 }
 
+/* Colapsado: títulos fora do fluxo para não ocupar espaço */
 #sidebar.open .title {
-  opacity   : 0;
-  font-size : 1.05em;
-  transition: var(--tran-03);
+  width      : 0;
+  min-width  : 0;
+  overflow   : hidden;
+  opacity    : 0;
+  flex       : 0 0 0;
+  padding    : 0;
+  margin     : 0;
+  transition : var(--tran-03);
 }
 
 #sidebar.open #newlog .title1 {
   display   : none;
+}
+
+/* Colapsado: centralizar logo no topo */
+#sidebar.open #newlog {
+  display         : flex;
+  justify-content : center;
+  padding         : 0 10px;
+}
+
+#sidebar.open #newlog .icon2 {
+  margin: 0;
+}
+
+/* Colapsado: lista com padding reduzido e itens centralizados */
+#sidebar.open ul {
+  padding: 10px 8px 0;
+}
+
+#sidebar.open li a {
+  justify-content : center;
+  padding-left    : 0;
+  padding-right  : 0;
+  transition     : var(--tran-03);
+}
+
+/* Colapsado: ícone ocupa só o espaço necessário e fica centralizado */
+#sidebar.open li .iconX {
+  min-width: auto;
+}
+
+/* Colapsado: esconder seta do submenu na barra (submenu abre em overlay) */
+#sidebar.open li.submenu > a .submenu-arrow {
+  display: none;
 }
 
 #sidebar ul {
@@ -813,6 +853,16 @@ End hora certa */
   margin: 20px 20px 0;
 }
 
+#sidebar.open .search-box {
+  margin-left : 8px;
+  margin-right: 8px;
+}
+
+#sidebar.open .botton-content {
+  margin-left : 8px;
+  margin-right: 8px;
+}
+
 .search-box input {
   height       : 50%;
   margin       : 5px;
@@ -822,11 +872,6 @@ End hora certa */
   background   : transparent;
   border-radius: 6px;
   color        : #e6e2e2;
-}
-
-#sidebar.open li a {
-  justify-content: flex-start;
-  transition     : var(--tran-03);
 }
 
 #sidebar li a {
